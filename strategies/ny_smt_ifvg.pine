@@ -45,17 +45,10 @@ var array<float> zBot  = array.new<float>()
 var array<int>   zBorn = array.new<int>()
 var array<box>   zBox  = array.new<box>()
 
-addZone(float top, float bot, color col) =>
-    if array.size(zTop) >= maxZones
-        array.shift(zTop)
-        array.shift(zBot)
-        array.shift(zBorn)
-        box.delete(array.shift(zBox))
-    array.push(zTop, top)
-    array.push(zBot, bot)
-    array.push(zBorn, bar_index)
-    array.push(zBox, box.new(bar_index, top, bar_index, bot, border_color = col, bgcolor = color.new(col, 85)))
-    true
+// New areas found on this bar are collected here, then stored below.
+newTops = array.new<float>()
+newBots = array.new<float>()
+newCols = array.new<color>()
 
 // Higher-timeframe FVGs, using only finished HTF candles (no repainting).
 [hHigh3, hLow3, hHigh1, hLow1, hTime1] = request.security(syminfo.tickerid, htf,
@@ -63,9 +56,13 @@ addZone(float top, float bot, color col) =>
 newHtfBar = hTime1 != hTime1[1]
 if useHtfFvg and newHtfBar
     if hLow1 > hHigh3
-        addZone(hLow1, hHigh3, color.teal)
+        array.push(newTops, hLow1)
+        array.push(newBots, hHigh3)
+        array.push(newCols, color.teal)
     if hHigh1 < hLow3
-        addZone(hLow3, hHigh1, color.maroon)
+        array.push(newTops, hLow3)
+        array.push(newBots, hHigh1)
+        array.push(newCols, color.maroon)
 
 // Break of structure: a swing high/low that price closes through becomes an area.
 ph = ta.pivothigh(high, bosLen, bosLen)
@@ -78,12 +75,30 @@ if not na(pl)
     swingLow := pl
 if not na(swingHigh) and close > swingHigh
     if useBos
-        addZone(swingHigh, swingHigh, color.orange)
+        array.push(newTops, swingHigh)
+        array.push(newBots, swingHigh)
+        array.push(newCols, color.orange)
     swingHigh := na
 if not na(swingLow) and close < swingLow
     if useBos
-        addZone(swingLow, swingLow, color.orange)
+        array.push(newTops, swingLow)
+        array.push(newBots, swingLow)
+        array.push(newCols, color.orange)
     swingLow := na
+
+// Store the new areas, dropping the oldest when the list is full.
+for [j, t] in newTops
+    if array.size(zTop) >= maxZones
+        array.remove(zTop, 0)
+        array.remove(zBot, 0)
+        array.remove(zBorn, 0)
+        box.delete(array.remove(zBox, 0))
+    b = array.get(newBots, j)
+    col = array.get(newCols, j)
+    array.push(zTop, t)
+    array.push(zBot, b)
+    array.push(zBorn, bar_index)
+    array.push(zBox, box.new(bar_index, t, bar_index, b, border_color = col, bgcolor = color.new(col, 85)))
 
 // Did this candle touch any area? Also age out old areas.
 bool touched = false
