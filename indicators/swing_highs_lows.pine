@@ -1,0 +1,177 @@
+//@version=6
+indicator("Swing Highs & Lows", shorttitle = "Swings", overlay = true, max_labels_count = 500, max_lines_count = 500)
+
+// ─────────────────────────────────────────────────────────────
+// Inputs
+// ─────────────────────────────────────────────────────────────
+grpDet = "Swing Detection"
+leftBars  = input.int(5, "Left Bars", minval = 1, group = grpDet,
+     tooltip = "How many candles to the LEFT of a swing high must have lower highs (or higher lows for a swing low).")
+rightBars = input.int(5, "Right Bars", minval = 1, group = grpDet,
+     tooltip = "How many candles to the RIGHT must have lower highs (or higher lows). A swing is only confirmed after this many candles close, so labels appear with this delay.")
+swingSrc  = input.string("Wicks", "Swing Source", options = ["Wicks", "Bodies"], group = grpDet,
+     tooltip = "Wicks: uses the candle highs and lows.\nBodies: uses the top and bottom of the candle bodies, ignoring wicks.")
+
+grpLbl = "Labels"
+showLabels  = input.bool(true, "Show labels", group = grpLbl)
+labelMode   = input.string("HH / HL / LH / LL", "Label Text", options = ["HH / HL / LH / LL", "HH / HL / LH / LL + Price", "SH / SL", "Price"], group = grpLbl,
+     tooltip = "HH = Higher High, LH = Lower High, HL = Higher Low, LL = Lower Low, EQH / EQL = Equal High / Low.\nSH / SL = Swing High / Swing Low.")
+labelSizeIn = input.string("Small", "Label Size", options = ["Tiny", "Small", "Normal"], group = grpLbl)
+
+grpLvl = "Swing Levels"
+showLevels  = input.bool(true, "Show swing level lines", group = grpLvl)
+maxLevels   = input.int(5, "Max lines per side", minval = 1, maxval = 50, group = grpLvl)
+stopOnBreak = input.bool(true, "Stop line when price breaks it", group = grpLvl)
+breakType   = input.string("Close", "Break Confirmation", options = ["Close", "Wick"], group = grpLvl,
+     tooltip = "Close: a level is broken when a candle CLOSES beyond it.\nWick: a level is broken as soon as a wick touches beyond it.")
+lineStyleIn = input.string("Dashed", "Line Style", options = ["Solid", "Dashed", "Dotted"], group = grpLvl)
+
+grpZz = "Zigzag"
+showZigzag = input.bool(false, "Show zigzag", group = grpZz)
+zzColor    = input.color(color.new(color.gray, 20), "Zigzag Color", group = grpZz)
+zzWidth    = input.int(1, "Zigzag Width", minval = 1, maxval = 4, group = grpZz)
+
+grpCol = "Colors"
+highColor = input.color(color.red,   "Swing High", group = grpCol)
+lowColor  = input.color(color.green, "Swing Low",  group = grpCol)
+
+// ─────────────────────────────────────────────────────────────
+// Settings derived from inputs
+// ─────────────────────────────────────────────────────────────
+lblSize   = labelSizeIn == "Tiny" ? size.tiny : labelSizeIn == "Small" ? size.small : size.normal
+lineStyle = lineStyleIn == "Solid" ? line.style_solid : lineStyleIn == "Dashed" ? line.style_dashed : line.style_dotted
+
+srcHigh      = swingSrc == "Wicks" ? high : math.max(open, close)
+srcLow       = swingSrc == "Wicks" ? low  : math.min(open, close)
+breakHighSrc = breakType == "Close" ? close : high
+breakLowSrc  = breakType == "Close" ? close : low
+
+// ─────────────────────────────────────────────────────────────
+// Swing detection
+// ─────────────────────────────────────────────────────────────
+ph     = ta.pivothigh(srcHigh, leftBars, rightBars)
+pl     = ta.pivotlow(srcLow, leftBars, rightBars)
+pivotX = bar_index - rightBars
+
+isNewHigh = not na(ph)
+isNewLow  = not na(pl)
+
+// ─────────────────────────────────────────────────────────────
+// Types and helpers
+// ─────────────────────────────────────────────────────────────
+type SwingLevel
+    line  ln
+    float price
+    bool  broken = false
+
+type ZigZag
+    int   x   = na
+    float y   = na
+    int   dir = 0
+    line  ln  = na
+
+f_labelText(string tag, float price, bool isHigh) =>
+    string structure = labelMode == "SH / SL" ? (isHigh ? "SH" : "SL") : tag
+    string priceTxt  = str.tostring(price, format.mintick)
+    switch labelMode
+        "Price"                     => priceTxt
+        "HH / HL / LH / LL + Price" => structure + "\n" + priceTxt
+        => structure
+
+f_addLevel(array<SwingLevel> levels, int x, float y, color c) =>
+    line ln = line.new(x, y, bar_index, y, color = c, style = lineStyle, width = 1)
+    levels.push(SwingLevel.new(ln, y))
+    if levels.size() > maxLevels
+        SwingLevel oldest = levels.shift()
+        oldest.ln.delete()
+
+f_updateLevels(array<SwingLevel> levels, bool isHigh) =>
+    for lvl in levels
+        if not lvl.broken
+            lvl.ln.set_x2(bar_index)
+            if stopOnBreak and (isHigh ? breakHighSrc > lvl.price : breakLowSrc < lvl.price)
+                lvl.broken := true
+
+f_zigzag(ZigZag z, int x, float y, int dir) =>
+    if z.dir == dir
+        // Two swings in the same direction: keep only the more extreme one
+        if (dir == 1 and y > z.y) or (dir == -1 and y < z.y)
+            if not na(z.ln)
+                z.ln.set_xy2(x, y)
+            z.x := x
+            z.y := y
+    else
+        if not na(z.x)
+            z.ln := line.new(z.x, z.y, x, y, color = zzColor, width = zzWidth)
+        z.x   := x
+        z.y   := y
+        z.dir := dir
+
+// ─────────────────────────────────────────────────────────────
+// State
+// ─────────────────────────────────────────────────────────────
+var float lastHigh   = na
+var float lastLow    = na
+var bool  highBroken = false
+var bool  lowBroken  = false
+
+var array<SwingLevel> highLevels = array.new<SwingLevel>()
+var array<SwingLevel> lowLevels  = array.new<SwingLevel>()
+var ZigZag zz = ZigZag.new()
+
+// ─────────────────────────────────────────────────────────────
+// Break of the most recent swing (for alerts)
+// ─────────────────────────────────────────────────────────────
+bool brokeHigh = false
+bool brokeLow  = false
+if not na(lastHigh) and not highBroken and breakHighSrc > lastHigh
+    highBroken := true
+    brokeHigh  := true
+if not na(lastLow) and not lowBroken and breakLowSrc < lastLow
+    lowBroken := true
+    brokeLow  := true
+
+// ─────────────────────────────────────────────────────────────
+// Swing level lines: extend active lines, stop them when broken
+// ─────────────────────────────────────────────────────────────
+if showLevels
+    f_updateLevels(highLevels, true)
+    f_updateLevels(lowLevels, false)
+
+// ─────────────────────────────────────────────────────────────
+// New swing high
+// ─────────────────────────────────────────────────────────────
+if isNewHigh
+    string tag = na(lastHigh) ? "SH" : ph > lastHigh ? "HH" : ph < lastHigh ? "LH" : "EQH"
+    if showLabels
+        label.new(pivotX, ph, f_labelText(tag, ph, true), yloc = yloc.abovebar, style = label.style_label_down, color = color.new(color.black, 100),
+             textcolor = highColor, size = lblSize)
+    if showLevels
+        f_addLevel(highLevels, pivotX, ph, highColor)
+    if showZigzag
+        f_zigzag(zz, pivotX, ph, 1)
+    lastHigh   := ph
+    highBroken := false
+
+// ─────────────────────────────────────────────────────────────
+// New swing low
+// ─────────────────────────────────────────────────────────────
+if isNewLow
+    string tag = na(lastLow) ? "SL" : pl < lastLow ? "LL" : pl > lastLow ? "HL" : "EQL"
+    if showLabels
+        label.new(pivotX, pl, f_labelText(tag, pl, false), yloc = yloc.belowbar, style = label.style_label_up, color = color.new(color.black, 100),
+             textcolor = lowColor, size = lblSize)
+    if showLevels
+        f_addLevel(lowLevels, pivotX, pl, lowColor)
+    if showZigzag
+        f_zigzag(zz, pivotX, pl, -1)
+    lastLow   := pl
+    lowBroken := false
+
+// ─────────────────────────────────────────────────────────────
+// Alerts
+// ─────────────────────────────────────────────────────────────
+alertcondition(isNewHigh, "New Swing High",    "A new swing high was confirmed")
+alertcondition(isNewLow,  "New Swing Low",     "A new swing low was confirmed")
+alertcondition(brokeHigh, "Swing High Broken", "Price broke above the last swing high")
+alertcondition(brokeLow,  "Swing Low Broken",  "Price broke below the last swing low")
