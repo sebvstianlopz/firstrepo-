@@ -1,5 +1,5 @@
 //@version=6
-indicator("Relative Volume (RVOL)", shorttitle = "RVOL", overlay = false, format = format.price, precision = 2)
+indicator("Relative Volume (RVOL)", shorttitle = "RVOL", overlay = true)
 
 // ─────────────────────────────────────────────────────────────
 // Inputs
@@ -22,7 +22,6 @@ dominance   = input.float(55.0, "Min Dominance % to Highlight", minval = 50, max
      tooltip = "A strong-volume candle is only highlighted if buyers (or sellers) made up at least this % of its volume.")
 
 grpLvl = "Thresholds"
-lowLvl     = input.float(0.5, "Low RVOL",     minval = 0, step = 0.1, group = grpLvl)
 highLvl    = input.float(2.0, "Strong RVOL",  minval = 0, step = 0.1, group = grpLvl,
      tooltip = "Candles at or above this RVOL are highlighted on the chart.")
 extremeLvl = input.float(3.0, "Extreme RVOL", minval = 0, step = 0.1, group = grpLvl,
@@ -33,14 +32,11 @@ buyColor  = input.color(color.new(color.green, 0), "Buy Volume",  group = grpCol
 sellColor = input.color(color.new(color.red, 0),   "Sell Volume", group = grpCol)
 
 grpVis = "Display"
-paneStyle  = input.string("Stacked", "Pane Style", options = ["Stacked", "Mirrored"], group = grpVis,
-     tooltip = "Stacked: one column per candle, green buy part at the bottom and red sell part on top.\nMirrored: buy volume above zero, sell volume below zero.")
-highlightCandles = input.bool(true,  "Highlight strong-volume candles", group = grpVis)
-strongShade      = input.int(40, "Strong Candle Transparency", minval = 0, maxval = 90, group = grpVis,
+strongShade = input.int(40, "Strong Candle Transparency", minval = 0, maxval = 90, group = grpVis,
      tooltip = "How light the Strong (but not Extreme) candles are. 0 = same as Extreme, higher = lighter.")
-dimOthers        = input.bool(false, "Dim all other candles",           group = grpVis,
+dimOthers   = input.bool(false, "Dim all other candles", group = grpVis,
      tooltip = "Grays out every candle that isn't highlighted so the strong-volume candles stand out.")
-showTable        = input.bool(true,  "Show info table",                 group = grpVis)
+showTable   = input.bool(false, "Show info table",       group = grpVis)
 
 // ─────────────────────────────────────────────────────────────
 // Volume check
@@ -127,16 +123,13 @@ buyPct      = volume > 0 ? buyVol / volume * 100 : 50.0
 sellPct     = 100 - buyPct
 
 // ─────────────────────────────────────────────────────────────
-// RVOL (total, buy and sell)
+// RVOL
 // ─────────────────────────────────────────────────────────────
-avgVol   = useTod ? todAvg : simpleAvg
-rvol     = avgVol > 0 ? volume  / avgVol : na
-buyRvol  = avgVol > 0 ? buyVol  / avgVol : na
-sellRvol = avgVol > 0 ? sellVol / avgVol : na
+avgVol = useTod ? todAvg : simpleAvg
+rvol   = avgVol > 0 ? volume / avgVol : na
 
 buyDominant  = buyPct  >= dominance
 sellDominant = sellPct >= dominance
-sideIsBuy    = buyVol >= sellVol
 
 isStrong  = not na(rvol) and rvol >= highLvl
 isExtreme = not na(rvol) and rvol >= extremeLvl
@@ -146,46 +139,8 @@ strongSell  = isStrong  and sellDominant
 extremeBuy  = isExtreme and buyDominant
 extremeSell = isExtreme and sellDominant
 
-// Brighter color = stronger relative volume
-transp = na(rvol)          ? 85 :
-     rvol >= extremeLvl    ? 0  :
-     rvol >= highLvl       ? 15 :
-     rvol >= 1.0           ? 45 :
-     rvol <= lowLvl        ? 80 : 65
-buyCol    = color.new(buyColor, transp)
-sellCol   = color.new(sellColor, transp)
-sideColor = sideIsBuy ? buyColor : sellColor
-
 // ─────────────────────────────────────────────────────────────
-// RVOL pane
-// ─────────────────────────────────────────────────────────────
-isStacked = paneStyle == "Stacked"
-
-// Stacked: full column in sell color, buy part drawn over it from zero
-plot(isStacked ? rvol    : na, "Sell RVOL (stacked)", color = sellCol, style = plot.style_columns, display = display.pane)
-plot(isStacked ? buyRvol : na, "Buy RVOL (stacked)",  color = buyCol,  style = plot.style_columns, display = display.pane)
-
-// Mirrored: buy above zero, sell below zero
-plot(isStacked ? na : buyRvol,   "Buy RVOL (mirrored)",  color = buyCol,  style = plot.style_columns, display = display.pane)
-plot(isStacked ? na : -sellRvol, "Sell RVOL (mirrored)", color = sellCol, style = plot.style_columns, display = display.pane)
-
-// Values for the Data Window
-plot(rvol,     "RVOL",      display = display.data_window)
-plot(buyRvol,  "Buy RVOL",  display = display.data_window)
-plot(sellRvol, "Sell RVOL", display = display.data_window)
-plot(buyPct,   "Buy %",     display = display.data_window)
-plot(delta,    "Delta",     display = display.data_window, format = format.volume)
-
-hline(0,           "Zero",           color = color.new(color.gray, 60))
-hline(1.0,         "Average",        color = color.new(color.gray, 30), linestyle = hline.style_dashed)
-hline(highLvl,     "Strong",         color = color.new(color.gray, 50), linestyle = hline.style_dotted)
-hline(extremeLvl,  "Extreme",        color = color.new(color.gray, 50), linestyle = hline.style_dotted)
-hline(-1.0,        "Average (sell)", color = isStacked ? na : color.new(color.gray, 30), linestyle = hline.style_dashed)
-hline(-highLvl,    "Strong (sell)",  color = isStacked ? na : color.new(color.gray, 50), linestyle = hline.style_dotted)
-hline(-extremeLvl, "Extreme (sell)", color = isStacked ? na : color.new(color.gray, 50), linestyle = hline.style_dotted)
-
-// ─────────────────────────────────────────────────────────────
-// Candle highlighting on the price chart
+// Candle highlighting
 // ─────────────────────────────────────────────────────────────
 highlightBuy  = strongBuy  and buyVol  >= sellVol
 highlightSell = strongSell and sellVol >  buyVol
@@ -195,15 +150,15 @@ isFullColor   = extremeBuy or extremeSell
 candleColor = not isHighlighted ? (dimOthers ? color.new(color.gray, 70) : na) :
      color.new(highlightBuy ? buyColor : sellColor, isFullColor ? 0 : strongShade)
 
-barcolor(highlightCandles ? candleColor : na, title = "Candle Highlight")
+barcolor(candleColor, title = "Candle Highlight")
 
 // ─────────────────────────────────────────────────────────────
-// Info table
+// Info table (current candle)
 // ─────────────────────────────────────────────────────────────
-var table info = table.new(position.top_right, 2, 7, bgcolor = color.new(color.black, 80), border_width = 1)
+var table info = table.new(position.bottom_right, 2, 6, bgcolor = color.new(color.black, 80), border_width = 1)
 
 if showTable and barstate.islast
-    modeLabel   = mode == "Time of Day" and not timeframe.isintraday ? "Simple (ToD needs intraday)" : mode
+    sideColor   = buyVol >= sellVol ? buyColor : sellColor
     methodLabel = useIntrabar ? "Intrabar (" + ltf + ")" : splitMethod == "Intrabar" ? "Candle Range (no intrabar data)" : "Candle Range"
     table.cell(info, 0, 0, "RVOL",     text_color = color.white, text_size = size.small)
     table.cell(info, 1, 0, na(rvol) ? "n/a" : str.tostring(rvol, "#.##") + "x", text_color = sideColor, text_size = size.small)
@@ -217,8 +172,6 @@ if showTable and barstate.islast
     table.cell(info, 1, 4, na(avgVol) ? "n/a" : str.tostring(avgVol, format.volume), text_color = color.white, text_size = size.small)
     table.cell(info, 0, 5, "Split",    text_color = color.white, text_size = size.small)
     table.cell(info, 1, 5, methodLabel, text_color = color.white, text_size = size.small)
-    table.cell(info, 0, 6, "Mode",     text_color = color.white, text_size = size.small)
-    table.cell(info, 1, 6, modeLabel,  text_color = color.white, text_size = size.small)
 
 // ─────────────────────────────────────────────────────────────
 // Alerts
