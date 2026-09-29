@@ -18,15 +18,15 @@ splitMethod = input.string("Intrabar", "Method", options = ["Intrabar", "Candle 
      tooltip = "Intrabar: looks inside each candle using a lower timeframe. Volume on up-ticks counts as buying, volume on down-ticks counts as selling. Most accurate.\nCandle Range: estimates from where the candle closed inside its high-low range. Closing near the high = mostly buying, near the low = mostly selling.\nIf intrabar data isn't available for older bars, those bars use Candle Range automatically.")
 customLtf   = input.timeframe("", "Intrabar Timeframe (blank = auto)", group = grpSplit,
      tooltip = "Auto: 1 second on seconds charts, 1 minute on intraday charts, 5 minutes on daily charts, 60 minutes on weekly and above.")
-dominance   = input.float(55.0, "Min Dominance % for Arrows", minval = 50, maxval = 100, step = 1, group = grpSplit,
-     tooltip = "A strong-volume candle only gets an arrow if buyers (or sellers) made up at least this % of its volume.")
+dominance   = input.float(55.0, "Min Dominance % to Highlight", minval = 50, maxval = 100, step = 1, group = grpSplit,
+     tooltip = "A strong-volume candle is only highlighted if buyers (or sellers) made up at least this % of its volume.")
 
 grpLvl = "Thresholds"
 lowLvl     = input.float(0.5, "Low RVOL",     minval = 0, step = 0.1, group = grpLvl)
 highLvl    = input.float(2.0, "Strong RVOL",  minval = 0, step = 0.1, group = grpLvl,
-     tooltip = "Candles at or above this RVOL get an arrow on the chart.")
+     tooltip = "Candles at or above this RVOL are highlighted on the chart.")
 extremeLvl = input.float(3.0, "Extreme RVOL", minval = 0, step = 0.1, group = grpLvl,
-     tooltip = "Candles at or above this RVOL get a larger arrow.")
+     tooltip = "Candles at or above this RVOL are highlighted in full color. Strong candles below this level use a lighter shade.")
 
 grpCol = "Colors"
 buyColor  = input.color(color.new(color.green, 0), "Buy Volume",  group = grpCol)
@@ -35,9 +35,12 @@ sellColor = input.color(color.new(color.red, 0),   "Sell Volume", group = grpCol
 grpVis = "Display"
 paneStyle  = input.string("Stacked", "Pane Style", options = ["Stacked", "Mirrored"], group = grpVis,
      tooltip = "Stacked: one column per candle, green buy part at the bottom and red sell part on top.\nMirrored: buy volume above zero, sell volume below zero.")
-showArrows = input.bool(true,  "Show buy/sell arrows on chart", group = grpVis)
-colorBars  = input.bool(false, "Color strong-volume candles",   group = grpVis)
-showTable  = input.bool(true,  "Show info table",               group = grpVis)
+highlightCandles = input.bool(true,  "Highlight strong-volume candles", group = grpVis)
+strongShade      = input.int(40, "Strong Candle Transparency", minval = 0, maxval = 90, group = grpVis,
+     tooltip = "How light the Strong (but not Extreme) candles are. 0 = same as Extreme, higher = lighter.")
+dimOthers        = input.bool(false, "Dim all other candles",           group = grpVis,
+     tooltip = "Grays out every candle that isn't highlighted so the strong-volume candles stand out.")
+showTable        = input.bool(true,  "Show info table",                 group = grpVis)
 
 // ─────────────────────────────────────────────────────────────
 // Volume check
@@ -182,18 +185,17 @@ hline(-highLvl,    "Strong (sell)",  color = isStacked ? na : color.new(color.gr
 hline(-extremeLvl, "Extreme (sell)", color = isStacked ? na : color.new(color.gray, 50), linestyle = hline.style_dotted)
 
 // ─────────────────────────────────────────────────────────────
-// Arrows on the price chart
+// Candle highlighting on the price chart
 // ─────────────────────────────────────────────────────────────
-plotshape(showArrows and strongBuy and not extremeBuy, "Strong Buy Volume", shape.arrowup, location.belowbar,
-     color = buyColor, size = size.normal, force_overlay = true)
-plotshape(showArrows and strongSell and not extremeSell, "Strong Sell Volume", shape.arrowdown, location.abovebar,
-     color = sellColor, size = size.normal, force_overlay = true)
-plotshape(showArrows and extremeBuy, "Extreme Buy Volume", shape.arrowup, location.belowbar,
-     color = buyColor, size = size.large, text = "BUY", textcolor = buyColor, force_overlay = true)
-plotshape(showArrows and extremeSell, "Extreme Sell Volume", shape.arrowdown, location.abovebar,
-     color = sellColor, size = size.large, text = "SELL", textcolor = sellColor, force_overlay = true)
+highlightBuy  = strongBuy  and buyVol  >= sellVol
+highlightSell = strongSell and sellVol >  buyVol
+isHighlighted = highlightBuy or highlightSell
+isFullColor   = extremeBuy or extremeSell
 
-barcolor(colorBars and (strongBuy or strongSell) ? sideColor : na)
+candleColor = not isHighlighted ? (dimOthers ? color.new(color.gray, 70) : na) :
+     color.new(highlightBuy ? buyColor : sellColor, isFullColor ? 0 : strongShade)
+
+barcolor(highlightCandles ? candleColor : na, title = "Candle Highlight")
 
 // ─────────────────────────────────────────────────────────────
 // Info table
