@@ -1,0 +1,155 @@
+
+==================== A  OANDA 5m entries (4 wks)
+
+  stop=swing target=1.0R
+    REJ  real   n=17   win  52.9%  avg +0.02R  total   +0.3R  PF 1.04  maxDD  3.3R
+         random n=37   win  48.6%  avg -0.06R  total   -2.2R  PF 0.89  maxDD  7.5R
+    BOS  real   n=12   win  41.7%  avg -0.19R  total   -2.2R  PF 0.69  maxDD  3.2R
+         random n=27   win  37.0%  avg -0.28R  total   -7.4R  PF 0.57  maxDD  8.4R
+    ALL  real   n=29   win  48.3%  avg -0.07R  total   -1.9R  PF 0.88  maxDD  5.6R
+         random n=64   win  43.8%  avg -0.15R  total   -9.6R  PF 0.74  maxDD 10.4R
+
+  stop=swing target=1.5R
+    REJ  real   n=17   win  35.3%  avg -0.16R  total   -2.7R  PF 0.77  maxDD  6.0R
+         random n=37   win  40.5%  avg -0.02R  total   -0.7R  PF 0.97  maxDD  8.5R
+    BOS  real   n=12   win  33.3%  avg -0.19R  total   -2.2R  PF 0.73  maxDD  4.1R
+         random n=27   win  29.6%  avg -0.29R  total   -7.8R  PF 0.58  maxDD  9.3R
+    ALL  real   n=29   win  34.5%  avg -0.17R  total   -4.9R  PF 0.75  maxDD  8.7R
+         random n=64   win  35.9%  avg -0.13R  total   -8.5R  PF 0.79  maxDD 10.8R
+
+  stop=swing target=2.0R  <-- indicator defaults
+    REJ  real   n=17   win  23.5%  avg -0.33R  total   -5.7R  PF 0.58  maxDD  7.5R
+         random n=37   win  21.6%  avg -0.38R  total  -14.2R  PF 0.53  maxDD 16.0R
+    BOS  real   n=12   win  25.0%  avg -0.51R  total   -6.1R  PF 0.34  maxDD  6.1R
+         random n=27   win  29.6%  avg -0.20R  total   -5.5R  PF 0.70  maxDD  8.3R
+    ALL  real   n=29   win  24.1%  avg -0.41R  total  -11.8R  PF 0.48  maxDD 13.3R
+         random n=64   win  25.0%  avg -0.31R  total  -19.7R  PF 0.59  maxDD 21.5R
+
+  stop=zone  target=1.0R
+    REJ  real   n=17   win  41.2%  avg -0.19R  total   -3.3R  PF 0.68  maxDD  3.3R
+         random n=37   win  40.5%  avg -0.19R  total   -7.0R  PF 0.68  maxDD  7.7R
+    BOS  real   n=12   win  33.3%  avg -0.35R  total   -4.2R  PF 0.49  maxDD  4.2R
+         random n=27   win  44.4%  avg -0.14R  total   -3.7R  PF 0.75  maxDD  5.6R
+    ALL  real   n=29   win  37.9%  avg -0.26R  total   -7.4R  PF 0.59  maxDD  7.4R
+         random n=64   win  42.2%  avg -0.17R  total  -10.7R  PF 0.71  maxDD 11.6R
+
+  stop=zone  target=1.5R
+    REJ  real   n=17   win  35.3%  avg -0.13R  total   -2.3R  PF 0.80  maxDD  4.1R
+         random n=37   win  35.1%  avg -0.12R  total   -4.5R  PF 0.81  maxDD  6.4R
+    BOS  real   n=12   win  25.0%  avg -0.51R  total   -6.1R  PF 0.26  maxDD  6.1R
+         random n=27   win  40.7%  avg -0.02R  total   -0.5R  PF 0.96  maxDD  5.6R
+    ALL  real   n=29   win  31.0%  avg -0.29R  total   -8.3R  PF 0.57  maxDD  8.8R
+         random n=64   win  37.5%  avg -0.08R  total   -5.1R  PF 0.87  maxDD  9.7R
+
+  stop=zone  target=2.0R
+    REJ  real   n=17   win  29.4%  avg -0.27R  total   -4.6R  PF 0.62  maxDD  5.6R
+         random n=37   win  29.7%  avg -0.11R  total   -4.2R  PF 0.84  maxDD  7.9R
+    BOS  real   n=12   win  25.0%  avg -0.46R  total   -5.6R  PF 0.32  maxDD  5.6R
+         random n=27   win  40.7%  avg +0.09R  total   +2.4R  PF 1.16  maxDD  5.5R
+    ALL  real   n=29   win  27.6%  avg -0.35R  total  -10.2R  PF 0.50  maxDD 11.1R
+         random n=64   win  34.4%  avg -0.03R  total   -1.8R  PF 0.96  maxDD 10.7R
+
+==================== B  OANDA 15m entries (2.5 mo, proxy)
+
+  stop=swing target=1.0R
+    REJ  real   n=37   win  51.4%  avg +0.00R  total   +0.1R  PF 1.01  maxDD  5.4R
+         random n=89   win  52.8%  avg +0.04R  total   +3.7R  PF 1.09  maxDD 12.1R
+    BOS  real   n=12   win  41.7%  avg -0.08R  total   -0.9R  PF 0.84  maxDD  2.1R
+         random n=11   win  63.6%  avg +0.31R  total   +3.4R  PF 2.20  maxDD  1.4R
+    ALL  real   n=49   win  49.0%  avg -0.02R  total   -0.8R  PF 0.97  maxDD  5.8R
+         random n=100  win  54.0%  avg +0.07R  total   +7.1R  PF 1.16  maxDD 13.1R
+
+  stop=swing target=1.5R
+    REJ  real   n=37   win  35.1%  avg -0.15R  total   -5.4R  PF 0.78  maxDD  6.2R
+         random n=89   win  49.4%  avg +0.21R  total  +19.0R  PF 1.42  maxDD  7.6R
+    BOS  real   n=12   win  33.3%  avg -0.03R  total   -0.4R  PF 0.94  maxDD  2.9R
+         random n=11   win  45.5%  avg +0.12R  total   +1.4R  PF 1.28  maxDD  2.4R
+    ALL  real   n=49   win  34.7%  avg -0.12R  total   -5.8R  PF 0.81  maxDD  7.3R
+         random n=100  win  49.0%  avg +0.20R  total  +20.4R  PF 1.41  maxDD  8.7R
+
+  stop=swing target=2.0R  <-- indicator defaults
+    REJ  real   n=37   win  29.7%  avg -0.18R  total   -6.6R  PF 0.75  maxDD  7.7R
+         random n=89   win  40.4%  avg +0.12R  total  +11.0R  PF 1.21  maxDD 19.3R
+    BOS  real   n=12   win  33.3%  avg +0.06R  total   +0.7R  PF 1.11  maxDD  2.9R
+         random n=11   win  45.5%  avg +0.31R  total   +3.4R  PF 1.70  maxDD  2.4R
+    ALL  real   n=49   win  30.6%  avg -0.12R  total   -5.8R  PF 0.82  maxDD  7.2R
+         random n=100  win  41.0%  avg +0.14R  total  +14.3R  PF 1.25  maxDD 20.3R
+
+  stop=zone  target=1.0R
+    REJ  real   n=37   win  51.4%  avg +0.01R  total   +0.4R  PF 1.02  maxDD  5.2R
+         random n=89   win  57.3%  avg +0.12R  total  +10.9R  PF 1.28  maxDD  5.1R
+    BOS  real   n=12   win  33.3%  avg -0.18R  total   -2.1R  PF 0.65  maxDD  2.7R
+         random n=11   win  63.6%  avg +0.32R  total   +3.5R  PF 2.00  maxDD  1.5R
+    ALL  real   n=49   win  46.9%  avg -0.03R  total   -1.7R  PF 0.93  maxDD  6.1R
+         random n=100  win  58.0%  avg +0.14R  total  +14.3R  PF 1.34  maxDD  5.1R
+
+  stop=zone  target=1.5R
+    REJ  real   n=37   win  40.5%  avg -0.09R  total   -3.4R  PF 0.85  maxDD  7.7R
+         random n=89   win  49.4%  avg +0.17R  total  +15.5R  PF 1.34  maxDD  8.7R
+    BOS  real   n=12   win  25.0%  avg -0.21R  total   -2.5R  PF 0.62  maxDD  3.5R
+         random n=11   win  54.5%  avg +0.34R  total   +3.8R  PF 1.94  maxDD  1.6R
+    ALL  real   n=49   win  36.7%  avg -0.12R  total   -5.9R  PF 0.79  maxDD 11.2R
+         random n=100  win  50.0%  avg +0.19R  total  +19.3R  PF 1.39  maxDD  8.7R
+
+  stop=zone  target=2.0R
+    REJ  real   n=37   win  35.1%  avg -0.09R  total   -3.4R  PF 0.86  maxDD  8.2R
+         random n=89   win  41.6%  avg +0.14R  total  +12.3R  PF 1.24  maxDD 10.2R
+    BOS  real   n=12   win  25.0%  avg -0.12R  total   -1.5R  PF 0.77  maxDD  3.0R
+         random n=11   win  54.5%  avg +0.33R  total   +3.6R  PF 1.90  maxDD  1.6R
+    ALL  real   n=49   win  32.7%  avg -0.10R  total   -4.9R  PF 0.84  maxDD  8.1R
+         random n=100  win  43.0%  avg +0.16R  total  +15.9R  PF 1.29  maxDD 10.4R
+
+  Monthly (sample B, defaults, both triggers):
+    2026-07  n=6    win  16.7%  avg -0.42R  total   -2.5R  PF 0.44  maxDD  4.5R
+    2026-08  n=23   win  34.8%  avg -0.01R  total   -0.3R  PF 0.98  maxDD  5.2R
+    2026-09  n=20   win  30.0%  avg -0.15R  total   -3.0R  PF 0.77  maxDD  7.2R
+
+==================== C  COMEX GC1! 5m (4 wks)
+
+  stop=swing target=1.0R
+    REJ  real   n=17   win  35.3%  avg -0.34R  total   -5.8R  PF 0.50  maxDD  6.7R
+         random n=53   win  49.1%  avg -0.05R  total   -2.8R  PF 0.90  maxDD  7.1R
+    BOS  real   n=13   win  46.2%  avg -0.10R  total   -1.2R  PF 0.83  maxDD  2.2R
+         random n=33   win  63.6%  avg +0.25R  total   +8.4R  PF 1.69  maxDD  3.1R
+    ALL  real   n=30   win  40.0%  avg -0.23R  total   -7.0R  PF 0.62  maxDD  7.9R
+         random n=86   win  54.7%  avg +0.06R  total   +5.6R  PF 1.14  maxDD  5.2R
+
+  stop=swing target=1.5R
+    REJ  real   n=17   win  23.5%  avg -0.46R  total   -7.8R  PF 0.43  maxDD  9.7R
+         random n=53   win  47.2%  avg +0.14R  total   +7.7R  PF 1.26  maxDD  5.2R
+    BOS  real   n=13   win  38.5%  avg -0.06R  total   -0.7R  PF 0.91  maxDD  3.6R
+         random n=33   win  51.5%  avg +0.22R  total   +7.1R  PF 1.46  maxDD  4.1R
+    ALL  real   n=30   win  30.0%  avg -0.28R  total   -8.5R  PF 0.61  maxDD  9.3R
+         random n=86   win  48.8%  avg +0.17R  total  +14.8R  PF 1.33  maxDD  5.6R
+
+  stop=swing target=2.0R  <-- indicator defaults
+    REJ  real   n=17   win  11.8%  avg -0.69R  total  -11.8R  PF 0.25  maxDD 11.8R
+         random n=53   win  37.7%  avg +0.06R  total   +2.9R  PF 1.09  maxDD  8.6R
+    BOS  real   n=13   win  30.8%  avg -0.22R  total   -2.9R  PF 0.68  maxDD  4.9R
+         random n=33   win  48.5%  avg +0.27R  total   +8.8R  PF 1.54  maxDD  6.0R
+    ALL  real   n=30   win  20.0%  avg -0.49R  total  -14.7R  PF 0.41  maxDD 15.7R
+         random n=86   win  41.9%  avg +0.14R  total  +11.7R  PF 1.23  maxDD  8.1R
+
+  stop=zone  target=1.0R
+    REJ  real   n=17   win  47.1%  avg -0.07R  total   -1.3R  PF 0.86  maxDD  4.2R
+         random n=53   win  50.9%  avg +0.00R  total   +0.2R  PF 1.01  maxDD  6.2R
+    BOS  real   n=13   win  46.2%  avg -0.09R  total   -1.1R  PF 0.84  maxDD  3.0R
+         random n=33   win  63.6%  avg +0.22R  total   +7.4R  PF 1.63  maxDD  3.0R
+    ALL  real   n=30   win  46.7%  avg -0.08R  total   -2.4R  PF 0.85  maxDD  4.3R
+         random n=86   win  55.8%  avg +0.09R  total   +7.6R  PF 1.20  maxDD  6.2R
+
+  stop=zone  target=1.5R
+    REJ  real   n=17   win  41.2%  avg +0.01R  total   +0.2R  PF 1.02  maxDD  3.0R
+         random n=53   win  43.4%  avg +0.06R  total   +3.1R  PF 1.10  maxDD  5.8R
+    BOS  real   n=13   win  30.8%  avg -0.32R  total   -4.2R  PF 0.46  maxDD  5.7R
+         random n=33   win  60.6%  avg +0.38R  total  +12.5R  PF 1.99  maxDD  4.0R
+    ALL  real   n=30   win  36.7%  avg -0.13R  total   -4.0R  PF 0.77  maxDD  4.9R
+         random n=86   win  50.0%  avg +0.18R  total  +15.6R  PF 1.37  maxDD  6.6R
+
+  stop=zone  target=2.0R
+    REJ  real   n=17   win  29.4%  avg -0.21R  total   -3.5R  PF 0.69  maxDD  4.9R
+         random n=53   win  41.5%  avg +0.13R  total   +6.8R  PF 1.22  maxDD  7.3R
+    BOS  real   n=13   win  30.8%  avg -0.40R  total   -5.2R  PF 0.34  maxDD  5.2R
+         random n=33   win  60.6%  avg +0.57R  total  +18.9R  PF 2.49  maxDD  4.0R
+    ALL  real   n=30   win  30.0%  avg -0.29R  total   -8.7R  PF 0.55  maxDD  8.7R
+         random n=86   win  48.8%  avg +0.30R  total  +25.7R  PF 1.59  maxDD  8.1R

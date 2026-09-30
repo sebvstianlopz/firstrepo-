@@ -64,3 +64,13 @@ The 5m indicator also marks BUY and SELL signals once price makes its first rete
 - **Logic check:** `python3 backtest/entry_signals_5m.py` (results in `backtest/entry_signals_5m_results.txt`)
   only has about 4 weeks of 5m data (12–17 trades per trigger). That confirms the logic but is not
   evidence of an edge.
+
+### Strategy backtest of the 5m entry signals
+
+`python3 backtest/strategy_backtest.py` → `backtest/strategy_results.txt`, trade list in `backtest/strategy_trades.csv`.
+
+Samples: OANDA 5m (4 weeks), OANDA 15m entries as a proxy (2.5 months), and COMEX GC1! 5m (4 weeks).
+With the indicator defaults (swing stop, 2R target, spread included) there were 108 trades.
+The win rate was 25.9% and the average was -0.30R per trade; break-even at 2R needs a win rate of about 34%.
+All 18 combinations of trigger, stop and target lost money, and random zones did as well or better.
+**The entry signals should not be traded as a stand-alone strategy.**

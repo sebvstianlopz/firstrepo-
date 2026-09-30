@@ -47,7 +47,8 @@ def atr5_cache(m5):
     return _A5[id(m5)]
 
 
-def run(m5, h1, rr=2.0, sig_win=24, max_chase=1.0, brk=0.3, max_bars=192, seed=3, stop_mode="zone"):
+def run(m5, h1, rr=2.0, sig_win=24, max_chase=1.0, brk=0.3, max_bars=192, seed=3, stop_mode="zone",
+        age_bars=288 * 15):
     A1 = atr(h1)
     cfg = dict(CFG, vol_k=2.0, wick=0.4)
     zones = [z for z in generate(h1, A1, cfg) if z[3] == "REJ"]
@@ -67,7 +68,7 @@ def run(m5, h1, rr=2.0, sig_win=24, max_chase=1.0, brk=0.3, max_bars=192, seed=3
         for (tp, bt, ctl) in cands:
             i0 = idx[t_ready]
             side, arm, d = 0, None, 0
-            for j in range(i0, min(len(m5), i0 + 288 * 15)):
+            for j in range(i0, min(len(m5), i0 + age_bars)):
                 pc = m5[j - 1][4]
                 if side == 0:
                     side = 1 if pc > tp else -1 if pc < bt else 0
@@ -133,7 +134,8 @@ def run(m5, h1, rr=2.0, sig_win=24, max_chase=1.0, brk=0.3, max_bars=192, seed=3
                         break
                 if r is None:
                     r = d * (m5[min(len(m5) - 1, j + max_bars)][4] - entry) / risk
-                trades.append(dict(kind=kind, ctl=ctl, r=r - SPREAD / risk, risk=risk, bar=j))
+                trades.append(dict(kind=kind, ctl=ctl, r=r - SPREAD / risk, risk=risk, bar=j, time=m5[j][0], dir=d,
+                                   entry=entry, stop=stop, tgt=tgt))
     return trades
 
 
