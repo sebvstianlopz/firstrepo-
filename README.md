@@ -25,3 +25,17 @@ Summary (see `backtest/results.txt`):
   but random levels rise by the same amount, so the candle carries the signal, not the level.
 - Rejection-candle trades at 1R/2R average about 0R before spread, for real and random zones alike.
 - Order blocks were the only type to beat random on both timeframes (about +3%), and the result is not statistically significant.
+
+## XAUUSD High-Volume Rejection Zones (1H) — current version
+
+`pinescript/xauusd_hv_rejection_zones.pine` marks a zone when a 1H candle has volume ≥ 2× its
+20-bar average and a wick ≥ 40% of its range. The zone is the wick. Zones are deleted when broken.
+
+Backtest (`backtest/volume_zones_backtest.py`, results in `backtest/volume_results.txt`):
+- First-retest reaction rate is 58.6% for these zones vs 52.3% for random zones of the same size.
+  They beat random in both halves of the data.
+- At 1.5× volume there is no edge, so the volume filter is what makes the difference.
+- Continuation-origin zones, absorption candles, the previous-day POC and flipped (broken) zones
+  did not beat random, so they are not included.
+- A limit entry at the zone edge is about break-even (+0.04R at 1R), while random zones lose -0.12R.
+  Use the zones as higher-probability areas, not as stand-alone entries.
