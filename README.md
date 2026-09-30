@@ -90,3 +90,20 @@ on its own.
 `pinescript/xauusd_hv_zone_strategy.pine` is a `strategy()` version for TradingView's Strategy Tester.
 It has four modes: Bounce - rejection, Bounce - BOS, Bounce - both, and Breakout. Position size is
 risk-based, and the $0.30 spread is modelled as commission.
+
+## XAUUSD HV Zones + Signals — current recommended indicator
+
+`pinescript/xauusd_hv_signals.pine` shows the 1H high-volume zones plus **failed-breakout signals**.
+A signal fires when price closes through a zone and then, within 6 hours, closes back on the
+original side of it. The trade goes in the reclaim direction, with the stop beyond the sweep and a 2R target.
+A results table on the chart tracks every signal as a trade (win rate, average R, total R, drawdown),
+so no Strategy Tester is needed.
+
+Backtest (`python3 backtest/failed_breakout_backtest.py`, results in `backtest/failed_breakout_results.txt`,
+trade list in `backtest/failed_breakout_trades_oanda_1h.csv`), spread included, 2R target:
+- OANDA 1H, 10 months: 64 trades, 50.0% win, -0.02R per trade.
+- COMEX 1H, 10 months: 67 trades, 50.7% win, +0.12R per trade.
+- Both feeds lost in the first half and made money in the second.
+
+This is the best of the five signal ideas tested (bounce/rejection, bounce/BOS, breakout,
+failed breakout, 5m zones), but it is not a proven edge.
