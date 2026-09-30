@@ -1,0 +1,94 @@
+
+=== XAUUSD 5m  (HTF = 1H) (5000 bars) ===
+Zone type      touches  react%  random%   edge
+FVG               2183   56.4%    56.7%  -0.3
+HTF Pivot          243   60.5%    58.4%  +2.1
+Order Block        406   55.2%    52.1%  +3.0
+PDH/PDL             74   45.9%    46.8%  -0.9
+PWH/PWL              9   33.3%    53.8% -20.5
+Pivot             1436   50.2%    52.7%  -2.5
+Round #             43   46.5%    50.0%  -3.5
+Session H/L        314   50.0%    47.8%  +2.2
+ALL               4708   53.9%    54.3%  -0.4
+Confluence (distinct zone types overlapping at touch):
+   1 types:   1230 touches  react  54.5%
+   2 types:   1467 touches  react  53.2%
+  3+ types:   2011 touches  react  54.1%
+Filters (reaction %, real vs random control zones):
+  all touches               53.9% (n=4708 ) vs  54.3% (n=4573 ) edge  -0.4
+  first touch only          55.6% (n=1192 ) vs  55.2% (n=1151 ) edge  +0.5
+  flipped zone (retest)     53.3% (n=2235 ) vs  54.3% (n=2188 ) edge  -1.0
+  price away >= 2 ATR       55.3% (n=2221 ) vs  55.9% (n=2412 ) edge  -0.6
+  rejection close           70.8% (n=2366 ) vs  70.8% (n=2258 ) edge  -0.0
+  rejection + conf>=3       72.5% (n=1013 ) vs  69.0% (n=859  ) edge  +3.4
+  London/NY 07-17 UTC       55.0% (n=2226 ) vs  54.8% (n=2232 ) edge  +0.1
+  Asia 00-07 UTC            51.5% (n=1525 ) vs  52.8% (n=1537 ) edge  -1.3
+Rejection-candle trades, target 1R (entry = rejection close, stop = beyond zone + 0.3 ATR, spread NOT included):
+  Zone type      real n   win%    avgR    rand n   win%    avgR
+  FVG              1108  46.9%  -0.057      1011  52.1%  +0.043
+  HTF Pivot         124  54.0%  +0.079       115  47.0%  -0.041
+  Order Block       193  48.2%  -0.037       176  49.4%  -0.018
+  PDH/PDL            36  41.7%  -0.167        40  47.5%  -0.050
+  PWH/PWL             5  60.0%  +0.200         5  60.0%  +0.200
+  Pivot             726  48.1%  -0.037       734  47.7%  -0.046
+  Round #            15  73.3%  +0.467        21  57.1%  +0.143
+  Session H/L       159  47.8%  -0.040       156  39.1%  -0.218
+  ALL              2366  47.9%  -0.039      2258  49.3%  -0.013
+Rejection-candle trades, target 2R (entry = rejection close, stop = beyond zone + 0.3 ATR, spread NOT included):
+  Zone type      real n   win%    avgR    rand n   win%    avgR
+  FVG              1108  32.7%  -0.046      1011  37.2%  +0.059
+  HTF Pivot         124  36.3%  -0.008       115  30.4%  -0.187
+  Order Block       193  33.7%  -0.059       176  29.0%  -0.188
+  PDH/PDL            36  33.3%  +0.000        40  32.5%  -0.025
+  PWH/PWL             5  40.0%  +0.200         5  60.0%  +0.800
+  Pivot             726  31.1%  -0.083       734  31.1%  -0.094
+  Round #            15  40.0%  +0.200        21  38.1%  +0.133
+  Session H/L       159  37.1%  +0.093       156  26.3%  -0.215
+  ALL              2366  32.8%  -0.045      2258  33.4%  -0.041
+
+=== XAUUSD 1H  (HTF = 4H) (5000 bars) ===
+Zone type      touches  react%  random%   edge
+FVG               1600   52.3%    53.6%  -1.3
+HTF Pivot          538   53.2%    53.5%  -0.4
+Order Block        373   53.4%    49.9%  +3.5
+PDH/PDL           1140   48.4%    48.9%  -0.5
+PWH/PWL            174   46.0%    50.9%  -4.9
+Pivot             1280   49.9%    50.6%  -0.7
+Round #            101   48.5%    53.4%  -4.9
+Session H/L       3748   46.5%    48.2%  -1.7
+ALL               8954   49.0%    50.1%  -1.2
+Confluence (distinct zone types overlapping at touch):
+   1 types:    910 touches  react  48.5%
+   2 types:   1758 touches  react  50.3%
+  3+ types:   6286 touches  react  48.6%
+Filters (reaction %, real vs random control zones):
+  all touches               49.0% (n=8954 ) vs  50.1% (n=8649 ) edge  -1.2
+  first touch only          49.7% (n=2748 ) vs  52.0% (n=2623 ) edge  -2.3
+  flipped zone (retest)     48.9% (n=4094 ) vs  48.5% (n=3805 ) edge  +0.4
+  price away >= 2 ATR       50.6% (n=4352 ) vs  52.4% (n=4550 ) edge  -1.8
+  rejection close           68.0% (n=4602 ) vs  68.6% (n=4579 ) edge  -0.5
+  rejection + conf>=3       68.7% (n=3209 ) vs  69.8% (n=2929 ) edge  -1.1
+  London/NY 07-17 UTC       51.2% (n=4798 ) vs  53.6% (n=4363 ) edge  -2.3
+  Asia 00-07 UTC            46.1% (n=2455 ) vs  45.4% (n=2571 ) edge  +0.7
+Rejection-candle trades, target 1R (entry = rejection close, stop = beyond zone + 0.3 ATR, spread NOT included):
+  Zone type      real n   win%    avgR    rand n   win%    avgR
+  FVG               837  48.4%  -0.027       766  49.0%  -0.025
+  HTF Pivot         283  50.2%  -0.001       271  52.8%  +0.057
+  Order Block       198  49.0%  -0.031       181  48.6%  -0.021
+  PDH/PDL           578  45.5%  -0.089       590  48.1%  -0.036
+  PWH/PWL            92  50.0%  +0.000       100  47.0%  -0.056
+  Pivot             656  45.3%  -0.093       686  49.6%  -0.006
+  Round #            54  51.9%  +0.037        64  56.2%  +0.119
+  Session H/L      1904  46.3%  -0.073      1921  47.2%  -0.056
+  ALL              4602  46.9%  -0.061      4579  48.5%  -0.030
+Rejection-candle trades, target 2R (entry = rejection close, stop = beyond zone + 0.3 ATR, spread NOT included):
+  Zone type      real n   win%    avgR    rand n   win%    avgR
+  FVG               837  32.7%  -0.063       766  35.8%  -0.002
+  HTF Pivot         283  35.7%  +0.033       271  37.3%  +0.086
+  Order Block       198  34.8%  -0.014       181  35.9%  +0.030
+  PDH/PDL           578  33.2%  -0.010       590  33.7%  +0.002
+  PWH/PWL            92  35.9%  +0.073       100  38.0%  +0.144
+  Pivot             656  31.9%  -0.057       686  36.3%  +0.084
+  Round #            54  35.2%  +0.056        64  32.8%  -0.037
+  Session H/L      1904  33.5%  -0.007      1921  31.2%  -0.068
+  ALL              4602  33.3%  -0.020      4579  33.8%  -0.007

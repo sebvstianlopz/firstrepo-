@@ -1,0 +1,435 @@
+//@version=6
+indicator("XAUUSD Reaction Zones [5m / 1H]", shorttitle = "XAU Reaction Zones", overlay = true, max_boxes_count = 500, max_labels_count = 500, max_bars_back = 1000)
+
+// ============================================================================
+// XAUUSD REACTION ZONES
+// Marks every common reaction area and measures (live, on your chart) how often
+// price actually reacts at each zone type compared with RANDOM control zones.
+//
+// Zone sources
+//   0 Swing Pivot      - confirmed swing highs / lows (wick -> body)
+//   1 Order Block      - last opposite candle before a displacement candle that breaks structure
+//   2 Fair Value Gap   - 3-candle imbalance
+//   3 HTF Pivot        - swing highs / lows from the higher timeframe (Auto: 5m -> 1H, 1H -> 4H)
+//   4 PDH / PDL        - previous day high / low
+//   5 PWH / PWL        - previous week high / low
+//   6 Session H / L    - Asia / London / New York highs and lows (UTC)
+//   7 Round Number     - psychological levels (Auto: $25 on <=15m, $50 above)
+//
+// Reaction test (built-in backtest)
+//   Touch    = price enters a zone from outside (from above = support test, from below = resistance test)
+//   Reaction = price moves "Reaction size" x ATR away from the zone in the bounce direction within
+//              "Look-ahead" bars, BEFORE a candle closes "Break buffer" x ATR through the far side.
+//   Random   = each real zone gets an invisible control zone of the same size, shifted 1-3 ATR.
+//              "Edge" = real reaction % - random reaction %. If edge ~0, that zone type is not special.
+//   Rej. %   = reaction rate when the touch candle CLOSED back outside the zone (rejection candle).
+// ============================================================================
+
+// ---------------------------------------------------------------- Inputs
+string G_SRC = "Zone sources"
+bool   useP    = input.bool(true,  "Swing Pivots",        group = G_SRC, inline = "p")
+int    pivL    = input.int(10, "L", minval = 1,           group = G_SRC, inline = "p")
+int    pivR    = input.int(5,  "R", minval = 1,           group = G_SRC, inline = "p")
+bool   useOB   = input.bool(true,  "Order Blocks",        group = G_SRC, inline = "ob")
+float  obDisp  = input.float(1.5, "Displacement (ATR)", minval = 0.5, step = 0.1, group = G_SRC, inline = "ob")
+bool   useFVG  = input.bool(false, "Fair Value Gaps",     group = G_SRC, inline = "fvg", tooltip = "Off by default: very frequent and showed no edge vs random in the XAUUSD backtest.")
+float  fvgMin  = input.float(0.3, "Min size (ATR)", minval = 0.05, step = 0.05, group = G_SRC, inline = "fvg")
+bool   useHTF  = input.bool(true,  "HTF Pivots",          group = G_SRC, inline = "htf")
+string htfIn   = input.string("Auto", "TF", options = ["Auto", "15", "30", "60", "240", "D"], group = G_SRC, inline = "htf")
+int    htfL    = input.int(5, "HTF L", minval = 1,        group = G_SRC, inline = "htf2")
+int    htfR    = input.int(3, "HTF R", minval = 1,        group = G_SRC, inline = "htf2")
+bool   usePD   = input.bool(true,  "Prev Day H/L",        group = G_SRC, inline = "pd")
+bool   usePW   = input.bool(true,  "Prev Week H/L",       group = G_SRC, inline = "pd")
+bool   useSess = input.bool(true,  "Session H/L (UTC)",   group = G_SRC)
+string asiaS   = input.session("0000-0700", "Asia",       group = G_SRC, inline = "s1")
+string lonS    = input.session("0700-1200", "London",     group = G_SRC, inline = "s1")
+string nyS     = input.session("1200-2000", "New York",   group = G_SRC, inline = "s2")
+bool   useRN   = input.bool(true,  "Round Numbers",       group = G_SRC, inline = "rn")
+float  rnIn    = input.float(0, "Step ($, 0 = Auto)", minval = 0, step = 5, group = G_SRC, inline = "rn")
+float  lvlW    = input.float(0.10, "Level zone half-width (ATR)", minval = 0.02, step = 0.02, group = G_SRC, tooltip = "Thickness for single-price levels: PDH/PDL, PWH/PWL, sessions, round numbers.")
+float  pivMaxW = input.float(0.5, "Max pivot / OB zone width (ATR)", minval = 0.1, step = 0.05, group = G_SRC)
+
+string G_MGT = "Zone management"
+int    maxZones = input.int(150, "Max active zones", minval = 10, maxval = 240, group = G_MGT)
+int    ageIn    = input.int(0, "Max zone age (days, 0 = Auto)", minval = 0, group = G_MGT, tooltip = "Auto: 5 days on <=15m charts, 20 days above.")
+int    maxBreaks = input.int(2, "Delete after N breaks", minval = 1, group = G_MGT, tooltip = "A break flips the zone (support <-> resistance). It is removed after this many breaks.")
+float  drawDist = input.float(8, "Only draw zones within X ATR of price", minval = 1, group = G_MGT)
+
+string G_BT = "Reaction backtest"
+float  reactATR = input.float(1.0, "Reaction size (ATR)", minval = 0.1, step = 0.1, group = G_BT)
+float  breakATR = input.float(0.3, "Break buffer (ATR)", minval = 0.0, step = 0.05, group = G_BT)
+int    lookIn   = input.int(0, "Look-ahead bars (0 = Auto)", minval = 0, group = G_BT, tooltip = "Auto: 12 bars on <=15m charts, 8 bars above.")
+bool   showTbl  = input.bool(true, "Show stats table", group = G_BT)
+string tblPos   = input.string("Top Right", "Table position", options = ["Top Right", "Bottom Right", "Top Left", "Bottom Left"], group = G_BT)
+
+string G_SIG = "Signals"
+bool   showSig = input.bool(true, "Show rejection signals", group = G_SIG, tooltip = "Triangle when a candle wicks into a zone and closes back outside it. Backtest: ~70% reaction rate, but random levels scored the same - use as context, not a standalone entry.")
+int    minConf = input.int(1, "Min confluence (zone types overlapping)", minval = 1, maxval = 8, group = G_SIG)
+
+string G_STY = "Style"
+bool   showTxt = input.bool(true, "Show zone labels", group = G_STY)
+color  cP   = input.color(color.new(#9e9e9e, 80), "Pivot",       group = G_STY, inline = "c1")
+color  cOB  = input.color(color.new(#2962ff, 78), "Order Block", group = G_STY, inline = "c1")
+color  cFVG = input.color(color.new(#ab47bc, 82), "FVG",         group = G_STY, inline = "c1")
+color  cHTF = input.color(color.new(#ff9800, 72), "HTF Pivot",   group = G_STY, inline = "c2")
+color  cPD  = input.color(color.new(#26a69a, 70), "PDH/PDL",     group = G_STY, inline = "c2")
+color  cPW  = input.color(color.new(#00897b, 60), "PWH/PWL",     group = G_STY, inline = "c2")
+color  cSes = input.color(color.new(#fdd835, 75), "Session",     group = G_STY, inline = "c3")
+color  cRN  = input.color(color.new(#ef5350, 80), "Round #",     group = G_STY, inline = "c3")
+
+// ---------------------------------------------------------------- Auto settings
+int    tfSec   = timeframe.in_seconds()
+string htfTF   = htfIn != "Auto" ? htfIn : tfSec <= 900 ? "60" : tfSec <= 3600 ? "240" : tfSec <= 14400 ? "D" : "W"
+bool   htfOK   = useHTF and timeframe.in_seconds(htfTF) > tfSec
+float  rnStep  = rnIn > 0 ? rnIn : tfSec <= 900 ? 25.0 : 50.0
+int    ageDays = ageIn > 0 ? ageIn : tfSec <= 900 ? 5 : 20
+int    maxAge  = math.max(10, int(ageDays * 86400 / tfSec))
+int    lookBars = lookIn > 0 ? lookIn : tfSec <= 900 ? 12 : 8
+bool   intraday = timeframe.isintraday
+
+float  atrV = ta.atr(14)
+
+// ---------------------------------------------------------------- Types & state
+type Zone
+    float top
+    float bot
+    int   kind
+    int   born
+    int   originTime
+    int   breaks  = 0
+    int   touches = 0
+    bool  pending = false
+    int   pdir    = 0
+    int   pbar    = 0
+    float patr    = 0.0
+    bool  rej     = false
+    bool  control = false
+    box   bx
+
+var array<Zone> zR = array.new<Zone>()   // real zones
+var array<Zone> zC = array.new<Zone>()   // random control zones (never drawn)
+
+var array<string> KNAME = array.from("Swing Pivot", "Order Block", "Fair Value Gap", "HTF Pivot", "PDH / PDL", "PWH / PWL", "Session H/L", "Round Number")
+var array<string> KSHORT = array.from("Pivot", "OB", "FVG", "HTF", "PDH/L", "PWH/L", "Sess", "Round")
+
+// stats: touches / reactions for real, control, and rejection-candle subsets
+var array<int> tR  = array.new_int(8, 0)
+var array<int> rR  = array.new_int(8, 0)
+var array<int> tC  = array.new_int(8, 0)
+var array<int> rC  = array.new_int(8, 0)
+var array<int> tRj = array.new_int(8, 0)
+var array<int> rRj = array.new_int(8, 0)
+var array<int> tCj = array.new_int(8, 0)
+var array<int> rCj = array.new_int(8, 0)
+
+// ---------------------------------------------------------------- Helpers
+kindColor(int k) =>
+    switch k
+        0 => cP
+        1 => cOB
+        2 => cFVG
+        3 => cHTF
+        4 => cPD
+        5 => cPW
+        6 => cSes
+        => cRN
+
+// Zone from the wick extreme toward the body, clamped between minW and maxW ATR
+sizeZone(float ext, float body, float a, bool isHigh, float minW, float maxW) =>
+    float top = na
+    float bot = na
+    if isHigh
+        top := ext
+        bot := math.min(math.max(body, top - maxW * a), top - minW * a)
+    else
+        bot := ext
+        top := math.max(math.min(body, bot + maxW * a), bot + minW * a)
+    [top, bot]
+
+// deterministic pseudo-random number in [0, 1) - stable across reloads
+hash01(float x) =>
+    float v = math.sin(x) * 43758.5453
+    v - math.floor(v)
+
+addZone(float top, float bot, int kind, int originTime) =>
+    color c = kindColor(kind)
+    box b = box.new(left = originTime, top = top, right = time, bottom = bot, xloc = xloc.bar_time, extend = extend.right,
+         border_color = color.new(c, math.max(0, color.t(c) - 40)), border_width = 1, bgcolor = c,
+         text = showTxt ? KSHORT.get(kind) : "", text_size = size.tiny, text_color = color.new(c, 0),
+         text_halign = text.align.right, text_valign = text.align.center)
+    zR.push(Zone.new(top, bot, kind, bar_index, originTime, bx = b))
+    // control zone: same width, randomly shifted 1-3 ATR up or down
+    float seed = bar_index * 12.9898 + kind * 78.233 + top * 0.731
+    float off = (hash01(seed) < 0.5 ? -1.0 : 1.0) * (1.0 + 2.0 * hash01(seed * 1.618 + 3.7)) * atrV
+    zC.push(Zone.new(top + off, bot + off, kind, bar_index, originTime, control = true))
+
+record(int k, bool ctrl, bool rej, int res) =>
+    if ctrl
+        tC.set(k, tC.get(k) + 1)
+        rC.set(k, rC.get(k) + res)
+        if rej
+            tCj.set(k, tCj.get(k) + 1)
+            rCj.set(k, rCj.get(k) + res)
+    else
+        tR.set(k, tR.get(k) + 1)
+        rR.set(k, rR.get(k) + res)
+        if rej
+            tRj.set(k, tRj.get(k) + 1)
+            rRj.set(k, rRj.get(k) + res)
+
+// number of DISTINCT zone types overlapping zone z (including its own)
+confluence(array<Zone> zs, Zone z) =>
+    array<bool> seen = array.new_bool(8, false)
+    seen.set(z.kind, true)
+    for y in zs
+        if y.bot <= z.top and y.top >= z.bot
+            seen.set(y.kind, true)
+    int n = 0
+    for s in seen
+        n += s ? 1 : 0
+    n
+
+// Evaluate touches, reactions and breaks for one zone list.
+// Returns the best confluence of bullish / bearish rejection touches on this bar (0 = none).
+method evalZones(array<Zone> zs, bool isCtrl, float pc) =>
+    int bullC = 0
+    int bearC = 0
+    int sz = zs.size()
+    if sz > 0
+        for i = sz - 1 to 0
+            Zone z = zs.get(i)
+            if z.born < bar_index
+                if z.pending
+                    float ra = z.patr * reactATR
+                    float ba = z.patr * breakATR
+                    int res = -1
+                    if z.pdir == 1
+                        res := close < z.bot - ba ? 0 : high >= z.top + ra ? 1 : -1
+                    else
+                        res := close > z.top + ba ? 0 : low <= z.bot - ra ? 1 : -1
+                    if res == -1 and bar_index - z.pbar >= lookBars
+                        res := 0
+                    if res >= 0
+                        z.pending := false
+                        z.touches += 1
+                        record(z.kind, isCtrl, z.rej, res)
+                        if res == 0
+                            z.breaks += 1
+                            if not isCtrl
+                                z.bx.set_border_style(line.style_dashed)
+                else
+                    bool supT = pc > z.top and low <= z.top
+                    bool resT = pc < z.bot and high >= z.bot
+                    if supT or resT
+                        z.pending := true
+                        z.pdir := supT ? 1 : -1
+                        z.pbar := bar_index
+                        z.patr := atrV
+                        z.rej := supT ? close > z.top : close < z.bot
+                        if not isCtrl and z.rej
+                            int cf = confluence(zs, z)
+                            if supT
+                                bullC := math.max(bullC, cf)
+                            else
+                                bearC := math.max(bearC, cf)
+            if not z.pending and (z.breaks >= maxBreaks or bar_index - z.born > maxAge)
+                if not isCtrl
+                    z.bx.delete()
+                zs.remove(i)
+    [bullC, bearC]
+
+method capZones(array<Zone> zs, bool isCtrl) =>
+    int i = 0
+    while zs.size() > maxZones and i < zs.size()
+        Zone z = zs.get(i)
+        if z.pending
+            i += 1
+        else
+            if not isCtrl
+                z.bx.delete()
+            zs.remove(i)
+
+// ---------------------------------------------------------------- 1) Evaluate existing zones
+float prevClose = nz(close[1], close)
+[bullConf, bearConf] = zR.evalZones(false, prevClose)
+[ctrlBull, ctrlBear] = zC.evalZones(true, prevClose)
+
+// ---------------------------------------------------------------- 2) Create new zones
+// Swing pivots
+float ph = ta.pivothigh(high, pivL, pivR)
+float pl = ta.pivotlow(low, pivL, pivR)
+if useP and not na(atrV)
+    if not na(ph)
+        [t1, b1] = sizeZone(ph, math.max(open[pivR], close[pivR]), atrV, true, 0.10, pivMaxW)
+        addZone(t1, b1, 0, time[pivR])
+    if not na(pl)
+        [t2, b2] = sizeZone(pl, math.min(open[pivR], close[pivR]), atrV, false, 0.10, pivMaxW)
+        addZone(t2, b2, 0, time[pivR])
+
+// Order blocks
+float body = close - open
+float hh5  = ta.highest(high, 5)[1]
+float ll5  = ta.lowest(low, 5)[1]
+if useOB and not na(atrV) and bar_index > 6
+    if body >= obDisp * atrV and close > hh5
+        for k = 1 to 5
+            if close[k] < open[k]
+                addZone(math.min(open[k], low[k] + 3 * pivMaxW * atrV), low[k], 1, time[k])
+                break
+    if -body >= obDisp * atrV and close < ll5
+        for k = 1 to 5
+            if close[k] > open[k]
+                addZone(high[k], math.max(open[k], high[k] - 3 * pivMaxW * atrV), 1, time[k])
+                break
+
+// Fair value gaps
+if useFVG and not na(atrV) and bar_index > 2
+    if low - high[2] >= fvgMin * atrV
+        addZone(low, high[2], 2, time[1])
+    if low[2] - high >= fvgMin * atrV
+        addZone(low[2], high, 2, time[1])
+
+// Higher-timeframe pivots (non-repainting: previous closed HTF bar, lookahead on)
+htfPivots() =>
+    float hph = ta.pivothigh(high, htfL, htfR)
+    float hpl = ta.pivotlow(low, htfL, htfR)
+    float ha  = ta.atr(14)
+    float bHi = math.max(open[htfR], close[htfR])
+    float bLo = math.min(open[htfR], close[htfR])
+    int   tHi = na(hph) ? na : time[htfR]
+    int   tLo = na(hpl) ? na : time[htfR]
+    [hph[1], bHi[1], tHi[1], hpl[1], bLo[1], tLo[1], ha[1]]
+
+[hPH, hPHb, hPHt, hPL, hPLb, hPLt, hATR] = request.security(syminfo.tickerid, htfTF, htfPivots(), lookahead = barmerge.lookahead_on)
+if htfOK and not na(hATR)
+    if not na(hPHt) and (na(hPHt[1]) or hPHt != hPHt[1])
+        [t3, b3] = sizeZone(hPH, hPHb, hATR, true, 0.10, 0.35)
+        addZone(t3, b3, 3, hPHt)
+    if not na(hPLt) and (na(hPLt[1]) or hPLt != hPLt[1])
+        [t4, b4] = sizeZone(hPL, hPLb, hATR, false, 0.10, 0.35)
+        addZone(t4, b4, 3, hPLt)
+
+// Previous day / week high & low
+[pdh, pdl] = request.security(syminfo.tickerid, "D", [high[1], low[1]], lookahead = barmerge.lookahead_on)
+[pwh, pwl] = request.security(syminfo.tickerid, "W", [high[1], low[1]], lookahead = barmerge.lookahead_on)
+if usePD and intraday and timeframe.change("D") and not na(pdh) and not na(atrV)
+    addZone(pdh + lvlW * atrV, pdh - lvlW * atrV, 4, time)
+    addZone(pdl + lvlW * atrV, pdl - lvlW * atrV, 4, time)
+if usePW and intraday and timeframe.change("W") and not na(pwh) and not na(atrV)
+    addZone(pwh + lvlW * atrV, pwh - lvlW * atrV, 5, time)
+    addZone(pwl + lvlW * atrV, pwl - lvlW * atrV, 5, time)
+
+// Session highs / lows (added when the session ends)
+sessTrack(string sess) =>
+    bool inS = not na(time(timeframe.period, sess, "UTC"))
+    var float sh = na
+    var float sl = na
+    var int   st = na
+    float outH = na
+    float outL = na
+    int   outT = na
+    if inS
+        if na(sh)
+            st := time
+        sh := na(sh) ? high : math.max(sh, high)
+        sl := na(sl) ? low : math.min(sl, low)
+    else if not na(sh)
+        outH := sh
+        outL := sl
+        outT := st
+        sh := na
+        sl := na
+    [outH, outL, outT]
+
+[aH, aL, aT] = sessTrack(asiaS)
+[lH, lL, lT] = sessTrack(lonS)
+[nH, nL, nT] = sessTrack(nyS)
+if useSess and intraday and not na(atrV)
+    if not na(aH)
+        addZone(aH + lvlW * atrV, aH - lvlW * atrV, 6, aT)
+        addZone(aL + lvlW * atrV, aL - lvlW * atrV, 6, aT)
+    if not na(lH)
+        addZone(lH + lvlW * atrV, lH - lvlW * atrV, 6, lT)
+        addZone(lL + lvlW * atrV, lL - lvlW * atrV, 6, lT)
+    if not na(nH)
+        addZone(nH + lvlW * atrV, nH - lvlW * atrV, 6, nT)
+        addZone(nL + lvlW * atrV, nL - lvlW * atrV, 6, nT)
+
+// Round numbers (ensure the 5 nearest levels exist)
+if useRN and not na(atrV)
+    float base = math.round(close / rnStep) * rnStep
+    for k = -2 to 2
+        float lv = base + k * rnStep
+        bool exists = false
+        for z in zR
+            if z.kind == 7 and math.abs((z.top + z.bot) / 2 - lv) < rnStep * 0.01
+                exists := true
+                break
+        if not exists
+            addZone(lv + lvlW * atrV, lv - lvlW * atrV, 7, time)
+
+zR.capZones(false)
+zC.capZones(true)
+
+// ---------------------------------------------------------------- 3) Display
+// hide zones far from price (keeps the chart readable)
+if barstate.islast
+    for z in zR
+        bool near = math.abs((z.top + z.bot) / 2 - close) <= drawDist * atrV
+        color c = kindColor(z.kind)
+        z.bx.set_bgcolor(near ? c : color.new(c, 100))
+        z.bx.set_border_color(near ? color.new(c, math.max(0, color.t(c) - 40)) : color.new(c, 100))
+        z.bx.set_text_color(near ? color.new(c, 0) : color.new(c, 100))
+
+bool bullSig = showSig and bullConf >= minConf
+bool bearSig = showSig and bearConf >= minConf
+plotshape(bullSig, "Bullish rejection", shape.triangleup, location.belowbar, color.new(#00e676, 0), size = size.tiny)
+plotshape(bearSig, "Bearish rejection", shape.triangledown, location.abovebar, color.new(#ff1744, 0), size = size.tiny)
+alertcondition(bullConf >= minConf, "Bullish rejection at zone", "XAUUSD: bullish rejection at a reaction zone")
+alertcondition(bearConf >= minConf, "Bearish rejection at zone", "XAUUSD: bearish rejection at a reaction zone")
+
+// ---------------------------------------------------------------- 4) Stats table
+pct(int r, int t) => t > 0 ? 100.0 * r / t : na
+fmt(float v) => na(v) ? "-" : str.tostring(v, "#.0") + "%"
+
+var table tbl = table.new(tblPos == "Top Right" ? position.top_right : tblPos == "Bottom Right" ? position.bottom_right : tblPos == "Top Left" ? position.top_left : position.bottom_left, 6, 10, bgcolor = color.new(#131722, 10), border_color = color.new(#363a45, 0), border_width = 1, frame_color = color.new(#363a45, 0), frame_width = 1)
+
+if showTbl and barstate.islast
+    color hdr = color.new(#d1d4dc, 0)
+    array<string> heads = array.from("Zone type", "Touches", "React %", "Random %", "Edge", "Rej. %")
+    for c = 0 to 5
+        tbl.cell(c, 0, heads.get(c), text_color = hdr, text_size = size.small, bgcolor = color.new(#2a2e39, 0))
+    int sT  = 0
+    int sR  = 0
+    int sTC = 0
+    int sRC = 0
+    int sTj = 0
+    int sRj = 0
+    for k = 0 to 7
+        int t = tR.get(k)
+        float rp = pct(rR.get(k), t)
+        float cp = pct(rC.get(k), tC.get(k))
+        float jp = pct(rRj.get(k), tRj.get(k))
+        float edge = na(rp) or na(cp) ? na : rp - cp
+        color ec = na(edge) ? hdr : edge >= 3 ? color.new(#00e676, 0) : edge <= -3 ? color.new(#ff5252, 0) : hdr
+        tbl.cell(0, k + 1, KNAME.get(k), text_color = color.new(kindColor(k), 0), text_size = size.small, text_halign = text.align.left)
+        tbl.cell(1, k + 1, str.tostring(t), text_color = hdr, text_size = size.small)
+        tbl.cell(2, k + 1, fmt(rp), text_color = hdr, text_size = size.small)
+        tbl.cell(3, k + 1, fmt(cp), text_color = hdr, text_size = size.small)
+        tbl.cell(4, k + 1, na(edge) ? "-" : (edge >= 0 ? "+" : "") + str.tostring(edge, "#.0"), text_color = ec, text_size = size.small)
+        tbl.cell(5, k + 1, fmt(jp), text_color = hdr, text_size = size.small)
+        sT += t
+        sR += rR.get(k)
+        sTC += tC.get(k)
+        sRC += rC.get(k)
+        sTj += tRj.get(k)
+        sRj += rRj.get(k)
+    float arp = pct(sR, sT)
+    float acp = pct(sRC, sTC)
+    float aed = na(arp) or na(acp) ? na : arp - acp
+    tbl.cell(0, 9, "ALL", text_color = hdr, text_size = size.small, text_halign = text.align.left, bgcolor = color.new(#2a2e39, 0))
+    tbl.cell(1, 9, str.tostring(sT), text_color = hdr, text_size = size.small, bgcolor = color.new(#2a2e39, 0))
+    tbl.cell(2, 9, fmt(arp), text_color = hdr, text_size = size.small, bgcolor = color.new(#2a2e39, 0))
+    tbl.cell(3, 9, fmt(acp), text_color = hdr, text_size = size.small, bgcolor = color.new(#2a2e39, 0))
+    tbl.cell(4, 9, na(aed) ? "-" : (aed >= 0 ? "+" : "") + str.tostring(aed, "#.0"), text_color = hdr, text_size = size.small, bgcolor = color.new(#2a2e39, 0))
+    tbl.cell(5, 9, fmt(pct(sRj, sTj)), text_color = hdr, text_size = size.small, bgcolor = color.new(#2a2e39, 0))
