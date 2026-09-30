@@ -1,0 +1,78 @@
+
+==================== H1 OANDA 1H entries (10 months)
+  stop=candle 1.0R  real   n=201  win  46.8%  avg -0.06R  total  -11.5R  PF 0.88  maxDD 23.4R
+                  random n=552  win  54.5%  avg +0.08R  total  +42.6R  PF 1.20  maxDD 19.3R
+  stop=candle 1.5R  real   n=201  win  40.3%  avg -0.05R  total  -10.6R  PF 0.90  maxDD 29.1R
+                  random n=552  win  49.6%  avg +0.15R  total  +82.3R  PF 1.37  maxDD 18.7R
+  stop=candle 2.0R  real   n=201  win  37.8%  avg -0.06R  total  -11.6R  PF 0.89  maxDD 27.9R
+                  random n=552  win  47.5%  avg +0.16R  total  +87.0R  PF 1.37  maxDD 37.1R
+                  1st half n=100  win  32.0%  avg -0.19R  total  -19.5R  PF 0.65  maxDD 22.5R
+                  2nd half n=101  win  43.6%  avg +0.08R  total   +7.8R  PF 1.15  maxDD  7.7R
+                  longs    n=88   win  45.5%  avg +0.06R  total   +5.0R  PF 1.11  maxDD 11.2R
+                  shorts   n=113  win  31.9%  avg -0.15R  total  -16.7R  PF 0.73  maxDD 24.5R
+  stop=zone   1.0R  real   n=201  win  43.8%  avg -0.11R  total  -21.8R  PF 0.79  maxDD 32.4R
+                  random n=552  win  55.3%  avg +0.07R  total  +38.2R  PF 1.17  maxDD 26.1R
+  stop=zone   1.5R  real   n=201  win  37.3%  avg -0.09R  total  -18.2R  PF 0.84  maxDD 31.9R
+                  random n=552  win  48.0%  avg +0.10R  total  +55.1R  PF 1.21  maxDD 27.6R
+  stop=zone   2.0R  real   n=201  win  33.8%  avg -0.11R  total  -21.3R  PF 0.82  maxDD 36.8R
+                  random n=552  win  46.4%  avg +0.16R  total  +89.5R  PF 1.33  maxDD 27.8R
+
+==================== H2 COMEX GC1! 1H entries (10 months)
+  stop=candle 1.0R  real   n=244  win  49.2%  avg -0.02R  total   -5.1R  PF 0.95  maxDD 20.7R
+                  random n=630  win  52.1%  avg +0.01R  total   +7.7R  PF 1.03  maxDD 34.6R
+  stop=candle 1.5R  real   n=244  win  42.2%  avg -0.01R  total   -3.0R  PF 0.97  maxDD 22.8R
+                  random n=630  win  46.2%  avg +0.05R  total  +30.8R  PF 1.11  maxDD 34.8R
+  stop=candle 2.0R  real   n=244  win  38.1%  avg -0.06R  total  -15.3R  PF 0.88  maxDD 32.8R
+                  random n=630  win  44.4%  avg +0.09R  total  +56.1R  PF 1.19  maxDD 28.4R
+                  1st half n=122  win  30.3%  avg -0.21R  total  -25.3R  PF 0.63  maxDD 32.8R
+                  2nd half n=122  win  45.9%  avg +0.08R  total  +10.0R  PF 1.17  maxDD 13.8R
+                  longs    n=101  win  43.6%  avg +0.00R  total   +0.4R  PF 1.01  maxDD 11.3R
+                  shorts   n=143  win  34.3%  avg -0.11R  total  -15.7R  PF 0.80  maxDD 31.5R
+  stop=zone   1.0R  real   n=244  win  50.0%  avg -0.01R  total   -3.3R  PF 0.97  maxDD 20.7R
+                  random n=630  win  48.6%  avg -0.03R  total  -22.0R  PF 0.93  maxDD 37.8R
+  stop=zone   1.5R  real   n=244  win  43.9%  avg +0.01R  total   +2.3R  PF 1.02  maxDD 21.5R
+                  random n=630  win  41.4%  avg -0.03R  total  -19.4R  PF 0.94  maxDD 49.7R
+  stop=zone   2.0R  real   n=244  win  37.3%  avg -0.08R  total  -20.7R  PF 0.85  maxDD 34.1R
+                  random n=630  win  39.5%  avg +0.01R  total   +7.4R  PF 1.02  maxDD 47.3R
+
+==================== B  OANDA 15m entries (2.5 months)
+  stop=candle 1.0R  real   n=45   win  40.0%  avg -0.18R  total   -8.3R  PF 0.68  maxDD 10.3R
+                  random n=108  win  55.6%  avg +0.13R  total  +14.3R  PF 1.32  maxDD 11.7R
+  stop=candle 1.5R  real   n=45   win  28.9%  avg -0.23R  total  -10.5R  PF 0.65  maxDD 14.1R
+                  random n=108  win  40.7%  avg +0.09R  total   +9.7R  PF 1.17  maxDD 15.4R
+  stop=candle 2.0R  real   n=45   win  26.7%  avg -0.19R  total   -8.8R  PF 0.71  maxDD 14.1R
+                  random n=108  win  38.0%  avg +0.15R  total  +16.6R  PF 1.29  maxDD 15.4R
+  stop=zone   1.0R  real   n=45   win  37.8%  avg -0.22R  total   -9.7R  PF 0.63  maxDD 12.8R
+                  random n=108  win  51.9%  avg +0.03R  total   +2.7R  PF 1.05  maxDD 13.5R
+  stop=zone   1.5R  real   n=45   win  26.7%  avg -0.28R  total  -12.8R  PF 0.57  maxDD 15.7R
+                  random n=108  win  45.4%  avg +0.12R  total  +12.5R  PF 1.22  maxDD 11.5R
+  stop=zone   2.0R  real   n=45   win  26.7%  avg -0.21R  total   -9.6R  PF 0.68  maxDD 14.5R
+                  random n=108  win  41.7%  avg +0.14R  total  +14.8R  PF 1.24  maxDD 13.2R
+
+==================== A  OANDA 5m entries (4 weeks)
+  stop=candle 1.0R  real   n=12   win  16.7%  avg -0.69R  total   -8.3R  PF 0.19  maxDD  9.2R
+                  random n=28   win  25.0%  avg -0.52R  total  -14.5R  PF 0.32  maxDD 14.5R
+  stop=candle 1.5R  real   n=12   win   8.3%  avg -0.85R  total  -10.3R  PF 0.09  maxDD 11.2R
+                  random n=28   win  14.3%  avg -0.68R  total  -18.9R  PF 0.22  maxDD 18.9R
+  stop=candle 2.0R  real   n=12   win   8.3%  avg -0.85R  total  -10.3R  PF 0.09  maxDD 11.2R
+                  random n=28   win  14.3%  avg -0.62R  total  -17.4R  PF 0.29  maxDD 18.4R
+  stop=zone   1.0R  real   n=12   win   8.3%  avg -0.87R  total  -10.5R  PF 0.06  maxDD 11.2R
+                  random n=28   win  28.6%  avg -0.45R  total  -12.7R  PF 0.37  maxDD 12.7R
+  stop=zone   1.5R  real   n=12   win   8.3%  avg -0.87R  total  -10.5R  PF 0.06  maxDD 11.2R
+                  random n=28   win  10.7%  avg -0.78R  total  -21.7R  PF 0.14  maxDD 21.7R
+  stop=zone   2.0R  real   n=12   win   8.3%  avg -0.87R  total  -10.5R  PF 0.06  maxDD 11.2R
+                  random n=28   win  10.7%  avg -0.74R  total  -20.7R  PF 0.18  maxDD 20.7R
+
+==================== C  COMEX GC1! 5m entries (4 weeks)
+  stop=candle 1.0R  real   n=12   win  50.0%  avg -0.02R  total   -0.2R  PF 0.96  maxDD  4.1R
+                  random n=33   win  39.4%  avg -0.23R  total   -7.7R  PF 0.62  maxDD 11.6R
+  stop=candle 1.5R  real   n=12   win  33.3%  avg -0.19R  total   -2.2R  PF 0.73  maxDD  5.2R
+                  random n=33   win  27.3%  avg -0.34R  total  -11.2R  PF 0.54  maxDD 11.2R
+  stop=candle 2.0R  real   n=12   win  25.0%  avg -0.35R  total   -4.3R  PF 0.54  maxDD  7.2R
+                  random n=33   win  15.2%  avg -0.48R  total  -16.0R  PF 0.38  maxDD 16.8R
+  stop=zone   1.0R  real   n=12   win  58.3%  avg +0.15R  total   +1.8R  PF 1.37  maxDD  2.0R
+                  random n=33   win  51.5%  avg -0.02R  total   -0.5R  PF 0.97  maxDD  7.1R
+  stop=zone   1.5R  real   n=12   win  50.0%  avg +0.27R  total   +3.2R  PF 1.56  maxDD  2.0R
+                  random n=33   win  33.3%  avg -0.26R  total   -8.6R  PF 0.61  maxDD  9.7R
+  stop=zone   2.0R  real   n=12   win  33.3%  avg +0.01R  total   +0.1R  PF 1.01  maxDD  3.2R
+                  random n=33   win  27.3%  avg -0.29R  total   -9.7R  PF 0.58  maxDD 12.3R

@@ -74,3 +74,19 @@ With the indicator defaults (swing stop, 2R target, spread included) there were 
 The win rate was 25.9% and the average was -0.30R per trade; break-even at 2R needs a win rate of about 34%.
 All 18 combinations of trigger, stop and target lost money, and random zones did as well or better.
 **The entry signals should not be traded as a stand-alone strategy.**
+
+### Breakout test and Strategy Tester version
+
+`python3 backtest/breakout_backtest.py` → `backtest/breakout_results.txt`. This trades the first close
+through a 1H zone in the break direction. With a candle stop and a 2R target, spread included:
+- OANDA 1H, 10 months: 201 trades, 37.8% win, -0.06R per trade.
+- COMEX 1H, 10 months: 244 trades, 38.1% win, -0.06R per trade.
+- Breakouts through random levels made +0.16R and +0.09R per trade.
+
+**Breakouts through high-volume zones fail more often than breakouts through random levels.**
+The zones slow price down, but neither bouncing off them nor breaking through them is profitable
+on its own.
+
+`pinescript/xauusd_hv_zone_strategy.pine` is a `strategy()` version for TradingView's Strategy Tester.
+It has four modes: Bounce - rejection, Bounce - BOS, Bounce - both, and Breakout. Position size is
+risk-based, and the $0.30 spread is modelled as commission.

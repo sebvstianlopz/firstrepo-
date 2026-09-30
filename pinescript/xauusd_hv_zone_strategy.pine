@@ -1,0 +1,270 @@
+//@version=6
+strategy("XAUUSD HV Zone Strategy [5m]", shorttitle = "HVZ Strat", overlay = true,
+     max_boxes_count = 500, max_lines_count = 500, max_labels_count = 500,
+     initial_capital = 10000, default_qty_type = strategy.fixed, default_qty_value = 1,
+     commission_type = strategy.commission.cash_per_contract, commission_value = 0.15,
+     process_orders_on_close = true, pyramiding = 0)
+
+// ============================================================================
+// XAUUSD HIGH-VOLUME ZONE STRATEGY - for TradingView's Strategy Tester
+//
+// Zones: 1H candles with volume >= 2x the 20-bar average and a wick >= 40% of the range
+// (built from CLOSED 1H candles - no repainting). Zone = the wick.
+//
+// Modes
+//   Bounce - rejection : after the FIRST retest of a fresh zone, a candle trades into the zone and
+//                        closes back outside it in the bounce direction (within the signal window).
+//   Bounce - BOS       : after the first retest, a close breaks the latest swing high (long) / low (short).
+//   Bounce - both      : whichever of the two comes first.
+//   Breakout           : the first close THROUGH the far side of a zone by "Break" x 1H ATR,
+//                        traded in the break direction.
+// Stop   : "Swing / candle" = beyond the extreme since the retest (bounce) or the breakout candle
+//          (+0.3 x chart ATR).  "Zone" = beyond the zone (+0.3 x 1H ATR).
+// Target : R:R x risk. Time exit after "Max trade length". One trade at a time.
+// Size   : "Risk per trade ($)" / stop distance, so Net Profit / risk = result in R.
+// Costs  : commission 0.15 $ per unit on entry AND exit = 0.30 $ spread per round trip
+//          (Properties tab -> Commission).
+//
+// Python backtests with these rules (see backtest/ folder, spread included, defaults):
+//   Bounce on 5m / 15m entries : 108 trades, 25.9% win, -0.30R per trade.
+//   Breakout on 1H entries     : 201 trades (10 months, OANDA), 37.8% win, -0.06R per trade.
+//   Neither beat the same rules on random zones. Use this script to check on longer history.
+// ============================================================================
+
+// ---------------------------------------------------------------- Inputs
+string G0 = "Strategy"
+string mode     = input.string("Bounce - both", "Mode", options = ["Bounce - rejection", "Bounce - BOS", "Bounce - both", "Breakout"], group = G0)
+bool   allowL   = input.bool(true, "Allow longs", group = G0, inline = "d")
+bool   allowS   = input.bool(true, "Allow shorts", group = G0, inline = "d")
+string stopMode = input.string("Swing / candle", "Stop placement", options = ["Swing / candle", "Zone"], group = G0)
+float  rr       = input.float(2.0, "Target (R:R)", minval = 0.5, step = 0.5, group = G0)
+float  riskUSD  = input.float(100, "Risk per trade ($)", minval = 1, group = G0)
+float  sigHours = input.float(2, "Bounce signal window (hours after first retest)", minval = 0.25, step = 0.25, group = G0)
+float  maxChase = input.float(1.0, "Bounce max chase (x 1H ATR from zone)", minval = 0.1, step = 0.1, group = G0)
+float  tradeHrs = input.float(16, "Max trade length (hours)", minval = 1, group = G0)
+int    swingLen = input.int(2, "Swing pivot length (BOS)", minval = 1, group = G0)
+
+string G1 = "1H zones"
+float volKH  = input.float(2.0, "Min volume (x 20-bar avg)", minval = 1.0, step = 0.1, group = G1)
+float wickH  = input.float(40, "Min wick (% of range)", minval = 10, maxval = 90, step = 5, group = G1)
+float minW   = input.float(0.15, "Min zone width (1H ATR)", minval = 0.05, step = 0.05, group = G1)
+float maxW   = input.float(0.6, "Max zone width (1H ATR)", minval = 0.1, step = 0.05, group = G1)
+float brkATR = input.float(0.3, "Break = close beyond zone by (1H ATR)", minval = 0.0, step = 0.05, group = G1)
+int   ageH   = input.int(15, "Max zone age (days)", minval = 1, group = G1)
+int   maxH   = input.int(40, "Max zones", minval = 1, maxval = 150, group = G1)
+
+string G2 = "Display"
+bool  showZones = input.bool(true, "Draw zones", group = G2)
+bool  showTbl   = input.bool(true, "Show summary table", group = G2)
+color cDem      = input.color(color.new(#089981, 70), "Demand zone", group = G2, inline = "c")
+color cSup      = input.color(color.new(#f23645, 70), "Supply zone", group = G2, inline = "c")
+
+// ---------------------------------------------------------------- Core
+int   tfSec     = timeframe.in_seconds()
+bool  tfOK      = tfSec <= 3600
+float barsPerHr = 3600.0 / tfSec
+int   sigWin    = math.max(1, int(math.round(sigHours * barsPerHr)))
+int   maxTrade  = math.max(1, int(math.round(tradeHrs * barsPerHr)))
+int   maxAge    = int(math.round(ageH * 24 * barsPerHr))
+float atrC      = ta.atr(14)
+float prevClose = nz(close[1], close)
+bool  useRej    = mode == "Bounce - rejection" or mode == "Bounce - both"
+bool  useBos    = mode == "Bounce - BOS" or mode == "Bounce - both"
+bool  useBrk    = mode == "Breakout"
+
+float phC = ta.pivothigh(high, swingLen, swingLen)
+float plC = ta.pivotlow(low, swingLen, swingLen)
+var float lastPH = na
+var float lastPL = na
+if not na(phC)
+    lastPH := phC
+if not na(plC)
+    lastPL := plC
+
+// ---- previous CLOSED 1H candle (no repainting)
+htfCandle() =>
+    float va  = ta.sma(volume, 20)[1]
+    float r   = not na(va) and va > 0 ? volume / va : 0.0
+    float rg  = high - low
+    float uw  = high - math.max(open, close)
+    float dw  = math.min(open, close) - low
+    float a   = ta.atr(14)
+    bool  ok  = not na(a) and r >= volKH and rg > 0
+    bool  sup = ok and uw >= wickH / 100 * rg
+    bool  dem = ok and dw >= wickH / 100 * rg
+    [sup[1], dem[1], high[1], low[1], uw[1], dw[1], a[1], time[1]]
+
+[hSup, hDem, hH, hL, hUW, hDW, hATR, hT] = request.security(syminfo.tickerid, "60", htfCandle(), lookahead = barmerge.lookahead_on)
+bool newHour = not na(hT) and hT != nz(hT[1])
+
+// ---------------------------------------------------------------- Zones
+type Zone
+    float top
+    float bot
+    bool  supply
+    float zatr
+    int   born
+    int   side    = 0      // 1 price above zone, -1 below
+    int   state   = 0      // 0 fresh, 1 armed after first retest, 2 finished
+    int   pdir    = 0
+    int   pbar    = 0
+    float bos     = na
+    float ext     = na
+    bool  rejDone = false
+    bool  bosDone = false
+    box   bx
+
+var array<Zone> zones = array.new<Zone>()
+
+fadeZone(Zone z) =>
+    if not na(z.bx)
+        color c = z.supply ? cSup : cDem
+        z.bx.set_bgcolor(color.new(c, 92))
+        z.bx.set_border_color(color.new(c, 80))
+    z.state
+
+// Update all zones on a closed bar. Returns the first signal found: [direction, stop, kind]
+// kind: 0 rejection, 1 BOS, 2 breakout.  direction 0 = no signal.
+method step(array<Zone> zs) =>
+    int   sDir  = 0
+    float sStop = na
+    int   sKind = -1
+    int sz = zs.size()
+    if sz > 0
+        for i = sz - 1 to 0
+            Zone z = zs.get(i)
+            bool kill = false
+            if z.born < bar_index
+                if z.side == 0
+                    z.side := prevClose > z.top ? 1 : prevClose < z.bot ? -1 : 0
+                float bb = z.zatr * brkATR
+                bool brokeDown = z.side == 1 and close < z.bot - bb
+                bool brokeUp   = z.side == -1 and close > z.top + bb
+                // ---- breakout mode: first close through the zone
+                if useBrk and (brokeDown or brokeUp) and sDir == 0
+                    int d = brokeUp ? 1 : -1
+                    sDir  := d
+                    sKind := 2
+                    sStop := stopMode == "Zone" ? (d == 1 ? z.bot - 0.3 * z.zatr : z.top + 0.3 * z.zatr) : (d == 1 ? low - 0.3 * atrC : high + 0.3 * atrC)
+                // ---- bounce modes: arm on the first retest
+                if not useBrk and z.state == 0 and z.side != 0
+                    bool fromAbove = z.side == 1 and low <= z.top
+                    bool fromBelow = z.side == -1 and high >= z.bot
+                    if fromAbove or fromBelow
+                        z.state := 1
+                        z.pdir  := fromAbove ? 1 : -1
+                        z.pbar  := bar_index
+                        z.bos   := z.pdir == 1 ? lastPH : lastPL
+                        z.ext   := z.pdir == 1 ? low : high
+                if not useBrk and z.state == 1
+                    if bar_index - z.pbar > sigWin
+                        z.state := 2
+                        fadeZone(z)
+                    else
+                        if bar_index > z.pbar
+                            float piv = z.pdir == 1 ? phC : plC
+                            if not na(piv)
+                                z.bos := piv
+                            z.ext := z.pdir == 1 ? math.min(z.ext, low) : math.max(z.ext, high)
+                        bool invalid = z.pdir == 1 ? close < z.bot - bb : close > z.top + bb
+                        if invalid
+                            z.state := 2
+                            fadeZone(z)
+                        else
+                            bool chaseOK = z.pdir == 1 ? close - z.top <= maxChase * z.zatr : z.bot - close <= maxChase * z.zatr
+                            bool rej = z.pdir == 1 ? low <= z.top and close > z.top and close > open : high >= z.bot and close < z.bot and close < open
+                            bool bsx = not na(z.bos) and (z.pdir == 1 ? close > z.bos and prevClose <= z.bos : close < z.bos and prevClose >= z.bos)
+                            float stp = stopMode == "Zone" ? (z.pdir == 1 ? z.bot - bb : z.top + bb) : (z.pdir == 1 ? z.ext - 0.3 * atrC : z.ext + 0.3 * atrC)
+                            if chaseOK and useRej and rej and not z.rejDone
+                                z.rejDone := true
+                                if sDir == 0
+                                    sDir  := z.pdir
+                                    sStop := stp
+                                    sKind := 0
+                            if chaseOK and useBos and bsx and not z.bosDone
+                                z.bosDone := true
+                                if sDir == 0
+                                    sDir  := z.pdir
+                                    sStop := stp
+                                    sKind := 1
+                // ---- lifetime
+                if (brokeDown or brokeUp) and z.state != 1
+                    kill := true
+                if close > z.top
+                    z.side := 1
+                else if close < z.bot
+                    z.side := -1
+                if bar_index - z.born > maxAge and z.state != 1
+                    kill := true
+            if kill
+                if not na(z.bx)
+                    z.bx.delete()
+                zs.remove(i)
+    [sDir, sStop, sKind]
+
+// ---------------------------------------------------------------- Run on closed bars
+int   sigDir  = 0
+float sigStop = na
+int   sigKind = -1
+if barstate.isconfirmed and tfOK
+    [d, s, k] = zones.step()
+    sigDir  := d
+    sigStop := s
+    sigKind := k
+
+// new zones from the previous closed 1H candle
+if barstate.isconfirmed and tfOK and newHour and not na(hATR)
+    if hSup
+        float w = math.min(math.max(hUW, minW * hATR), maxW * hATR)
+        box b = showZones ? box.new(left = hT, top = hH, right = time, bottom = hH - w, xloc = xloc.bar_time, extend = extend.right, border_color = color.new(cSup, 40), bgcolor = cSup) : na
+        zones.push(Zone.new(hH, hH - w, true, hATR, bar_index, side = prevClose > hH ? 1 : prevClose < hH - w ? -1 : 0, bx = b))
+    if hDem
+        float w = math.min(math.max(hDW, minW * hATR), maxW * hATR)
+        box b = showZones ? box.new(left = hT, top = hL + w, right = time, bottom = hL, xloc = xloc.bar_time, extend = extend.right, border_color = color.new(cDem, 40), bgcolor = cDem) : na
+        zones.push(Zone.new(hL + w, hL, false, hATR, bar_index, side = prevClose > hL + w ? 1 : prevClose < hL ? -1 : 0, bx = b))
+    while zones.size() > maxH
+        Zone old = zones.shift()
+        if not na(old.bx)
+            old.bx.delete()
+
+// ---------------------------------------------------------------- Orders
+var int entryBar = na
+bool flat = strategy.position_size == 0
+if flat and sigDir != 0 and not na(sigStop)
+    float risk = math.abs(close - sigStop)
+    bool  okDir = sigDir == 1 ? allowL : allowS
+    if risk > 0 and okDir
+        float qty  = riskUSD / risk
+        float tgt  = close + sigDir * rr * risk
+        string tag = sigKind == 0 ? "Rej" : sigKind == 1 ? "BOS" : "Brk"
+        if sigDir == 1
+            strategy.entry("Long", strategy.long, qty = qty, comment = "L " + tag)
+            strategy.exit("XL", from_entry = "Long", stop = sigStop, limit = tgt, comment_loss = "SL", comment_profit = "TP")
+        else
+            strategy.entry("Short", strategy.short, qty = qty, comment = "S " + tag)
+            strategy.exit("XS", from_entry = "Short", stop = sigStop, limit = tgt, comment_loss = "SL", comment_profit = "TP")
+        entryBar := bar_index
+
+if not flat and not na(entryBar) and bar_index - entryBar >= maxTrade
+    strategy.close_all(comment = "Time")
+
+// ---------------------------------------------------------------- Summary table
+var table tbl = table.new(position.top_right, 2, 6, bgcolor = color.new(#131722, 10), border_color = color.new(#363a45, 0), border_width = 1, frame_color = color.new(#363a45, 0), frame_width = 1)
+if barstate.isfirst
+    tbl.merge_cells(0, 5, 1, 5)
+
+if showTbl and barstate.islast
+    color tx = color.new(#d1d4dc, 0)
+    int   n  = strategy.closedtrades
+    float netR = strategy.netprofit / riskUSD
+    tbl.cell(0, 0, "Mode", text_color = tx, text_size = size.small, text_halign = text.align_left)
+    tbl.cell(1, 0, mode, text_color = tx, text_size = size.small)
+    tbl.cell(0, 1, "Closed trades", text_color = tx, text_size = size.small, text_halign = text.align_left)
+    tbl.cell(1, 1, str.tostring(n), text_color = tx, text_size = size.small)
+    tbl.cell(0, 2, "Win rate", text_color = tx, text_size = size.small, text_halign = text.align_left)
+    tbl.cell(1, 2, n > 0 ? str.tostring(100.0 * strategy.wintrades / n, "0.0") + "%" : "-", text_color = tx, text_size = size.small)
+    tbl.cell(0, 3, "Net result (R)", text_color = tx, text_size = size.small, text_halign = text.align_left)
+    tbl.cell(1, 3, (netR >= 0 ? "+" : "") + str.tostring(netR, "0.0") + "R", text_color = netR >= 0 ? color.new(#00e676, 0) : color.new(#ff5252, 0), text_size = size.small)
+    tbl.cell(0, 4, "Avg per trade (R)", text_color = tx, text_size = size.small, text_halign = text.align_left)
+    tbl.cell(1, 4, n > 0 ? str.tostring(netR / n, "0.00") + "R" : "-", text_color = tx, text_size = size.small)
+    tbl.cell(0, 5, not tfOK ? "Use a chart of 1H or lower" : "Break-even win rate at " + str.tostring(rr, "0.0") + "R: " + str.tostring(100.0 / (1 + rr), "0") + "%+", text_color = color.new(#9598a1, 0), text_size = size.tiny, text_halign = text.align_left)
