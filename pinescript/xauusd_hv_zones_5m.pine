@@ -1,5 +1,5 @@
 //@version=6
-indicator("XAUUSD High-Volume Zones [5m]", shorttitle = "HV Zones 5m", overlay = true, max_boxes_count = 500, max_labels_count = 500)
+indicator("XAUUSD High-Volume Zones [5m]", shorttitle = "HVZ 5m", overlay = true, max_boxes_count = 500, max_labels_count = 500)
 
 // ============================================================================
 // XAUUSD HIGH-VOLUME REJECTION ZONES - 5 MINUTE CHART
