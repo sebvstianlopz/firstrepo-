@@ -53,3 +53,14 @@ run on about 4 weeks of 5m data from OANDA tick volume and COMEX GC1! futures vo
 - Time-of-day volume rejection zones scored +9% vs random on OANDA and -2% on COMEX.
 - On 5m, the spread (~$0.30) costs about 10% of a typical stop.
 - The live table on the chart measures both layers against random zones on TradingView's longer history.
+
+### 5m entry signals inside 1H zones
+
+The 5m indicator also marks BUY and SELL signals once price makes its first retest of a fresh 1H zone:
+- **Rejection:** a 5m candle closes back out of the zone.
+- **BOS:** a 5m close breaks the latest swing high or low.
+- **Trades:** the stop goes beyond the 5m swing (or beyond the 1H zone) and the target is 2R.
+  Every signal is tracked as a trade in the table, next to the same signals taken on random zones.
+- **Logic check:** `python3 backtest/entry_signals_5m.py` (results in `backtest/entry_signals_5m_results.txt`)
+  only has about 4 weeks of 5m data (12–17 trades per trigger). That confirms the logic but is not
+  evidence of an edge.

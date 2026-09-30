@@ -1,0 +1,24 @@
+
+Stop: zone   Target 1R
+  REJ real    n=17  win  41.2%  avg -0.19R  total -3.3R  avg risk $19.59
+  REJ random  n=37  win  40.5%  avg -0.19R  total -7.0R  avg risk $20.82
+  BOS real    n=12  win  33.3%  avg -0.35R  total -4.2R  avg risk $24.91
+  BOS random  n=27  win  44.4%  avg -0.14R  total -3.7R  avg risk $27.07
+
+Stop: zone   Target 2R
+  REJ real    n=17  win  29.4%  avg -0.27R  total -4.6R  avg risk $19.59
+  REJ random  n=37  win  29.7%  avg -0.11R  total -4.2R  avg risk $20.82
+  BOS real    n=12  win  25.0%  avg -0.46R  total -5.6R  avg risk $24.91
+  BOS random  n=27  win  40.7%  avg +0.09R  total +2.4R  avg risk $27.07
+
+Stop: swing   Target 1R
+  REJ real    n=17  win  52.9%  avg +0.02R  total +0.3R  avg risk $8.75
+  REJ random  n=37  win  48.6%  avg -0.06R  total -2.2R  avg risk $12.73
+  BOS real    n=12  win  41.7%  avg -0.19R  total -2.2R  avg risk $16.07
+  BOS random  n=27  win  37.0%  avg -0.28R  total -7.4R  avg risk $21.02
+
+Stop: swing   Target 2R
+  REJ real    n=17  win  23.5%  avg -0.33R  total -5.7R  avg risk $8.75
+  REJ random  n=37  win  21.6%  avg -0.38R  total -14.2R  avg risk $12.73
+  BOS real    n=12  win  25.0%  avg -0.51R  total -6.1R  avg risk $16.07
+  BOS random  n=27  win  29.6%  avg -0.20R  total -5.5R  avg risk $21.02

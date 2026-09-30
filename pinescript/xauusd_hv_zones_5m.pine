@@ -1,5 +1,5 @@
 //@version=6
-indicator("XAUUSD High-Volume Zones [5m]", shorttitle = "HVZ 5m", overlay = true, max_boxes_count = 500, max_labels_count = 500)
+indicator("XAUUSD High-Volume Zones [5m]", shorttitle = "HVZ 5m", overlay = true, max_boxes_count = 500, max_labels_count = 500, max_lines_count = 500)
 
 // ============================================================================
 // XAUUSD HIGH-VOLUME REJECTION ZONES - 5 MINUTE CHART
@@ -22,6 +22,17 @@ indicator("XAUUSD High-Volume Zones [5m]", shorttitle = "HVZ 5m", overlay = true
 // Lifetime: fresh (solid) -> tested after first retest (faded) -> deleted when a candle closes
 // 0.3 ATR through the far side (broken zones did worse than random when retested).
 //
+// 5m ENTRY SIGNALS (inside FRESH 1H zones)
+//   When price makes its first retest of a fresh 1H zone, the zone is ARMED for "Signal window" 5m bars.
+//   Rejection : a 5m candle trades into the zone and closes back outside it, in the bounce direction.
+//   BOS       : a 5m close breaks the most recent 5m swing high (longs) / swing low (shorts).
+//   Each trigger fires at most once per zone. No signal if price is already > "Max chase" x 1H ATR away.
+//   Trade: entry = signal close, stop = beyond the 5m swing since arming (+0.3 x 5m ATR) or beyond the
+//   1H zone, target = R:R x risk, spread deducted. Every signal is tracked in the table (win %, avg R,
+//   total R) next to the same signals on random zones.
+//   Python check on ~4 weeks of 5m data: only 12-17 trades per trigger, roughly break-even to negative -
+//   NOT enough data to prove anything. Judge it by the table on your own chart history.
+//
 // Table: reaction on the FIRST retest (1 ATR bounce before a 0.3 ATR close through, ATR of the
 // zone's own timeframe) compared with invisible random zones of the same size.
 // ============================================================================
@@ -43,6 +54,18 @@ int   todDays  = input.int(10, "Time-of-day average length (sessions)", minval =
 int   look5    = input.int(12, "Reaction look-ahead (bars)", minval = 3, group = G2)
 int   age5     = input.int(3, "Max age (days)", minval = 1, group = G2)
 int   max5     = input.int(40, "Max 5m zones", minval = 1, maxval = 100, group = G2)
+
+string G5 = "5m entry signals (inside fresh 1H zones)"
+bool   showSig   = input.bool(true, "Show entry signals", group = G5)
+bool   useRejSig = input.bool(true, "Trigger: rejection candle", group = G5)
+bool   useBosSig = input.bool(true, "Trigger: 5m break of structure", group = G5)
+int    sigWin    = input.int(24, "Signal window after first retest (bars)", minval = 1, group = G5, tooltip = "24 x 5m = 2 hours.")
+float  maxChase  = input.float(1.0, "Max chase (x 1H ATR from zone)", minval = 0.1, step = 0.1, group = G5)
+string stopMode  = input.string("Beyond 5m swing", "Stop placement", options = ["Beyond 5m swing", "Beyond 1H zone"], group = G5)
+float  rr        = input.float(2.0, "Target (R:R)", minval = 0.5, step = 0.5, group = G5)
+float  spreadIn  = input.float(0.30, "Spread / cost per trade ($)", minval = 0, step = 0.05, group = G5)
+int    maxTrade  = input.int(192, "Close trade after (bars)", minval = 12, group = G5)
+bool   showLvls  = input.bool(true, "Draw entry / stop / target lines", group = G5)
 
 string G3 = "Common"
 float minW       = input.float(0.15, "Min zone width (ATR)", minval = 0.05, step = 0.05, group = G3)
@@ -123,7 +146,25 @@ type HVZ
     int   side    = 0      // 1 price above zone, -1 below
     int   pdir    = 0
     int   pbar    = 0
+    float bos     = na     // 5m structure level for the BOS trigger
+    float ext     = na     // extreme since arming (for the swing stop)
+    bool  sigOff  = false
+    bool  rejDone = false
+    bool  bosDone = false
     box   bx
+
+type Trade
+    int   dir
+    int   kind      // 0 rejection, 1 BOS
+    bool  control
+    float entry
+    float stop
+    float tgt
+    float risk
+    int   bar
+    line  lE
+    line  lS
+    line  lT
 
 var array<HVZ> zH = array.new<HVZ>()
 var array<HVZ> z5 = array.new<HVZ>()
@@ -136,6 +177,24 @@ var array<int> tR    = array.new_int(2, 0)
 var array<int> rR    = array.new_int(2, 0)
 var array<int> tC    = array.new_int(2, 0)
 var array<int> rC    = array.new_int(2, 0)
+
+var array<Trade> trades = array.new<Trade>()
+// signal stats index: 0 = rejection, 1 = BOS
+var array<int>   sN  = array.new_int(2, 0)
+var array<int>   sW  = array.new_int(2, 0)
+var array<float> sR  = array.new_float(2, 0.0)
+var array<int>   sNc = array.new_int(2, 0)
+var array<float> sRc = array.new_float(2, 0.0)
+
+// latest confirmed 5m swing points
+float ph5 = ta.pivothigh(high, 2, 2)
+float pl5 = ta.pivotlow(low, 2, 2)
+var float lastPH = na
+var float lastPL = na
+if not na(ph5)
+    lastPH := ph5
+if not na(pl5)
+    lastPL := pl5
 
 // ---------------------------------------------------------------- Helpers
 hash01(float x) =>
@@ -197,13 +256,11 @@ method update(array<HVZ> zs, bool isCtrl) =>
                     if res >= 0
                         record(z.htf ? 0 : 1, isCtrl, res)
                         z.state := 2
-                        if isCtrl or not showTested
-                            kill := true
-                        if not isCtrl and showTested
+                        if not isCtrl
                             color fc = zoneColor(z.supply, z.htf, true)
-                            z.bx.set_bgcolor(fc)
-                            z.bx.set_border_color(color.new(fc, math.max(0, fadeT - 20)))
-                            z.bx.set_text_color(color.new(fc, math.max(0, fadeT - 40)))
+                            z.bx.set_bgcolor(showTested ? fc : color.new(fc, 100))
+                            z.bx.set_border_color(color.new(fc, showTested ? math.max(0, fadeT - 20) : 100))
+                            z.bx.set_text_color(color.new(fc, showTested ? math.max(0, fadeT - 40) : 100))
                 else if z.state == 0 and z.side != 0
                     bool fromAbove = z.side == 1 and low <= z.top
                     bool fromBelow = z.side == -1 and high >= z.bot
@@ -211,6 +268,8 @@ method update(array<HVZ> zs, bool isCtrl) =>
                         z.state := 1
                         z.pdir := fromAbove ? 1 : -1
                         z.pbar := bar_index
+                        z.bos := z.pdir == 1 ? lastPH : lastPL
+                        z.ext := z.pdir == 1 ? low : high
                         if not isCtrl
                             touchDir := z.pdir
                 float b2 = z.zatr * brkATR
@@ -229,6 +288,89 @@ method update(array<HVZ> zs, bool isCtrl) =>
                 zs.remove(i)
     touchDir
 
+newTrade(int dir, int kind, bool isCtrl, float stop) =>
+    float risk = math.abs(close - stop)
+    if risk > 0
+        float tgt = close + dir * rr * risk
+        Trade t = Trade.new(dir, kind, isCtrl, close, stop, tgt, risk, bar_index)
+        if not isCtrl and showSig
+            string k = kind == 0 ? "Rej" : "BOS"
+            label.new(bar_index, dir == 1 ? low : high, (dir == 1 ? "BUY " : "SELL ") + k,
+                 style = dir == 1 ? label.style_label_up : label.style_label_down, size = size.small,
+                 color = dir == 1 ? color.new(#00c853, 0) : color.new(#d50000, 0), textcolor = color.white,
+                 tooltip = "Entry " + str.tostring(close, format.mintick) + "\nStop " + str.tostring(stop, format.mintick) + "\nTarget " + str.tostring(tgt, format.mintick))
+            if showLvls
+                t.lE := line.new(bar_index, close, bar_index + 1, close, color = color.new(#9598a1, 0), width = 1)
+                t.lS := line.new(bar_index, stop, bar_index + 1, stop, color = color.new(#ff5252, 0), width = 1, style = line.style_dashed)
+                t.lT := line.new(bar_index, tgt, bar_index + 1, tgt, color = color.new(#00e676, 0), width = 1, style = line.style_dashed)
+        trades.push(t)
+    risk
+
+// Look for 5m entry triggers on armed 1H zones. Returns [longs, shorts] fired on this bar (real zones only).
+method signals(array<HVZ> zs, bool isCtrl) =>
+    int nL = 0
+    int nS = 0
+    for z in zs
+        if z.pbar > 0 and not z.sigOff
+            if bar_index - z.pbar > sigWin
+                z.sigOff := true
+            else
+                if bar_index > z.pbar
+                    float piv = z.pdir == 1 ? ph5 : pl5
+                    if not na(piv)
+                        z.bos := piv
+                    z.ext := z.pdir == 1 ? math.min(z.ext, low) : math.max(z.ext, high)
+                float bb = z.zatr * brkATR
+                bool invalid = z.pdir == 1 ? close < z.bot - bb : close > z.top + bb
+                if invalid
+                    z.sigOff := true
+                else
+                    bool chaseOK = z.pdir == 1 ? close - z.top <= maxChase * z.zatr : z.bot - close <= maxChase * z.zatr
+                    bool rej = z.pdir == 1 ? low <= z.top and close > z.top and close > open : high >= z.bot and close < z.bot and close < open
+                    bool bsx = not na(z.bos) and (z.pdir == 1 ? close > z.bos and prevClose <= z.bos : close < z.bos and prevClose >= z.bos)
+                    float stop = stopMode == "Beyond 1H zone" ? (z.pdir == 1 ? z.bot - bb : z.top + bb) : (z.pdir == 1 ? z.ext - 0.3 * atr5 : z.ext + 0.3 * atr5)
+                    if chaseOK and useRejSig and rej and not z.rejDone
+                        z.rejDone := true
+                        newTrade(z.pdir, 0, isCtrl, stop)
+                        nL += (not isCtrl and z.pdir == 1) ? 1 : 0
+                        nS += (not isCtrl and z.pdir == -1) ? 1 : 0
+                    if chaseOK and useBosSig and bsx and not z.bosDone
+                        z.bosDone := true
+                        newTrade(z.pdir, 1, isCtrl, stop)
+                        nL += (not isCtrl and z.pdir == 1) ? 1 : 0
+                        nS += (not isCtrl and z.pdir == -1) ? 1 : 0
+    [nL, nS]
+
+// Manage open trades: stop first (conservative), then target, then time exit.
+manageTrades() =>
+    int sz = trades.size()
+    if sz > 0
+        for i = sz - 1 to 0
+            Trade t = trades.get(i)
+            if bar_index > t.bar
+                float r = na
+                if (t.dir == 1 and low <= t.stop) or (t.dir == -1 and high >= t.stop)
+                    r := -1.0
+                else if (t.dir == 1 and high >= t.tgt) or (t.dir == -1 and low <= t.tgt)
+                    r := rr
+                else if bar_index - t.bar >= maxTrade
+                    r := t.dir * (close - t.entry) / t.risk
+                if not na(t.lE)
+                    t.lE.set_x2(bar_index)
+                    t.lS.set_x2(bar_index)
+                    t.lT.set_x2(bar_index)
+                if not na(r)
+                    float rn = r - spreadIn / t.risk
+                    if t.control
+                        sNc.set(t.kind, sNc.get(t.kind) + 1)
+                        sRc.set(t.kind, sRc.get(t.kind) + rn)
+                    else
+                        sN.set(t.kind, sN.get(t.kind) + 1)
+                        sW.set(t.kind, sW.get(t.kind) + (rn > 0 ? 1 : 0))
+                        sR.set(t.kind, sR.get(t.kind) + rn)
+                    trades.remove(i)
+    sz
+
 method cap(array<HVZ> zs, int maxN) =>
     int i = 0
     while zs.size() > maxN and i < zs.size()
@@ -245,11 +387,19 @@ method cap(array<HVZ> zs, int maxN) =>
 // ---------------------------------------------------------------- 1) Update existing zones (on closed bars)
 int touchH = 0
 int touch5 = 0
+int sigLong  = 0
+int sigShort = 0
 if confirmed
+    manageTrades()
     touchH := zH.update(false)
     touch5 := z5.update(false)
     cH.update(true)
     c5.update(true)
+    if hOK
+        [nL, nS] = zH.signals(false)
+        [cL, cS] = cH.signals(true)
+        sigLong  := nL
+        sigShort := nS
 
 // ---------------------------------------------------------------- 2) New zones
 int barsPerDay = int(86400 / tfSec)
@@ -279,15 +429,17 @@ alertcondition(touchH == 1, "Fresh 1H zone retest from above", "XAUUSD 5m: price
 alertcondition(touchH == -1, "Fresh 1H zone retest from below", "XAUUSD 5m: price retesting a fresh 1H high-volume zone from below (resistance)")
 alertcondition(touch5 != 0, "Fresh 5m zone retest", "XAUUSD 5m: price retesting a fresh 5m high-volume zone")
 alertcondition(new5Sup or new5Dem, "New 5m zone", "XAUUSD 5m: new 5m high-volume rejection zone")
+alertcondition(sigLong > 0, "5m BUY signal in 1H zone", "XAUUSD 5m: BUY signal inside a fresh 1H high-volume zone")
+alertcondition(sigShort > 0, "5m SELL signal in 1H zone", "XAUUSD 5m: SELL signal inside a fresh 1H high-volume zone")
 
 // ---------------------------------------------------------------- 4) Stats table
 pct(int r, int t) => t > 0 ? 100.0 * r / t : na
 fmt(float v) => na(v) ? "-" : str.tostring(v, "#.0") + "%"
 
-var table tbl = table.new(tblPos == "Top Right" ? position.top_right : tblPos == "Bottom Right" ? position.bottom_right : tblPos == "Top Left" ? position.top_left : position.bottom_left, 6, 4, bgcolor = color.new(#131722, 10), border_color = color.new(#363a45, 0), border_width = 1, frame_color = color.new(#363a45, 0), frame_width = 1)
+var table tbl = table.new(tblPos == "Top Right" ? position.top_right : tblPos == "Bottom Right" ? position.bottom_right : tblPos == "Top Left" ? position.top_left : position.bottom_left, 6, 7, bgcolor = color.new(#131722, 10), border_color = color.new(#363a45, 0), border_width = 1, frame_color = color.new(#363a45, 0), frame_width = 1)
 
 if barstate.isfirst
-    tbl.merge_cells(0, 3, 5, 3)
+    tbl.merge_cells(0, 6, 5, 6)
 
 if showTbl and barstate.islast
     color tx  = color.new(#d1d4dc, 0)
@@ -309,4 +461,19 @@ if showTbl and barstate.islast
         tbl.cell(4, row + 1, fmt(cp), text_color = tx, text_size = size.small)
         tbl.cell(5, row + 1, na(ed) ? "-" : (ed >= 0 ? "+" : "") + str.tostring(ed, "#.0"), text_color = ec, text_size = size.small)
     string note = not volFeed ? "No volume on this symbol - use OANDA:XAUUSD" : tfSec >= 3600 ? "Built for the 5m chart (1H layer off on 1H+)" : tfSec != 300 ? "Tuned for the 5m chart" : "Edge = react % minus random zones. Few retests = not reliable yet."
-    tbl.cell(0, 3, note, text_color = color.new(#9598a1, 0), text_size = size.tiny, text_halign = text.align_left)
+    array<string> sheads = array.from("Entries", "Trades", "Win %", "Avg R", "Random avg R", "Total R")
+    for c = 0 to 5
+        tbl.cell(c, 3, sheads.get(c), text_color = tx, text_size = size.small, bgcolor = hbg)
+    array<string> snames = array.from("Rejection", "BOS")
+    for k = 0 to 1
+        int   n   = sN.get(k)
+        float avg = n > 0 ? sR.get(k) / n : na
+        float cav = sNc.get(k) > 0 ? sRc.get(k) / sNc.get(k) : na
+        color rc  = na(avg) ? tx : avg > 0 ? color.new(#00e676, 0) : color.new(#ff5252, 0)
+        tbl.cell(0, k + 4, snames.get(k), text_color = tx, text_size = size.small, text_halign = text.align_left)
+        tbl.cell(1, k + 4, str.tostring(n), text_color = tx, text_size = size.small)
+        tbl.cell(2, k + 4, fmt(pct(sW.get(k), n)), text_color = tx, text_size = size.small)
+        tbl.cell(3, k + 4, na(avg) ? "-" : (avg >= 0 ? "+" : "") + str.tostring(avg, "0.00"), text_color = rc, text_size = size.small)
+        tbl.cell(4, k + 4, na(cav) ? "-" : (cav >= 0 ? "+" : "") + str.tostring(cav, "0.00"), text_color = tx, text_size = size.small)
+        tbl.cell(5, k + 4, n > 0 ? (sR.get(k) >= 0 ? "+" : "") + str.tostring(sR.get(k), "0.0") : "-", text_color = rc, text_size = size.small)
+    tbl.cell(0, 6, note, text_color = color.new(#9598a1, 0), text_size = size.tiny, text_halign = text.align_left)
