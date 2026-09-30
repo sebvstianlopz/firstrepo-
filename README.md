@@ -39,3 +39,17 @@ Backtest (`backtest/volume_zones_backtest.py`, results in `backtest/volume_resul
   did not beat random, so they are not included.
 - A limit entry at the zone edge is about break-even (+0.04R at 1R), while random zones lose -0.12R.
   Use the zones as higher-probability areas, not as stand-alone entries.
+
+## XAUUSD High-Volume Zones (5m) — current version
+
+`pinescript/xauusd_hv_zones_5m.pine` is for the 5m chart and draws two layers:
+- **1H zones:** the tested 1H high-volume rejection zones, taken from closed 1H candles so they don't repaint.
+- **5m zones:** candles with volume ≥ 2× the average for the same time of day and a wick ≥ 40%.
+  These are unproven.
+
+5m study (`python3 backtest/volume_zones_backtest.py --5m`, results in `backtest/volume_results_5m.txt`),
+run on about 4 weeks of 5m data from OANDA tick volume and COMEX GC1! futures volume:
+- No 5m volume-zone idea beat random zones in both halves of the data or on both feeds.
+- Time-of-day volume rejection zones scored +9% vs random on OANDA and -2% on COMEX.
+- On 5m, the spread (~$0.30) costs about 10% of a typical stop.
+- The live table on the chart measures both layers against random zones on TradingView's longer history.

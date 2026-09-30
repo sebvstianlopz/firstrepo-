@@ -20,7 +20,12 @@ Tests per touch (first touch of a zone only, price entering from outside):
             spread cost 0.30 $ per trade.
 Results are split into first half / second half of the data (out-of-sample check).
 
+Volume modes: "sma" = vs the average of the previous `vol_len` candles,
+              "tod" = vs the average of the same time-of-day slot over the previous
+                      `tod_days` sessions (removes the session-open volume spikes on 5m).
+
 Usage: python3 volume_zones_backtest.py [csv]   (default ../data/xauusd_1h.csv)
+       python3 volume_zones_backtest.py --5m    (5m study on OANDA + COMEX GC1!)
 """
 import csv
 import datetime as dt
@@ -73,7 +78,20 @@ def clamp_zone(ext, edge, a, is_top, min_w=0.15, max_w=0.6):
 def generate(bars, A, cfg):
     """Return list of (bar_index_created, top, bot, kind, meta)."""
     vol = [b[5] for b in bars]
-    vavg = sma(vol, cfg["vol_len"])
+    if cfg.get("vol_mode", "sma") == "tod":
+        # EMA of volume for the same time-of-day slot over previous sessions
+        # (same maths as the Pine indicator). Needs >= 3 prior sessions for the slot.
+        alpha = 2.0 / (cfg.get("tod_days", 10) + 1)
+        vavg, slots = [], {}
+        for b in bars:
+            key = b[0] % 86400
+            avg, cnt = slots.get(key, (None, 0))
+            vavg.append(avg if avg and cnt >= 3 else 0.0)
+            slots[key] = (b[5] if avg is None else avg + alpha * (b[5] - avg), cnt + 1)
+        # align with the sma convention below (vavg[i - 1] is used for bar i)
+        vavg = vavg[1:] + [0.0]
+    else:
+        vavg = sma(vol, cfg["vol_len"])
     zones = []
     day_vol, day_key = {}, None
     for i in range(cfg["vol_len"] + 1, len(bars)):
@@ -211,7 +229,23 @@ def summarize(ev, label, half):
 CFG = dict(vol_len=20, vol_k=2.0, wick=0.5, disp=1.0, abs_rng=0.8, poc_bin=2.0,
            look=8, max_age=24 * 15)
 
+def main_5m():
+    """5m study: rejection zones with time-of-day volume, OANDA tick volume and COMEX futures volume."""
+    for name in ("xauusd_5m.csv", "gc1_5m.csv"):
+        bars = load(os.path.join(HERE, "..", "data", name))
+        A = atr(bars)
+        half = len(bars) // 2
+        for mode in ("sma", "tod"):
+            for k in (1.5, 2.0, 2.5):
+                cfg = dict(CFG, vol_k=k, wick=0.4, vol_mode=mode, look=12, max_age=288 * 3, poc_bin=1.0)
+                ev = evaluate(bars, A, generate(bars, A, cfg), cfg)
+                summarize(ev, f"{name} 5m  volume({mode}) >= {k}x", half)
+
+
 if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "--5m":
+        main_5m()
+        sys.exit()
     path = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, "..", "data", "xauusd_1h.csv")
     bars = load(path)
     A = atr(bars)

@@ -1,0 +1,312 @@
+//@version=6
+indicator("XAUUSD High-Volume Zones [5m]", shorttitle = "HV Zones 5m", overlay = true, max_boxes_count = 500, max_labels_count = 500)
+
+// ============================================================================
+// XAUUSD HIGH-VOLUME REJECTION ZONES - 5 MINUTE CHART
+//
+// Two layers of zones. A zone is the WICK of a candle that had unusually high
+// volume AND a long wick (price was rejected there with size).
+//
+//  1H zones (strong colours, "1H" label)  - built from closed 1H candles (non-repainting)
+//      volume >= 2x the 20-bar average, wick >= 40% of range.
+//      Backtest OANDA:XAUUSD 1H, 10 months: first retest reacted 58.6% vs 52.3% for random zones,
+//      in both halves of the data. This is the layer with evidence behind it.
+//
+//  5m zones (light colours, "5m" label)   - built from 5m candles
+//      volume >= 2x the average volume of the SAME TIME OF DAY (removes London / NY open spikes),
+//      wick >= 40% of range.
+//      Backtest (4 weeks of 5m, OANDA + COMEX futures): NOT consistent. +9% vs random on OANDA,
+//      -2% on COMEX, and the edge flipped between the two halves. Treat as unproven - the table
+//      below measures it live on your chart so you can judge it on more history.
+//
+// Lifetime: fresh (solid) -> tested after first retest (faded) -> deleted when a candle closes
+// 0.3 ATR through the far side (broken zones did worse than random when retested).
+//
+// Table: reaction on the FIRST retest (1 ATR bounce before a 0.3 ATR close through, ATR of the
+// zone's own timeframe) compared with invisible random zones of the same size.
+// ============================================================================
+
+// ---------------------------------------------------------------- Inputs
+string G1 = "1H zones (tested)"
+bool  useH     = input.bool(true, "Show 1H zones", group = G1)
+float volKH    = input.float(2.0, "Min volume (x 20-bar avg)", minval = 1.0, step = 0.1, group = G1)
+float wickH    = input.float(40, "Min wick (% of range)", minval = 10, maxval = 90, step = 5, group = G1)
+int   lookH    = input.int(96, "Reaction look-ahead (5m bars)", minval = 6, group = G1, tooltip = "96 x 5m = 8 hours = the 8 x 1H bars used in the 1H backtest.")
+int   ageH     = input.int(15, "Max age (days)", minval = 1, group = G1)
+int   maxH     = input.int(30, "Max 1H zones", minval = 1, maxval = 100, group = G1)
+
+string G2 = "5m zones (unproven)"
+bool  use5     = input.bool(true, "Show 5m zones", group = G2)
+float volK5    = input.float(2.0, "Min volume (x same-time-of-day avg)", minval = 1.0, step = 0.1, group = G2)
+float wick5    = input.float(40, "Min wick (% of range)", minval = 10, maxval = 90, step = 5, group = G2)
+int   todDays  = input.int(10, "Time-of-day average length (sessions)", minval = 3, group = G2)
+int   look5    = input.int(12, "Reaction look-ahead (bars)", minval = 3, group = G2)
+int   age5     = input.int(3, "Max age (days)", minval = 1, group = G2)
+int   max5     = input.int(40, "Max 5m zones", minval = 1, maxval = 100, group = G2)
+
+string G3 = "Common"
+float minW       = input.float(0.15, "Min zone width (ATR)", minval = 0.05, step = 0.05, group = G3)
+float maxW       = input.float(0.6, "Max zone width (ATR)", minval = 0.1, step = 0.05, group = G3)
+float brkATR     = input.float(0.3, "Break = close beyond zone by (ATR)", minval = 0.0, step = 0.05, group = G3)
+float reactATR   = input.float(1.0, "Reaction size (ATR)", minval = 0.1, step = 0.1, group = G3)
+bool  showTested = input.bool(true, "Keep tested zones (faded)", group = G3)
+bool  showTbl    = input.bool(true, "Show stats table", group = G3)
+string tblPos    = input.string("Top Right", "Table position", options = ["Top Right", "Bottom Right", "Top Left", "Bottom Left"], group = G3)
+
+string G4 = "Style"
+color cDemH   = input.color(color.new(#089981, 65), "1H demand", group = G4, inline = "h")
+color cSupH   = input.color(color.new(#f23645, 65), "1H supply", group = G4, inline = "h")
+color cDem5   = input.color(color.new(#4dd0e1, 80), "5m demand", group = G4, inline = "m")
+color cSup5   = input.color(color.new(#ffb74d, 80), "5m supply", group = G4, inline = "m")
+int   fadeT   = input.int(90, "Tested zone transparency", minval = 0, maxval = 100, group = G4)
+bool  showLbl = input.bool(true, "Show labels in zones", group = G4)
+bool  showMark = input.bool(true, "Mark 5m zone candles", group = G4)
+
+// ---------------------------------------------------------------- Core series
+int   tfSec     = timeframe.in_seconds()
+bool  hOK       = useH and tfSec < 3600
+float atr5      = ta.atr(14)
+float prevClose = nz(close[1], close)
+bool  confirmed = barstate.isconfirmed
+
+var bool volFeed = false
+if volume > 0
+    volFeed := true
+
+// ---- 1H candles (previous CLOSED 1H bar -> no repainting)
+htfCandle() =>
+    float va  = ta.sma(volume, 20)[1]
+    float r   = not na(va) and va > 0 ? volume / va : 0.0
+    float rg  = high - low
+    float uw  = high - math.max(open, close)
+    float dw  = math.min(open, close) - low
+    float a   = ta.atr(14)
+    bool  ok  = not na(a) and r >= volKH and rg > 0
+    bool  sup = ok and uw >= wickH / 100 * rg
+    bool  dem = ok and dw >= wickH / 100 * rg
+    [sup[1], dem[1], high[1], low[1], uw[1], dw[1], a[1], r[1], time[1]]
+
+[hSup, hDem, hH, hL, hUW, hDW, hATR, hVR, hT] = request.security(syminfo.tickerid, "60", htfCandle(), lookahead = barmerge.lookahead_on)
+bool newHour = not na(hT) and hT != nz(hT[1])
+
+// ---- 5m volume vs same time-of-day average (EMA per 1-minute-of-day slot)
+var map<int, float> slotAvg = map.new<int, float>()
+var map<int, int>   slotCnt = map.new<int, int>()
+int   slot   = int((time % 86400000) / 60000)
+float sAvg   = slotAvg.contains(slot) ? slotAvg.get(slot) : na
+int   sCnt   = slotCnt.contains(slot) ? slotCnt.get(slot) : 0
+float vr5    = not na(sAvg) and sAvg > 0 and sCnt >= 3 ? volume / sAvg : 0.0
+if confirmed and not na(volume)
+    float alpha = 2.0 / (todDays + 1)
+    slotAvg.put(slot, na(sAvg) ? volume : sAvg + alpha * (volume - sAvg))
+    slotCnt.put(slot, sCnt + 1)
+
+float rng5 = high - low
+float uw5  = high - math.max(open, close)
+float dw5  = math.min(open, close) - low
+bool  hv5  = use5 and confirmed and not na(atr5) and vr5 >= volK5 and rng5 > 0
+bool  new5Sup = hv5 and uw5 >= wick5 / 100 * rng5
+bool  new5Dem = hv5 and dw5 >= wick5 / 100 * rng5
+
+// ---------------------------------------------------------------- Types & state
+type HVZ
+    float top
+    float bot
+    bool  supply
+    bool  htf
+    float zatr
+    int   born
+    int   look
+    int   maxAge
+    bool  control = false
+    int   state   = 0      // 0 fresh, 1 first retest in progress, 2 tested
+    int   side    = 0      // 1 price above zone, -1 below
+    int   pdir    = 0
+    int   pbar    = 0
+    box   bx
+
+var array<HVZ> zH = array.new<HVZ>()
+var array<HVZ> z5 = array.new<HVZ>()
+var array<HVZ> cH = array.new<HVZ>()
+var array<HVZ> c5 = array.new<HVZ>()
+
+// stats index: 0 = 1H zones, 1 = 5m zones
+var array<int> nMade = array.new_int(2, 0)
+var array<int> tR    = array.new_int(2, 0)
+var array<int> rR    = array.new_int(2, 0)
+var array<int> tC    = array.new_int(2, 0)
+var array<int> rC    = array.new_int(2, 0)
+
+// ---------------------------------------------------------------- Helpers
+hash01(float x) =>
+    float v = math.sin(x) * 43758.5453
+    v - math.floor(v)
+
+zoneColor(bool supply, bool htf, bool faded) =>
+    color c = htf ? (supply ? cSupH : cDemH) : (supply ? cSup5 : cDem5)
+    faded ? color.new(c, fadeT) : c
+
+record(int k, bool isCtrl, int res) =>
+    if isCtrl
+        tC.set(k, tC.get(k) + 1)
+        rC.set(k, rC.get(k) + res)
+    else
+        tR.set(k, tR.get(k) + 1)
+        rR.set(k, rR.get(k) + res)
+    res
+
+addZone(array<HVZ> zs, array<HVZ> cs, float top, float bot, bool supply, bool htf, float a, float vr, int leftTime, int look, int maxAge) =>
+    color c = zoneColor(supply, htf, false)
+    string lbl = showLbl ? (htf ? "1H " : "5m ") + str.tostring(vr, "#.0") + "x" : ""
+    box b = box.new(left = leftTime, top = top, right = time, bottom = bot, xloc = xloc.bar_time, extend = extend.right,
+         border_color = color.new(c, math.max(0, color.t(c) - 50)), border_width = htf ? 2 : 1, bgcolor = c,
+         text = lbl, text_size = size.small, text_color = color.new(c, 0),
+         text_halign = text.align_right, text_valign = text.align_center)
+    int sd = prevClose > top ? 1 : prevClose < bot ? -1 : 0
+    zs.push(HVZ.new(top, bot, supply, htf, a, bar_index, look, maxAge, side = sd, bx = b))
+    int k = htf ? 0 : 1
+    nMade.set(k, nMade.get(k) + 1)
+    // 3 invisible random control zones: same size, shifted 1-3 ATR up or down
+    for j = 1 to 3
+        float seed = bar_index * 12.9898 + j * 78.233 + top * 0.731 + (htf ? 5.0 : 0.0)
+        float off  = (hash01(seed) < 0.5 ? -1.0 : 1.0) * (1.0 + 2.0 * hash01(seed * 1.618 + 3.7)) * a
+        cs.push(HVZ.new(top + off, bot + off, supply, htf, a, bar_index, look, maxAge, control = true))
+    b
+
+// Update a zone list. Returns +1 / -1 when a FRESH real zone is retested from above / below.
+method update(array<HVZ> zs, bool isCtrl) =>
+    int touchDir = 0
+    int sz = zs.size()
+    if sz > 0
+        for i = sz - 1 to 0
+            HVZ z = zs.get(i)
+            bool kill = false
+            if z.born < bar_index
+                if z.side == 0
+                    z.side := prevClose > z.top ? 1 : prevClose < z.bot ? -1 : 0
+                if z.state == 1
+                    float ra = z.zatr * reactATR
+                    float ba = z.zatr * brkATR
+                    int res = -1
+                    if z.pdir == 1
+                        res := close < z.bot - ba ? 0 : high >= z.top + ra ? 1 : -1
+                    else
+                        res := close > z.top + ba ? 0 : low <= z.bot - ra ? 1 : -1
+                    if res == -1 and bar_index - z.pbar >= z.look
+                        res := 0
+                    if res >= 0
+                        record(z.htf ? 0 : 1, isCtrl, res)
+                        z.state := 2
+                        if isCtrl or not showTested
+                            kill := true
+                        if not isCtrl and showTested
+                            color fc = zoneColor(z.supply, z.htf, true)
+                            z.bx.set_bgcolor(fc)
+                            z.bx.set_border_color(color.new(fc, math.max(0, fadeT - 20)))
+                            z.bx.set_text_color(color.new(fc, math.max(0, fadeT - 40)))
+                else if z.state == 0 and z.side != 0
+                    bool fromAbove = z.side == 1 and low <= z.top
+                    bool fromBelow = z.side == -1 and high >= z.bot
+                    if fromAbove or fromBelow
+                        z.state := 1
+                        z.pdir := fromAbove ? 1 : -1
+                        z.pbar := bar_index
+                        if not isCtrl
+                            touchDir := z.pdir
+                float b2 = z.zatr * brkATR
+                if (z.side == 1 and close < z.bot - b2) or (z.side == -1 and close > z.top + b2)
+                    if z.state != 1
+                        kill := true
+                if close > z.top
+                    z.side := 1
+                else if close < z.bot
+                    z.side := -1
+                if bar_index - z.born > z.maxAge and z.state != 1
+                    kill := true
+            if kill
+                if not isCtrl
+                    z.bx.delete()
+                zs.remove(i)
+    touchDir
+
+method cap(array<HVZ> zs, int maxN) =>
+    int i = 0
+    while zs.size() > maxN and i < zs.size()
+        HVZ z = zs.get(i)
+        if z.state == 1
+            i += 1
+        else
+            if not z.control
+                z.bx.delete()
+            zs.remove(i)
+            i += 0
+    i
+
+// ---------------------------------------------------------------- 1) Update existing zones (on closed bars)
+int touchH = 0
+int touch5 = 0
+if confirmed
+    touchH := zH.update(false)
+    touch5 := z5.update(false)
+    cH.update(true)
+    c5.update(true)
+
+// ---------------------------------------------------------------- 2) New zones
+int barsPerDay = int(86400 / tfSec)
+if hOK and newHour and confirmed and not na(hATR)
+    if hSup
+        float w = math.min(math.max(hUW, minW * hATR), maxW * hATR)
+        addZone(zH, cH, hH, hH - w, true, true, hATR, hVR, hT, lookH, ageH * barsPerDay)
+    if hDem
+        float w = math.min(math.max(hDW, minW * hATR), maxW * hATR)
+        addZone(zH, cH, hL + w, hL, false, true, hATR, hVR, hT, lookH, ageH * barsPerDay)
+if new5Sup
+    float w = math.min(math.max(uw5, minW * atr5), maxW * atr5)
+    addZone(z5, c5, high, high - w, true, false, atr5, vr5, time, look5, age5 * barsPerDay)
+if new5Dem
+    float w = math.min(math.max(dw5, minW * atr5), maxW * atr5)
+    addZone(z5, c5, low + w, low, false, false, atr5, vr5, time, look5, age5 * barsPerDay)
+
+zH.cap(maxH)
+z5.cap(max5)
+cH.cap(maxH * 3)
+c5.cap(max5 * 3)
+
+// ---------------------------------------------------------------- 3) Plots & alerts
+plotshape(showMark and new5Sup, "5m HV supply candle", shape.diamond, location.abovebar, color.new(#ffb74d, 0), size = size.tiny)
+plotshape(showMark and new5Dem, "5m HV demand candle", shape.diamond, location.belowbar, color.new(#4dd0e1, 0), size = size.tiny)
+alertcondition(touchH == 1, "Fresh 1H zone retest from above", "XAUUSD 5m: price retesting a fresh 1H high-volume zone from above (support)")
+alertcondition(touchH == -1, "Fresh 1H zone retest from below", "XAUUSD 5m: price retesting a fresh 1H high-volume zone from below (resistance)")
+alertcondition(touch5 != 0, "Fresh 5m zone retest", "XAUUSD 5m: price retesting a fresh 5m high-volume zone")
+alertcondition(new5Sup or new5Dem, "New 5m zone", "XAUUSD 5m: new 5m high-volume rejection zone")
+
+// ---------------------------------------------------------------- 4) Stats table
+pct(int r, int t) => t > 0 ? 100.0 * r / t : na
+fmt(float v) => na(v) ? "-" : str.tostring(v, "#.0") + "%"
+
+var table tbl = table.new(tblPos == "Top Right" ? position.top_right : tblPos == "Bottom Right" ? position.bottom_right : tblPos == "Top Left" ? position.top_left : position.bottom_left, 6, 4, bgcolor = color.new(#131722, 10), border_color = color.new(#363a45, 0), border_width = 1, frame_color = color.new(#363a45, 0), frame_width = 1)
+
+if barstate.isfirst
+    tbl.merge_cells(0, 3, 5, 3)
+
+if showTbl and barstate.islast
+    color tx  = color.new(#d1d4dc, 0)
+    color hbg = color.new(#2a2e39, 0)
+    array<string> heads = array.from("Zones", "Made", "1st retests", "React %", "Random %", "Edge")
+    for c = 0 to 5
+        tbl.cell(c, 0, heads.get(c), text_color = tx, text_size = size.small, bgcolor = hbg)
+    array<string> names = array.from("1H zones", "5m zones")
+    for row = 0 to 1
+        float rp = pct(rR.get(row), tR.get(row))
+        float cp = pct(rC.get(row), tC.get(row))
+        float ed = na(rp) or na(cp) ? na : rp - cp
+        color ec = na(ed) ? tx : ed >= 3 ? color.new(#00e676, 0) : ed <= -3 ? color.new(#ff5252, 0) : tx
+        color nc = row == 0 ? color.new(cDemH, 0) : color.new(cDem5, 0)
+        tbl.cell(0, row + 1, names.get(row), text_color = nc, text_size = size.small, text_halign = text.align_left)
+        tbl.cell(1, row + 1, str.tostring(nMade.get(row)), text_color = tx, text_size = size.small)
+        tbl.cell(2, row + 1, str.tostring(tR.get(row)), text_color = tx, text_size = size.small)
+        tbl.cell(3, row + 1, fmt(rp), text_color = tx, text_size = size.small)
+        tbl.cell(4, row + 1, fmt(cp), text_color = tx, text_size = size.small)
+        tbl.cell(5, row + 1, na(ed) ? "-" : (ed >= 0 ? "+" : "") + str.tostring(ed, "#.0"), text_color = ec, text_size = size.small)
+    string note = not volFeed ? "No volume on this symbol - use OANDA:XAUUSD" : tfSec >= 3600 ? "Built for the 5m chart (1H layer off on 1H+)" : tfSec != 300 ? "Tuned for the 5m chart" : "Edge = react % minus random zones. Few retests = not reliable yet."
+    tbl.cell(0, 3, note, text_color = color.new(#9598a1, 0), text_size = size.tiny, text_halign = text.align_left)
