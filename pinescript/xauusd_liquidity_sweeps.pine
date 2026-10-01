@@ -1,0 +1,379 @@
+//@version=6
+indicator("XAUUSD Liquidity Sweeps", shorttitle = "Liq Sweep", overlay = true, max_lines_count = 500, max_labels_count = 500)
+
+// ============================================================================
+// XAUUSD LIQUIDITY SWEEPS + MARKET STRUCTURE SHIFT
+//
+// LIQUIDITY LEVELS (where stop orders sit)
+//   Swing highs / lows (pivot), previous day high / low (PDH / PDL), previous week high / low
+//   (PWH / PWL) and the Asia session high / low. Red dotted = buy-side liquidity (above price),
+//   green dotted = sell-side liquidity (below price). A level is used once: it ends when price trades through it.
+//
+// SWEEP (x marker)
+//   Price wicks through a level and the candle closes back on the other side
+//   (or closes back within "Reclaim candles"). Sweeps deeper than "Max sweep depth" x ATR are
+//   treated as real breakouts and ignored.
+//
+// SIGNAL = SWEEP + MARKET STRUCTURE SHIFT (MSS)
+//   After a sweep of sell-side liquidity, BUY when a candle closes above the last minor swing high
+//   (within "MSS window" candles). Mirror for SELL after a buy-side sweep.
+//   Entry = MSS close. Stop = beyond the sweep extreme + 0.3 x ATR. Target = R:R x risk.
+//   Grade A = previous day / week high or low was swept.  Grade B = swing or Asia level was swept.
+//
+// BACKTEST (Python, 0.30 $ spread, 2R target, rules fixed before testing):
+//   OANDA 1H 10 months : 92 trades, 46.7% win, +0.13R per trade   (grade A: 18 trades, 72% win, +0.60R)
+//   COMEX 1H 10 months : 100 trades, 44.0% win, +0.08R per trade  (grade A: 21 trades, 67% win, +0.48R)
+//   OANDA 15m 2.5 mo   : 90 trades, 40.0% win, +0.12R per trade
+//   OANDA / COMEX 5m   : ~90 trades each, 33% win, -0.02R per trade (4 weeks only)
+//   Caveats: the MSS rule also made money after sweeps of RANDOM levels, so most of the edge comes from
+//   the MSS confirmation; grade A beat random levels but the sample is small (~40 trades).
+//   The 1H results were flat in the first half of the 10 months and positive in the second.
+//   The table tracks every signal on the history of YOUR chart. Best tested on 1H and 15m.
+// ============================================================================
+
+// ---------------------------------------------------------------- Inputs
+string G1 = "Liquidity levels"
+bool   useSwing = input.bool(true, "Swing highs / lows", group = G1, inline = "sw")
+int    pivLen   = input.int(5, "Pivot length", minval = 2, group = G1, inline = "sw")
+bool   usePD    = input.bool(true, "Previous day high / low", group = G1)
+bool   usePW    = input.bool(true, "Previous week high / low", group = G1)
+bool   useAsia  = input.bool(true, "Asia session high / low", group = G1, inline = "as")
+string asiaS    = input.session("0000-0700", "", group = G1, inline = "as", tooltip = "Session in UTC.")
+float  maxAgeH  = input.float(240, "Level lifetime (hours)", minval = 1, group = G1)
+int    maxLv    = input.int(60, "Max levels on chart", minval = 5, maxval = 150, group = G1)
+
+string G2 = "Sweep & signal"
+int    reclaimN = input.int(3, "Reclaim candles (0 = same candle only)", minval = 0, maxval = 10, group = G2)
+float  maxDepth = input.float(1.5, "Max sweep depth (ATR)", minval = 0.1, step = 0.1, group = G2)
+int    minorLen = input.int(2, "MSS swing length", minval = 1, group = G2)
+int    mssBars  = input.int(12, "MSS window (candles after the sweep)", minval = 1, group = G2)
+string grades   = input.string("A and B", "Signals to show", options = ["A and B", "A only (PDH/PDL/PWH/PWL)"], group = G2)
+bool   allowL   = input.bool(true, "Longs", group = G2, inline = "d")
+bool   allowS   = input.bool(true, "Shorts", group = G2, inline = "d")
+float  rr       = input.float(2.0, "Target (R:R)", minval = 0.5, step = 0.5, group = G2)
+float  tradeHrs = input.float(16, "Max trade length (hours)", minval = 1, group = G2)
+float  spreadIn = input.float(0.30, "Spread / cost per trade ($)", minval = 0, step = 0.05, group = G2)
+
+string G3 = "Display"
+bool   showLv   = input.bool(true, "Show liquidity levels", group = G3)
+bool   showSw   = input.bool(true, "Show sweep markers", group = G3)
+bool   showSig  = input.bool(true, "Show BUY / SELL signals", group = G3)
+bool   showLvls = input.bool(true, "Draw entry / stop / target lines", group = G3)
+bool   showTbl  = input.bool(true, "Show results table", group = G3)
+string tblPos   = input.string("Top Right", "Table position", options = ["Top Right", "Bottom Right", "Top Left", "Bottom Left"], group = G3)
+color  cBuySide  = input.color(color.new(#f23645, 30), "Buy-side liquidity (highs)", group = G3)
+color  cSellSide = input.color(color.new(#089981, 30), "Sell-side liquidity (lows)", group = G3)
+
+// ---------------------------------------------------------------- Core
+int   tfSec     = timeframe.in_seconds()
+float barsPerHr = 3600.0 / tfSec
+int   maxAge    = math.max(1, int(math.round(maxAgeH * barsPerHr)))
+int   maxTrade  = math.max(1, int(math.round(tradeHrs * barsPerHr)))
+float atrV      = ta.atr(14)
+bool  confirmed = barstate.isconfirmed
+bool  intraday  = timeframe.isintraday
+
+// minor swings for the MSS
+float mph = ta.pivothigh(high, minorLen, minorLen)
+float mpl = ta.pivotlow(low, minorLen, minorLen)
+var float lastMPH = na
+var float lastMPL = na
+var int   lastMPHbar = na
+var int   lastMPLbar = na
+if not na(mph)
+    lastMPH := mph
+    lastMPHbar := bar_index - minorLen
+if not na(mpl)
+    lastMPL := mpl
+    lastMPLbar := bar_index - minorLen
+
+// major swings = liquidity
+float sph = ta.pivothigh(high, pivLen, pivLen)
+float spl = ta.pivotlow(low, pivLen, pivLen)
+
+// previous day / week (closed candles only)
+[pdh, pdl] = request.security(syminfo.tickerid, "D", [high[1], low[1]], lookahead = barmerge.lookahead_on)
+[pwh, pwl] = request.security(syminfo.tickerid, "W", [high[1], low[1]], lookahead = barmerge.lookahead_on)
+bool newDay  = timeframe.change("D")
+bool newWeek = timeframe.change("W")
+
+// Asia session high / low (level created when the session ends)
+bool inAsia = not na(time(timeframe.period, asiaS, "UTC"))
+var float aHi = na
+var float aLo = na
+var int   aStart = na
+float asiaDoneHi = na
+float asiaDoneLo = na
+int   asiaDoneBar = na
+if inAsia
+    if na(aHi)
+        aStart := bar_index
+    aHi := na(aHi) ? high : math.max(aHi, high)
+    aLo := na(aLo) ? low : math.min(aLo, low)
+else if not na(aHi)
+    asiaDoneHi := aHi
+    asiaDoneLo := aLo
+    asiaDoneBar := aStart
+    aHi := na
+    aLo := na
+
+// ---------------------------------------------------------------- Types & state
+type Level
+    float price
+    bool  isHigh
+    int   kind          // 0 swing, 1 PD, 2 PW, 3 Asia
+    int   born
+    int   state = 0     // 0 active, 1 breached (waiting for a close back inside)
+    int   brkBar = 0
+    float ext = na
+    line  ln
+
+type Sweep
+    int   dir           // 1 = sell-side swept -> look for BUY, -1 = buy-side swept -> look for SELL
+    float ext
+    int   kind
+    int   bar
+    float mss           // structure level to break
+    int   mssBar
+
+type Trade
+    int   dir
+    bool  gradeA
+    float entry
+    float stop
+    float tgt
+    float risk
+    int   bar
+    line  lE
+    line  lS
+    line  lT
+
+var array<Level> levels = array.new<Level>()
+var array<Sweep> sweeps = array.new<Sweep>()
+var array<Trade> trades = array.new<Trade>()
+
+// results: index 0 = all, 1 = grade A, 2 = grade B
+var array<int>   rN  = array.new_int(3, 0)
+var array<int>   rW  = array.new_int(3, 0)
+var array<float> rS  = array.new_float(3, 0.0)
+var float eq    = 0.0
+var float peak  = 0.0
+var float maxDD = 0.0
+
+// ---------------------------------------------------------------- Helpers
+kindName(int k) =>
+    switch k
+        0 => "Swing"
+        1 => "PD"
+        2 => "PW"
+        => "Asia"
+
+addLevel(float price, bool isHigh, int kind, int originBar) =>
+    // only add if price is on the correct side (liquidity above highs / below lows)
+    bool ok = isHigh ? close < price : close > price
+    if ok
+        line l = showLv ? line.new(originBar, price, bar_index, price, color = isHigh ? cBuySide : cSellSide,
+             style = kind == 0 ? line.style_dotted : line.style_dashed, width = kind == 0 ? 1 : 2, extend = extend.right) : na
+        levels.push(Level.new(price, isHigh, kind, bar_index, ln = l))
+    ok
+
+endLine(Level lv) =>
+    if not na(lv.ln)
+        lv.ln.set_extend(extend.none)
+        lv.ln.set_x2(bar_index)
+    lv.price
+
+newTrade(int dir, float stop, bool gradeA) =>
+    float risk = math.abs(close - stop)
+    if risk > 0
+        float tgt = close + dir * rr * risk
+        Trade t = Trade.new(dir, gradeA, close, stop, tgt, risk, bar_index)
+        if showSig
+            string txt = (dir == 1 ? "BUY " : "SELL ") + (gradeA ? "A" : "B")
+            label.new(bar_index, dir == 1 ? low : high, txt,
+                 style = dir == 1 ? label.style_label_up : label.style_label_down, size = size.small,
+                 color = dir == 1 ? color.new(#00c853, gradeA ? 0 : 35) : color.new(#d50000, gradeA ? 0 : 35), textcolor = color.white,
+                 tooltip = "Liquidity sweep + market structure shift (grade " + (gradeA ? "A: previous day/week level" : "B: swing/Asia level") + ")\nEntry " + str.tostring(close, format.mintick) + "\nStop " + str.tostring(stop, format.mintick) + "\nTarget " + str.tostring(tgt, format.mintick))
+            if showLvls
+                t.lE := line.new(bar_index, close, bar_index + 1, close, color = color.new(#9598a1, 0))
+                t.lS := line.new(bar_index, stop, bar_index + 1, stop, color = color.new(#ff5252, 0), style = line.style_dashed)
+                t.lT := line.new(bar_index, tgt, bar_index + 1, tgt, color = color.new(#00e676, 0), style = line.style_dashed)
+        trades.push(t)
+    risk
+
+// ---------------------------------------------------------------- Run on closed candles
+int buySig  = 0
+int sellSig = 0
+int sweepUp = 0
+int sweepDn = 0
+if confirmed and intraday
+    // ---- 1) manage open trades (never on their entry candle)
+    int nt = trades.size()
+    if nt > 0
+        for i = nt - 1 to 0
+            Trade t = trades.get(i)
+            if bar_index > t.bar
+                float r = na
+                if (t.dir == 1 and low <= t.stop) or (t.dir == -1 and high >= t.stop)
+                    r := -1.0
+                else if (t.dir == 1 and high >= t.tgt) or (t.dir == -1 and low <= t.tgt)
+                    r := rr
+                else if bar_index - t.bar >= maxTrade
+                    r := t.dir * (close - t.entry) / t.risk
+                if not na(t.lE)
+                    t.lE.set_x2(bar_index)
+                    t.lS.set_x2(bar_index)
+                    t.lT.set_x2(bar_index)
+                if not na(r)
+                    float rn = r - spreadIn / t.risk
+                    int g = t.gradeA ? 1 : 2
+                    rN.set(0, rN.get(0) + 1)
+                    rN.set(g, rN.get(g) + 1)
+                    rW.set(0, rW.get(0) + (rn > 0 ? 1 : 0))
+                    rW.set(g, rW.get(g) + (rn > 0 ? 1 : 0))
+                    rS.set(0, rS.get(0) + rn)
+                    rS.set(g, rS.get(g) + rn)
+                    eq += rn
+                    peak := math.max(peak, eq)
+                    maxDD := math.max(maxDD, peak - eq)
+                    trades.remove(i)
+
+    // ---- 2) sweeps of existing levels
+    int nl = levels.size()
+    if nl > 0
+        for i = nl - 1 to 0
+            Level lv = levels.get(i)
+            bool kill = false
+            if lv.born < bar_index
+                int  swept = 0          // 1 = sell-side (low) swept, -1 = buy-side (high) swept
+                float ext = na
+                if lv.state == 0
+                    if lv.isHigh and high > lv.price
+                        if close < lv.price
+                            swept := -1
+                            ext := high
+                        else if reclaimN > 0
+                            lv.state := 1
+                            lv.brkBar := bar_index
+                            lv.ext := high
+                        else
+                            kill := true
+                    else if not lv.isHigh and low < lv.price
+                        if close > lv.price
+                            swept := 1
+                            ext := low
+                        else if reclaimN > 0
+                            lv.state := 1
+                            lv.brkBar := bar_index
+                            lv.ext := low
+                        else
+                            kill := true
+                    else if bar_index - lv.born > maxAge
+                        kill := true
+                else
+                    lv.ext := lv.isHigh ? math.max(lv.ext, high) : math.min(lv.ext, low)
+                    if lv.isHigh and close < lv.price
+                        swept := -1
+                        ext := lv.ext
+                    else if not lv.isHigh and close > lv.price
+                        swept := 1
+                        ext := lv.ext
+                    else if bar_index - lv.brkBar >= reclaimN
+                        kill := true
+                if swept != 0
+                    kill := true
+                    float depth = swept == -1 ? ext - lv.price : lv.price - ext
+                    if depth <= maxDepth * atrV
+                        float mssLvl = swept == 1 ? lastMPH : lastMPL
+                        int   mssBar = swept == 1 ? lastMPHbar : lastMPLbar
+                        if not na(mssLvl)
+                            sweeps.push(Sweep.new(swept, ext, lv.kind, bar_index, mssLvl, mssBar))
+                        sweepUp += swept == -1 ? 1 : 0
+                        sweepDn += swept == 1 ? 1 : 0
+                        if showSw
+                            label.new(bar_index, ext, "", style = label.style_xcross, size = size.tiny,
+                                 color = swept == 1 ? color.new(#089981, 0) : color.new(#f23645, 0),
+                                 tooltip = kindName(lv.kind) + (swept == 1 ? " low" : " high") + " swept")
+            if kill
+                endLine(lv)
+                levels.remove(i)
+
+    // ---- 3) sweep -> market structure shift -> signal
+    int ns = sweeps.size()
+    if ns > 0
+        for i = ns - 1 to 0
+            Sweep sw = sweeps.get(i)
+            bool done = false
+            sw.ext := sw.dir == 1 ? math.min(sw.ext, low) : math.max(sw.ext, high)
+            bool mss = sw.dir == 1 ? close > sw.mss : close < sw.mss
+            if mss
+                done := true
+                bool gradeA = sw.kind == 1 or sw.kind == 2
+                bool want = (grades == "A and B" or gradeA) and (sw.dir == 1 ? allowL and buySig == 0 : allowS and sellSig == 0)
+                if want
+                    newTrade(sw.dir, sw.dir == 1 ? sw.ext - 0.3 * atrV : sw.ext + 0.3 * atrV, gradeA)
+                    buySig  += sw.dir == 1 ? 1 : 0
+                    sellSig += sw.dir == -1 ? 1 : 0
+                    if showLvls
+                        line.new(sw.mssBar, sw.mss, bar_index, sw.mss, color = color.new(#ffb74d, 0), style = line.style_dotted)
+            else if bar_index - sw.bar >= mssBars
+                done := true
+            if done
+                sweeps.remove(i)
+
+    // ---- 4) new liquidity levels (known at this close)
+    if useSwing and not na(sph)
+        addLevel(sph, true, 0, bar_index - pivLen)
+    if useSwing and not na(spl)
+        addLevel(spl, false, 0, bar_index - pivLen)
+    if usePD and newDay and not na(pdh)
+        addLevel(pdh, true, 1, bar_index)
+        addLevel(pdl, false, 1, bar_index)
+    if usePW and newWeek and not na(pwh)
+        addLevel(pwh, true, 2, bar_index)
+        addLevel(pwl, false, 2, bar_index)
+    if useAsia and not na(asiaDoneHi)
+        addLevel(asiaDoneHi, true, 3, asiaDoneBar)
+        addLevel(asiaDoneLo, false, 3, asiaDoneBar)
+    while levels.size() > maxLv
+        Level old = levels.shift()
+        endLine(old)
+
+// ---------------------------------------------------------------- Alerts
+alertcondition(buySig > 0, "BUY signal", "XAUUSD: BUY - sell-side liquidity swept + market structure shift")
+alertcondition(sellSig > 0, "SELL signal", "XAUUSD: SELL - buy-side liquidity swept + market structure shift")
+alertcondition(sweepDn > 0, "Sell-side liquidity swept", "XAUUSD: a low was swept (watch for a BUY structure shift)")
+alertcondition(sweepUp > 0, "Buy-side liquidity swept", "XAUUSD: a high was swept (watch for a SELL structure shift)")
+
+// ---------------------------------------------------------------- Results table
+var table tbl = table.new(tblPos == "Top Right" ? position.top_right : tblPos == "Bottom Right" ? position.bottom_right : tblPos == "Top Left" ? position.top_left : position.bottom_left, 5, 6, bgcolor = color.new(#131722, 10), border_color = color.new(#363a45, 0), border_width = 1, frame_color = color.new(#363a45, 0), frame_width = 1)
+
+if barstate.isfirst
+    tbl.merge_cells(0, 5, 4, 5)
+
+rStr(float v) => (v >= 0 ? "+" : "") + str.tostring(v, "0.00") + "R"
+
+if showTbl and barstate.islast
+    color tx  = color.new(#d1d4dc, 0)
+    color dim = color.new(#9598a1, 0)
+    color hbg = color.new(#2a2e39, 0)
+    array<string> heads = array.from("Signals", "Trades", "Win %", "Avg", "Total")
+    for c = 0 to 4
+        tbl.cell(c, 0, heads.get(c), text_color = tx, text_size = size.small, bgcolor = hbg)
+    array<string> names = array.from("All", "Grade A", "Grade B")
+    for row = 0 to 2
+        int   n   = rN.get(row)
+        float avg = n > 0 ? rS.get(row) / n : na
+        color rc  = na(avg) ? tx : avg > 0 ? color.new(#00e676, 0) : color.new(#ff5252, 0)
+        tbl.cell(0, row + 1, names.get(row), text_color = dim, text_size = size.small, text_halign = text.align_left)
+        tbl.cell(1, row + 1, str.tostring(n), text_color = tx, text_size = size.small)
+        tbl.cell(2, row + 1, n > 0 ? str.tostring(100.0 * rW.get(row) / n, "0.0") + "%" : "-", text_color = tx, text_size = size.small)
+        tbl.cell(3, row + 1, na(avg) ? "-" : rStr(avg), text_color = rc, text_size = size.small)
+        tbl.cell(4, row + 1, n > 0 ? rStr(rS.get(row)) : "-", text_color = rc, text_size = size.small)
+    tbl.cell(0, 4, "Max DD", text_color = dim, text_size = size.small, text_halign = text.align_left)
+    tbl.cell(1, 4, str.tostring(maxDD, "0.0") + "R", text_color = tx, text_size = size.small)
+    tbl.cell(2, 4, "Open", text_color = dim, text_size = size.small)
+    tbl.cell(3, 4, str.tostring(trades.size()), text_color = tx, text_size = size.small)
+    tbl.cell(4, 4, "", text_color = tx, text_size = size.small)
+    string note = not intraday ? "Use an intraday chart (5m - 1H)" : "Break-even win rate at " + str.tostring(rr, "0.0") + "R: " + str.tostring(100.0 / (1 + rr), "0") + "% before costs. A = PDH/PDL/PWH/PWL sweep"
+    tbl.cell(0, 5, note, text_color = dim, text_size = size.tiny, text_halign = text.align_left)

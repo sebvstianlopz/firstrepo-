@@ -107,3 +107,19 @@ trade list in `backtest/failed_breakout_trades_oanda_1h.csv`), spread included, 
 
 This is the best of the five signal ideas tested (bounce/rejection, bounce/BOS, breakout,
 failed breakout, 5m zones), but it is not a proven edge.
+
+## XAUUSD Liquidity Sweeps
+
+`pinescript/xauusd_liquidity_sweeps.pine` marks liquidity levels (swing highs and lows, PDH/PDL,
+PWH/PWL, Asia high/low) and the sweeps of those levels. A signal fires on **sweep + market structure
+shift**: after a low is swept, BUY on a close above the last minor swing high, and mirror that for SELL.
+Grade A means a previous day/week level was swept; grade B means a swing or Asia level.
+A results table on the chart tracks every signal.
+
+Backtest (`python3 backtest/liquidity_sweep_backtest.py`, results in `backtest/liquidity_sweep_results.txt`),
+2R target, spread included:
+- Raw sweep reversals (no MSS) lose a little everywhere, about -0.1R to 0R over 230–490 trades per sample.
+- Sweep + MSS: OANDA 1H +0.13R (92 trades), COMEX 1H +0.08R (100), OANDA 15m +0.12R (90),
+  5m -0.02R (4 weeks only).
+- Grade A: +0.60R (OANDA, 18 trades) and +0.48R (COMEX, 21 trades), beating random levels.
+- The MSS rule also profits after sweeps of random levels, so most of the edge comes from the MSS.
