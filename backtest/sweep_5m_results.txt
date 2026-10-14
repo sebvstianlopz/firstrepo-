@@ -1,0 +1,94 @@
+######## single features
+  none (all signals)
+    1R    OANDA 5m   n=148  fail  45.3%  win  54.7%  avg +0.09R  total  +14.1R  maxDD  7.4R   fail halves   51% /   39%
+    1R    COMEX 5m   n=134  fail  47.0%  win  52.2%  avg +0.05R  total   +6.1R  maxDD 13.2R   fail halves   57% /   37%
+    1R    OANDA 15m  n=107  fail  54.2%  win  45.8%  avg -0.05R  total   -5.7R  maxDD  9.6R   fail halves   51% /   57%
+    2R+BE OANDA 5m   n=148  fail  45.3%  win  27.0%  avg +0.07R  total   +9.8R  maxDD 10.8R   fail halves   51% /   39%
+    2R+BE COMEX 5m   n=134  fail  47.0%  win  27.6%  avg +0.07R  total   +9.0R  maxDD  7.6R   fail halves   57% /   37%
+    2R+BE OANDA 15m  n=107  fail  54.2%  win  30.8%  avg +0.00R  total   +0.0R  maxDD 12.9R   fail halves   51% /   57%
+  KEY
+    2R+BE OANDA 5m   n=13   fail  53.8%  win  30.8%  avg +0.04R  total   +0.6R  maxDD  4.3R   fail halves   83% /   29%
+    2R+BE COMEX 5m   n=10   fail  70.0%  win  20.0%  avg -0.24R  total   -2.4R  maxDD  3.3R   fail halves   80% /   60%
+    2R+BE OANDA 15m  n=26   fail  57.7%  win  34.6%  avg -0.02R  total   -0.6R  maxDD  5.6R   fail halves   46% /   69%
+  FAST
+    2R+BE OANDA 5m   n=86   fail  51.2%  win  30.2%  avg +0.08R  total   +6.8R  maxDD  9.7R   fail halves   58% /   44%
+    2R+BE COMEX 5m   n=78   fail  50.0%  win  30.8%  avg +0.09R  total   +6.8R  maxDD  7.6R   fail halves   59% /   41%
+    2R+BE OANDA 15m  n=75   fail  53.3%  win  28.0%  avg -0.03R  total   -2.6R  maxDD  7.1R   fail halves   57% /   50%
+  VOL
+    2R+BE OANDA 5m   n=57   fail  43.9%  win  24.6%  avg +0.06R  total   +3.7R  maxDD  5.4R   fail halves   43% /   45%
+    2R+BE COMEX 5m   n=61   fail  54.1%  win  23.0%  avg -0.07R  total   -4.1R  maxDD 12.2R   fail halves   60% /   48%
+    2R+BE OANDA 15m  n=50   fail  46.0%  win  42.0%  avg +0.18R  total   +9.2R  maxDD  4.7R   fail halves   40% /   52%
+  DISP
+    2R+BE OANDA 5m   n=69   fail  44.9%  win  30.4%  avg +0.12R  total   +8.5R  maxDD  8.2R   fail halves   47% /   43%
+    2R+BE COMEX 5m   n=58   fail  37.9%  win  36.2%  avg +0.32R  total  +18.3R  maxDD  6.3R   fail halves   45% /   31%
+    2R+BE OANDA 15m  n=67   fail  56.7%  win  28.4%  avg -0.03R  total   -1.8R  maxDD  9.9R   fail halves   58% /   56%
+  TREND
+    2R+BE OANDA 5m   n=56   fail  48.2%  win  16.1%  avg -0.16R  total   -9.2R  maxDD 13.8R   fail halves   46% /   50%
+    2R+BE COMEX 5m   n=51   fail  52.9%  win  19.6%  avg -0.13R  total   -6.9R  maxDD  7.8R   fail halves   68% /   38%
+    2R+BE OANDA 15m  n=44   fail  59.1%  win  25.0%  avg -0.12R  total   -5.1R  maxDD 11.0R   fail halves   50% /   68%
+  SESS
+    2R+BE OANDA 5m   n=60   fail  53.3%  win  23.3%  avg -0.06R  total   -3.6R  maxDD 12.5R   fail halves   67% /   40%
+    2R+BE COMEX 5m   n=53   fail  60.4%  win  24.5%  avg -0.09R  total   -5.0R  maxDD 16.2R   fail halves   77% /   44%
+    2R+BE OANDA 15m  n=48   fail  64.6%  win  22.9%  avg -0.31R  total  -15.0R  maxDD 15.3R   fail halves   54% /   75%
+
+######## pairs
+  KEY+FAST
+    2R+BE OANDA 5m   n=9    fail  66.7%  win  33.3%  avg -0.04R  total   -0.3R  maxDD  3.3R   fail halves  100% /   40%
+    2R+BE COMEX 5m   n=7    fail  71.4%  win  28.6%  avg -0.05R  total   -0.4R  maxDD  2.3R   fail halves  100% /   50%
+    2R+BE OANDA 15m  n=15   fail  66.7%  win  26.7%  avg -0.23R  total   -3.4R  maxDD  4.2R   fail halves   71% /   62%
+  KEY+VOL
+    2R+BE OANDA 5m   n=9    fail  44.4%  win  33.3%  avg +0.18R  total   +1.7R  maxDD  1.3R   fail halves   50% /   40%
+    2R+BE COMEX 5m   n=8    fail  75.0%  win  12.5%  avg -0.42R  total   -3.4R  maxDD  3.4R   fail halves  100% /   50%
+    2R+BE OANDA 15m  n=16   fail  50.0%  win  43.8%  avg +0.06R  total   +1.0R  maxDD  2.7R   fail halves   50% /   50%
+  KEY+DISP
+    2R+BE OANDA 5m   n=8    fail  37.5%  win  50.0%  avg +0.58R  total   +4.7R  maxDD  1.3R   fail halves   50% /   25%
+    2R+BE COMEX 5m   n=4    fail  25.0%  win  50.0%  avg +0.92R  total   +3.7R  maxDD  0.3R   fail halves   50% /    0%
+    2R+BE OANDA 15m  n=15   fail  60.0%  win  33.3%  avg +0.07R  total   +1.1R  maxDD  3.5R   fail halves   57% /   62%
+  KEY+TREND
+    2R+BE OANDA 5m   n=0   fail halves  nan% /  nan%
+    2R+BE COMEX 5m   n=0   fail halves  nan% /  nan%
+    2R+BE OANDA 15m  n=3    fail 100.0%  win   0.0%  avg -0.84R  total   -2.5R  maxDD  2.5R   fail halves  100% /  100%
+  KEY+SESS
+    2R+BE OANDA 5m   n=6    fail  83.3%  win  16.7%  avg -0.39R  total   -2.3R  maxDD  4.3R   fail halves  100% /   67%
+    2R+BE COMEX 5m   n=6    fail  83.3%  win  16.7%  avg -0.39R  total   -2.4R  maxDD  3.3R   fail halves  100% /   67%
+    2R+BE OANDA 15m  n=11   fail  45.5%  win  54.5%  avg +0.22R  total   +2.4R  maxDD  2.5R   fail halves   40% /   50%
+  FAST+VOL
+    2R+BE OANDA 5m   n=33   fail  54.5%  win  27.3%  avg +0.02R  total   +0.6R  maxDD  4.2R   fail halves   56% /   53%
+    2R+BE COMEX 5m   n=36   fail  55.6%  win  25.0%  avg -0.05R  total   -1.9R  maxDD  7.4R   fail halves   61% /   50%
+    2R+BE OANDA 15m  n=38   fail  47.4%  win  39.5%  avg +0.19R  total   +7.2R  maxDD  3.5R   fail halves   47% /   47%
+  FAST+DISP
+    2R+BE OANDA 5m   n=47   fail  48.9%  win  29.8%  avg +0.09R  total   +4.1R  maxDD  7.8R   fail halves   52% /   46%
+    2R+BE COMEX 5m   n=42   fail  38.1%  win  35.7%  avg +0.30R  total  +12.7R  maxDD  5.2R   fail halves   43% /   33%
+    2R+BE OANDA 15m  n=48   fail  54.2%  win  27.1%  avg -0.05R  total   -2.5R  maxDD  6.1R   fail halves   58% /   50%
+  FAST+TREND
+    2R+BE OANDA 5m   n=28   fail  57.1%  win  21.4%  avg -0.15R  total   -4.2R  maxDD  8.9R   fail halves   50% /   64%
+    2R+BE COMEX 5m   n=25   fail  56.0%  win  24.0%  avg -0.11R  total   -2.7R  maxDD  5.2R   fail halves   67% /   46%
+    2R+BE OANDA 15m  n=30   fail  53.3%  win  26.7%  avg -0.04R  total   -1.3R  maxDD  6.1R   fail halves   53% /   53%
+  FAST+SESS
+    2R+BE OANDA 5m   n=38   fail  63.2%  win  21.1%  avg -0.17R  total   -6.6R  maxDD 13.2R   fail halves   84% /   42%
+    2R+BE COMEX 5m   n=31   fail  61.3%  win  29.0%  avg -0.03R  total   -0.9R  maxDD 11.6R   fail halves   87% /   38%
+    2R+BE OANDA 15m  n=29   fail  65.5%  win  17.2%  avg -0.39R  total  -11.4R  maxDD 11.4R   fail halves   64% /   67%
+  VOL+DISP
+    2R+BE OANDA 5m   n=30   fail  40.0%  win  26.7%  avg +0.14R  total   +4.1R  maxDD  3.1R   fail halves   40% /   40%
+    2R+BE COMEX 5m   n=26   fail  42.3%  win  26.9%  avg +0.13R  total   +3.3R  maxDD  7.5R   fail halves   38% /   46%
+    2R+BE OANDA 15m  n=31   fail  48.4%  win  35.5%  avg +0.07R  total   +2.3R  maxDD  6.1R   fail halves   33% /   62%
+  VOL+TREND
+    2R+BE OANDA 5m   n=16   fail  50.0%  win   0.0%  avg -0.49R  total   -7.8R  maxDD  7.8R   fail halves   50% /   50%
+    2R+BE COMEX 5m   n=21   fail  61.9%  win   9.5%  avg -0.38R  total   -8.1R  maxDD  8.1R   fail halves   80% /   45%
+    2R+BE OANDA 15m  n=23   fail  39.1%  win  39.1%  avg +0.25R  total   +5.8R  maxDD  3.1R   fail halves   27% /   50%
+  VOL+SESS
+    2R+BE OANDA 5m   n=20   fail  75.0%  win  10.0%  avg -0.43R  total   -8.5R  maxDD  9.9R   fail halves   70% /   80%
+    2R+BE COMEX 5m   n=25   fail  88.0%  win  12.0%  avg -0.57R  total  -14.4R  maxDD 18.3R   fail halves   92% /   85%
+    2R+BE OANDA 15m  n=28   fail  57.1%  win  32.1%  avg -0.17R  total   -4.8R  maxDD  6.4R   fail halves   50% /   64%
+  DISP+TREND
+    2R+BE OANDA 5m   n=25   fail  56.0%  win  12.0%  avg -0.32R  total   -8.0R  maxDD  9.9R   fail halves   50% /   62%
+    2R+BE COMEX 5m   n=19   fail  52.6%  win  26.3%  avg -0.02R  total   -0.4R  maxDD  5.2R   fail halves   67% /   40%
+    2R+BE OANDA 15m  n=29   fail  55.2%  win  24.1%  avg -0.06R  total   -1.8R  maxDD  9.8R   fail halves   36% /   73%
+  DISP+SESS
+    2R+BE OANDA 5m   n=26   fail  57.7%  win  26.9%  avg -0.04R  total   -1.1R  maxDD  9.9R   fail halves   77% /   38%
+    2R+BE COMEX 5m   n=21   fail  52.4%  win  38.1%  avg +0.25R  total   +5.3R  maxDD  6.5R   fail halves   80% /   27%
+    2R+BE OANDA 15m  n=32   fail  68.8%  win  21.9%  avg -0.31R  total   -9.8R  maxDD 10.1R   fail halves   69% /   69%
+  TREND+SESS
+    2R+BE OANDA 5m   n=25   fail  56.0%  win  20.0%  avg -0.16R  total   -3.9R  maxDD  7.7R   fail halves   58% /   54%
+    2R+BE COMEX 5m   n=22   fail  63.6%  win  27.3%  avg -0.05R  total   -1.1R  maxDD  7.6R   fail halves   73% /   55%
+    2R+BE OANDA 15m  n=20   fail  70.0%  win  15.0%  avg -0.42R  total   -8.3R  maxDD  8.3R   fail halves   60% /   80%

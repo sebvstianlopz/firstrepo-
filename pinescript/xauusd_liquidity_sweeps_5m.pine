@@ -1,0 +1,468 @@
+//@version=6
+indicator("XAUUSD Liquidity Sweeps [5m]", shorttitle = "Sweep 5m", overlay = true, max_lines_count = 500, max_labels_count = 500)
+
+// ============================================================================
+// XAUUSD LIQUIDITY SWEEPS + MARKET STRUCTURE SHIFT - 5 MINUTE VERSION (A+ signals)
+//
+// LIQUIDITY LEVELS
+//   5m swing highs / lows, 1H swing highs / lows (closed 1H candles), previous day high / low,
+//   previous week high / low, Asia session high / low. Red = buy-side liquidity (above price),
+//   green = sell-side liquidity (below price). A level is used once.
+//
+// SWEEP (x marker): a wick through a level, then a close back on the other side (within "Reclaim candles").
+//
+// SIGNAL = SWEEP + MARKET STRUCTURE SHIFT (MSS)
+//   After a low is swept, BUY when a candle closes above the last minor swing high (within "MSS window").
+//   Mirror for SELL. Entry = MSS close, stop = sweep extreme + 0.3 x ATR, target = R:R x risk,
+//   stop moves to break-even at +1R.
+//
+// A+ (all three must be true)                         B = every other sweep + MSS signal
+//   1. VOLUME       the candle that swept the level had >= 1.5 x its 20-candle average volume
+//   2. DISPLACEMENT the MSS candle body is >= 1.0 x ATR (a strong candle, not a drift)
+//   3. TIME         the signal comes OUTSIDE 07:00-17:00 UTC (London / New York signals failed more often)
+//
+// BACKTEST (Python, 0.30 $ spread, 2R target + break-even; failure = losing trade)
+//                        trades   fail %   avg/trade   fail % 1st half / 2nd half
+//   A+  OANDA 5m           21     23.8%     +0.36R           10% / 36%
+//   A+  COMEX 5m           16     18.8%     +0.42R            0% / 38%
+//   A+  OANDA 15m          12     41.7%     +0.30R           33% / 50%
+//   B   OANDA 5m           96     45.8%     +0.04R
+//   B   COMEX 5m           87     50.6%     -0.01R
+//   Data: Sep 3 - Oct 14 2026 (5m), Jul 16 - Oct 14 2026 (15m). Only ~6 weeks of 5m data exist, the
+//   time-of-day rule was found during testing (not fixed in advance), and failures rose in the second
+//   half on both feeds - expect roughly 1 in 3 A+ signals to fail, not 1 in 5. ~3 A+ signals per week.
+//   The table tracks every signal on the history of YOUR chart.
+// ============================================================================
+
+// ---------------------------------------------------------------- Inputs
+string G1 = "Liquidity levels"
+bool   useSwing = input.bool(true, "5m swing highs / lows", group = G1, inline = "sw")
+int    pivLen   = input.int(5, "Pivot length", minval = 2, group = G1, inline = "sw")
+bool   useH1    = input.bool(true, "1H swing highs / lows", group = G1)
+bool   usePD    = input.bool(true, "Previous day high / low", group = G1)
+bool   usePW    = input.bool(true, "Previous week high / low", group = G1)
+bool   useAsia  = input.bool(true, "Asia session high / low", group = G1, inline = "as")
+string asiaS    = input.session("0000-0700", "", group = G1, inline = "as", tooltip = "Session in UTC.")
+float  maxAgeH  = input.float(240, "Level lifetime (hours)", minval = 1, group = G1)
+int    maxLv    = input.int(80, "Max levels on chart", minval = 5, maxval = 150, group = G1)
+
+string G2 = "Sweep & signal"
+int    reclaimN = input.int(3, "Reclaim candles (0 = same candle only)", minval = 0, maxval = 10, group = G2)
+float  maxDepth = input.float(1.5, "Max sweep depth (ATR)", minval = 0.1, step = 0.1, group = G2)
+int    minorLen = input.int(2, "MSS swing length", minval = 1, group = G2)
+int    mssBars  = input.int(12, "MSS window (candles after the sweep)", minval = 1, group = G2)
+string minQ     = input.string("A+ only", "Signals & alerts", options = ["A+ only", "All (A+ and B)"], group = G2)
+bool   allowL   = input.bool(true, "Longs", group = G2, inline = "d")
+bool   allowS   = input.bool(true, "Shorts", group = G2, inline = "d")
+
+string G5 = "A+ conditions"
+float  volK     = input.float(1.5, "Sweep candle volume (x 20-candle avg)", minval = 1.0, step = 0.1, group = G5)
+float  dispK    = input.float(1.0, "MSS candle body (x ATR)", minval = 0.1, step = 0.1, group = G5)
+string busyS    = input.session("0700-1700", "Excluded hours (UTC)", group = G5, tooltip = "A+ signals must come OUTSIDE these hours. In testing, signals during London / New York failed more often.")
+
+string G4 = "Trade management"
+float  rr       = input.float(2.0, "Target (R:R)", minval = 0.5, step = 0.5, group = G4)
+bool   useBE    = input.bool(true, "Move stop to break-even", group = G4)
+float  beAt     = input.float(1.0, "Break-even trigger (R)", minval = 0.25, step = 0.25, group = G4)
+float  tradeHrs = input.float(16, "Max trade length (hours)", minval = 1, group = G4)
+float  spreadIn = input.float(0.30, "Spread / cost per trade ($)", minval = 0, step = 0.05, group = G4)
+
+string G3 = "Display"
+bool   showLv   = input.bool(true, "Show liquidity levels", group = G3)
+bool   showSw   = input.bool(true, "Show sweep markers", group = G3)
+bool   showSig  = input.bool(true, "Show BUY / SELL signals", group = G3)
+bool   showLvls = input.bool(true, "Draw entry / stop / target lines", group = G3)
+bool   showTbl  = input.bool(true, "Show results table", group = G3)
+string tblPos   = input.string("Top Right", "Table position", options = ["Top Right", "Bottom Right", "Top Left", "Bottom Left"], group = G3)
+color  cBuySide  = input.color(color.new(#f23645, 30), "Buy-side liquidity (highs)", group = G3)
+color  cSellSide = input.color(color.new(#089981, 30), "Sell-side liquidity (lows)", group = G3)
+
+// ---------------------------------------------------------------- Core
+int   tfSec     = timeframe.in_seconds()
+float barsPerHr = 3600.0 / tfSec
+int   maxAge    = math.max(1, int(math.round(maxAgeH * barsPerHr)))
+int   maxTrade  = math.max(1, int(math.round(tradeHrs * barsPerHr)))
+float atrV      = ta.atr(14)
+float vAvg      = ta.sma(volume, 20)[1]
+float vRatio    = not na(vAvg) and vAvg > 0 ? volume / vAvg : 0.0
+bool  confirmed = barstate.isconfirmed
+bool  intraday  = timeframe.isintraday and tfSec < 3600
+bool  inBusy    = not na(time(timeframe.period, busyS, "UTC"))
+bool  onlyAplus = minQ == "A+ only"
+
+// minor swings for the MSS
+float mph = ta.pivothigh(high, minorLen, minorLen)
+float mpl = ta.pivotlow(low, minorLen, minorLen)
+var float lastMPH = na
+var float lastMPL = na
+var int   lastMPHbar = na
+var int   lastMPLbar = na
+if not na(mph)
+    lastMPH := mph
+    lastMPHbar := bar_index - minorLen
+if not na(mpl)
+    lastMPL := mpl
+    lastMPLbar := bar_index - minorLen
+
+// 5m swings = liquidity
+float sph = ta.pivothigh(high, pivLen, pivLen)
+float spl = ta.pivotlow(low, pivLen, pivLen)
+
+// 1H swings (previous CLOSED 1H candle, no repainting)
+htfPiv() =>
+    float p1 = ta.pivothigh(high, 5, 5)
+    float p2 = ta.pivotlow(low, 5, 5)
+    [p1[1], p2[1], time[1]]
+[h1PH, h1PL, h1T] = request.security(syminfo.tickerid, "60", htfPiv(), lookahead = barmerge.lookahead_on)
+bool newH1 = not na(h1T) and h1T != nz(h1T[1])
+
+// previous day / week (closed candles only)
+[pdh, pdl] = request.security(syminfo.tickerid, "D", [high[1], low[1]], lookahead = barmerge.lookahead_on)
+[pwh, pwl] = request.security(syminfo.tickerid, "W", [high[1], low[1]], lookahead = barmerge.lookahead_on)
+bool newDay  = timeframe.change("D")
+bool newWeek = timeframe.change("W")
+
+// Asia session high / low (level created when the session ends)
+bool inAsia = not na(time(timeframe.period, asiaS, "UTC"))
+var float aHi = na
+var float aLo = na
+var int   aStart = na
+float asiaDoneHi = na
+float asiaDoneLo = na
+int   asiaDoneBar = na
+if inAsia
+    if na(aHi)
+        aStart := bar_index
+    aHi := na(aHi) ? high : math.max(aHi, high)
+    aLo := na(aLo) ? low : math.min(aLo, low)
+else if not na(aHi)
+    asiaDoneHi := aHi
+    asiaDoneLo := aLo
+    asiaDoneBar := aStart
+    aHi := na
+    aLo := na
+
+// ---------------------------------------------------------------- Types & state
+type Level
+    float price
+    bool  isHigh
+    int   kind          // 0 5m swing, 1 PD, 2 PW, 3 Asia, 4 1H swing
+    int   born
+    int   state = 0     // 0 active, 1 breached (waiting for a close back inside)
+    int   brkBar = 0
+    float ext = na
+    float vr  = na      // volume ratio of the candle that breached the level
+    line  ln
+
+type Sweep
+    int   dir           // 1 = low swept -> look for BUY, -1 = high swept -> look for SELL
+    float ext
+    int   kind
+    int   bar
+    float vr
+    float mss
+    int   mssBar
+
+type Trade
+    int   dir
+    bool  aplus
+    bool  shown
+    float entry
+    float stop
+    float tgt
+    float risk
+    int   bar
+    bool  moved = false
+    line  lE
+    line  lS
+    line  lT
+
+var array<Level> levels = array.new<Level>()
+var array<Sweep> sweeps = array.new<Sweep>()
+var array<Trade> trades = array.new<Trade>()
+
+// results: index 0 = B, 1 = A+, 2 = shown
+var array<int>   rN  = array.new_int(3, 0)
+var array<int>   rW  = array.new_int(3, 0)
+var array<int>   rF  = array.new_int(3, 0)
+var array<float> rS  = array.new_float(3, 0.0)
+var float eq    = 0.0
+var float peak  = 0.0
+var float maxDD = 0.0
+
+// ---------------------------------------------------------------- Helpers
+kindName(int k) =>
+    switch k
+        0 => "5m swing"
+        1 => "PDH/PDL"
+        2 => "PWH/PWL"
+        3 => "Asia"
+        => "1H swing"
+
+addLevel(float price, bool isHigh, int kind, int originBar) =>
+    bool ok = isHigh ? close < price : close > price
+    if ok
+        line l = showLv ? line.new(originBar, price, bar_index, price, color = isHigh ? cBuySide : cSellSide,
+             style = kind == 0 ? line.style_dotted : line.style_dashed, width = kind == 0 ? 1 : 2, extend = extend.right) : na
+        levels.push(Level.new(price, isHigh, kind, bar_index, ln = l))
+    ok
+
+endLine(Level lv) =>
+    if not na(lv.ln)
+        lv.ln.set_extend(extend.none)
+        lv.ln.set_x2(bar_index)
+    lv.price
+
+newTrade(int dir, float stop, bool aplus, int kind, float vr) =>
+    float risk = math.abs(close - stop)
+    if risk > 0
+        float tgt   = close + dir * rr * risk
+        bool  shown = aplus or not onlyAplus
+        string q    = aplus ? "A+" : "B"
+        Trade t = Trade.new(dir, aplus, shown, close, stop, tgt, risk, bar_index)
+        if shown and showSig
+            label.new(bar_index, dir == 1 ? low : high, (dir == 1 ? "BUY " : "SELL ") + q,
+                 style = dir == 1 ? label.style_label_up : label.style_label_down, size = size.small,
+                 color = dir == 1 ? color.new(#00c853, aplus ? 0 : 50) : color.new(#d50000, aplus ? 0 : 50), textcolor = color.white,
+                 tooltip = "Liquidity sweep (" + kindName(kind) + ", sweep volume " + str.tostring(vr, "0.0") + "x) + market structure shift, quality " + q + "\nEntry " + str.tostring(close, format.mintick) + "\nStop " + str.tostring(stop, format.mintick) + "\nTarget " + str.tostring(tgt, format.mintick) + (useBE ? "\nMove stop to entry at " + str.tostring(close + dir * beAt * risk, format.mintick) : ""))
+            if showLvls
+                t.lE := line.new(bar_index, close, bar_index + 1, close, color = color.new(#9598a1, 0))
+                t.lS := line.new(bar_index, stop, bar_index + 1, stop, color = color.new(#ff5252, 0), style = line.style_dashed)
+                t.lT := line.new(bar_index, tgt, bar_index + 1, tgt, color = color.new(#00e676, 0), style = line.style_dashed)
+        if shown
+            alert("XAUUSD 5m " + (dir == 1 ? "BUY " : "SELL ") + q + " | sweep of " + kindName(kind) + " + MSS" +
+                 " | entry " + str.tostring(close, format.mintick) + " | stop " + str.tostring(stop, format.mintick) +
+                 " | target " + str.tostring(tgt, format.mintick) + (useBE ? " | BE at " + str.tostring(close + dir * beAt * risk, format.mintick) : ""),
+                 alert.freq_once_per_bar_close)
+        trades.push(t)
+    risk
+
+record(int idx, float rn) =>
+    rN.set(idx, rN.get(idx) + 1)
+    rW.set(idx, rW.get(idx) + (rn > 0.05 ? 1 : 0))
+    rF.set(idx, rF.get(idx) + (rn < -0.05 ? 1 : 0))
+    rS.set(idx, rS.get(idx) + rn)
+    rn
+
+// ---------------------------------------------------------------- Run on closed candles
+int buySig  = 0
+int sellSig = 0
+bool aplusNow = false
+int sweepUp = 0
+int sweepDn = 0
+if confirmed and intraday
+    // ---- 1) manage open trades: stop first, then target, then time exit, then break-even move
+    int nt = trades.size()
+    if nt > 0
+        for i = nt - 1 to 0
+            Trade t = trades.get(i)
+            if bar_index > t.bar
+                float r = na
+                if (t.dir == 1 and low <= t.stop) or (t.dir == -1 and high >= t.stop)
+                    r := t.moved ? 0.0 : -1.0
+                else if (t.dir == 1 and high >= t.tgt) or (t.dir == -1 and low <= t.tgt)
+                    r := rr
+                else if bar_index - t.bar >= maxTrade
+                    r := t.dir * (close - t.entry) / t.risk
+                else if useBE and not t.moved and ((t.dir == 1 and high >= t.entry + beAt * t.risk) or (t.dir == -1 and low <= t.entry - beAt * t.risk))
+                    t.moved := true
+                    t.stop  := t.entry
+                    if not na(t.lS)
+                        t.lS.set_y1(t.entry)
+                        t.lS.set_y2(t.entry)
+                        t.lS.set_color(color.new(#ffb74d, 0))
+                if not na(t.lE)
+                    t.lE.set_x2(bar_index)
+                    t.lS.set_x2(bar_index)
+                    t.lT.set_x2(bar_index)
+                if not na(r)
+                    float rn = r - spreadIn / t.risk
+                    record(t.aplus ? 1 : 0, rn)
+                    if t.shown
+                        record(2, rn)
+                        eq += rn
+                        peak := math.max(peak, eq)
+                        maxDD := math.max(maxDD, peak - eq)
+                    trades.remove(i)
+
+    // ---- 2) sweeps of existing levels
+    int nl = levels.size()
+    if nl > 0
+        for i = nl - 1 to 0
+            Level lv = levels.get(i)
+            bool kill = false
+            if lv.born < bar_index
+                int   swept = 0
+                float ext = na
+                if lv.state == 0
+                    if lv.isHigh and high > lv.price
+                        lv.vr := vRatio
+                        if close < lv.price
+                            swept := -1
+                            ext := high
+                        else if reclaimN > 0
+                            lv.state := 1
+                            lv.brkBar := bar_index
+                            lv.ext := high
+                        else
+                            kill := true
+                    else if not lv.isHigh and low < lv.price
+                        lv.vr := vRatio
+                        if close > lv.price
+                            swept := 1
+                            ext := low
+                        else if reclaimN > 0
+                            lv.state := 1
+                            lv.brkBar := bar_index
+                            lv.ext := low
+                        else
+                            kill := true
+                    else if bar_index - lv.born > maxAge
+                        kill := true
+                else
+                    lv.ext := lv.isHigh ? math.max(lv.ext, high) : math.min(lv.ext, low)
+                    if lv.isHigh and close < lv.price
+                        swept := -1
+                        ext := lv.ext
+                    else if not lv.isHigh and close > lv.price
+                        swept := 1
+                        ext := lv.ext
+                    else if bar_index - lv.brkBar >= reclaimN
+                        kill := true
+                if swept != 0
+                    kill := true
+                    float depth = swept == -1 ? ext - lv.price : lv.price - ext
+                    if depth <= maxDepth * atrV
+                        float mssLvl = swept == 1 ? lastMPH : lastMPL
+                        int   mssBar = swept == 1 ? lastMPHbar : lastMPLbar
+                        if not na(mssLvl)
+                            sweeps.push(Sweep.new(swept, ext, lv.kind, bar_index, lv.vr, mssLvl, mssBar))
+                        sweepUp += swept == -1 ? 1 : 0
+                        sweepDn += swept == 1 ? 1 : 0
+                        if showSw
+                            label.new(bar_index, ext, "", style = label.style_xcross, size = size.tiny,
+                                 color = swept == 1 ? color.new(#089981, 0) : color.new(#f23645, 0),
+                                 tooltip = kindName(lv.kind) + (swept == 1 ? " low" : " high") + " swept, volume " + str.tostring(lv.vr, "0.0") + "x")
+            if kill
+                endLine(lv)
+                levels.remove(i)
+
+    // ---- 3) sweep -> market structure shift -> signal (A+ wins when several fire on one candle)
+    bool  disp = math.abs(close - open) >= dispK * atrV
+    int   bestL = -1
+    int   bestS = -1
+    float stopL = na
+    float stopS = na
+    int   kindL = 0
+    int   kindS = 0
+    float vrL = na
+    float vrS = na
+    int ns = sweeps.size()
+    if ns > 0
+        for i = ns - 1 to 0
+            Sweep sw = sweeps.get(i)
+            bool done = false
+            sw.ext := sw.dir == 1 ? math.min(sw.ext, low) : math.max(sw.ext, high)
+            bool mss = sw.dir == 1 ? close > sw.mss : close < sw.mss
+            if mss
+                done := true
+                int   q   = sw.vr >= volK and disp and not inBusy ? 1 : 0
+                float stp = sw.dir == 1 ? sw.ext - 0.3 * atrV : sw.ext + 0.3 * atrV
+                if sw.dir == 1 and allowL and q > bestL
+                    bestL := q
+                    stopL := stp
+                    kindL := sw.kind
+                    vrL := sw.vr
+                if sw.dir == -1 and allowS and q > bestS
+                    bestS := q
+                    stopS := stp
+                    kindS := sw.kind
+                    vrS := sw.vr
+            else if bar_index - sw.bar >= mssBars
+                done := true
+            if done
+                sweeps.remove(i)
+    if bestL >= 0
+        newTrade(1, stopL, bestL == 1, kindL, vrL)
+        if bestL == 1 or not onlyAplus
+            buySig := 1
+            aplusNow := aplusNow or bestL == 1
+    if bestS >= 0
+        newTrade(-1, stopS, bestS == 1, kindS, vrS)
+        if bestS == 1 or not onlyAplus
+            sellSig := 1
+            aplusNow := aplusNow or bestS == 1
+
+    // ---- 4) new liquidity levels (known at this close)
+    if useSwing and not na(sph)
+        addLevel(sph, true, 0, bar_index - pivLen)
+    if useSwing and not na(spl)
+        addLevel(spl, false, 0, bar_index - pivLen)
+    if useH1 and newH1
+        if not na(h1PH)
+            addLevel(h1PH, true, 4, bar_index)
+        if not na(h1PL)
+            addLevel(h1PL, false, 4, bar_index)
+    if usePD and newDay and not na(pdh)
+        addLevel(pdh, true, 1, bar_index)
+        addLevel(pdl, false, 1, bar_index)
+    if usePW and newWeek and not na(pwh)
+        addLevel(pwh, true, 2, bar_index)
+        addLevel(pwl, false, 2, bar_index)
+    if useAsia and not na(asiaDoneHi)
+        addLevel(asiaDoneHi, true, 3, asiaDoneBar)
+        addLevel(asiaDoneLo, false, 3, asiaDoneBar)
+    while levels.size() > maxLv
+        Level old = levels.shift()
+        endLine(old)
+
+// shade the excluded (busy) hours lightly so you can see when A+ signals are not possible
+bgcolor(intraday and inBusy ? color.new(#787b86, 94) : na, title = "Excluded hours for A+")
+
+// ---------------------------------------------------------------- Alerts
+// For alerts WITH entry / stop / target: create an alert on this indicator -> "Any alert() function call".
+alertcondition(buySig > 0, "BUY signal", "XAUUSD 5m: BUY - liquidity sweep + market structure shift")
+alertcondition(sellSig > 0, "SELL signal", "XAUUSD 5m: SELL - liquidity sweep + market structure shift")
+alertcondition(aplusNow, "A+ signal", "XAUUSD 5m: A+ liquidity sweep signal (volume sweep + displacement MSS, outside London/NY)")
+alertcondition(sweepDn > 0, "Sell-side liquidity swept", "XAUUSD 5m: a low was swept")
+alertcondition(sweepUp > 0, "Buy-side liquidity swept", "XAUUSD 5m: a high was swept")
+
+// ---------------------------------------------------------------- Results table
+var table tbl = table.new(tblPos == "Top Right" ? position.top_right : tblPos == "Bottom Right" ? position.bottom_right : tblPos == "Top Left" ? position.top_left : position.bottom_left, 6, 6, bgcolor = color.new(#131722, 10), border_color = color.new(#363a45, 0), border_width = 1, frame_color = color.new(#363a45, 0), frame_width = 1)
+
+if barstate.isfirst
+    tbl.merge_cells(0, 5, 5, 5)
+
+rStr(float v) => (v >= 0 ? "+" : "") + str.tostring(v, "0.00") + "R"
+
+if showTbl and barstate.islast
+    color tx  = color.new(#d1d4dc, 0)
+    color dim = color.new(#9598a1, 0)
+    color hbg = color.new(#2a2e39, 0)
+    array<string> heads = array.from("Quality", "Trades", "Fail %", "Win %", "Avg", "Total")
+    for c = 0 to 5
+        tbl.cell(c, 0, heads.get(c), text_color = tx, text_size = size.small, bgcolor = hbg)
+    array<int>    idxs  = array.from(1, 0, 2)
+    array<string> names = array.from("A+", "B", "Shown")
+    for row = 0 to 2
+        int   k   = idxs.get(row)
+        int   n   = rN.get(k)
+        float avg = n > 0 ? rS.get(k) / n : na
+        float fp  = n > 0 ? 100.0 * rF.get(k) / n : na
+        color rc  = na(avg) ? tx : avg > 0 ? color.new(#00e676, 0) : color.new(#ff5252, 0)
+        color fc  = na(fp) ? tx : fp <= 35 ? color.new(#00e676, 0) : fp >= 50 ? color.new(#ff5252, 0) : tx
+        color bg  = row == 2 ? hbg : na
+        tbl.cell(0, row + 1, names.get(row), text_color = row == 2 ? tx : dim, text_size = size.small, text_halign = text.align_left, bgcolor = bg)
+        tbl.cell(1, row + 1, str.tostring(n), text_color = tx, text_size = size.small, bgcolor = bg)
+        tbl.cell(2, row + 1, na(fp) ? "-" : str.tostring(fp, "0.0") + "%", text_color = fc, text_size = size.small, bgcolor = bg)
+        tbl.cell(3, row + 1, n > 0 ? str.tostring(100.0 * rW.get(k) / n, "0.0") + "%" : "-", text_color = tx, text_size = size.small, bgcolor = bg)
+        tbl.cell(4, row + 1, na(avg) ? "-" : rStr(avg), text_color = rc, text_size = size.small, bgcolor = bg)
+        tbl.cell(5, row + 1, n > 0 ? rStr(rS.get(k)) : "-", text_color = rc, text_size = size.small, bgcolor = bg)
+    tbl.cell(0, 4, "Max DD (shown)", text_color = dim, text_size = size.small, text_halign = text.align_left)
+    tbl.cell(1, 4, str.tostring(maxDD, "0.0") + "R", text_color = tx, text_size = size.small)
+    tbl.cell(2, 4, "Open", text_color = dim, text_size = size.small)
+    tbl.cell(3, 4, str.tostring(trades.size()), text_color = tx, text_size = size.small)
+    tbl.cell(4, 4, useBE ? "BE on" : "BE off", text_color = dim, text_size = size.small)
+    tbl.cell(5, 4, "", text_color = tx, text_size = size.small)
+    string note = not intraday ? "Built for the 5m chart (works below 1H)" : "Fail = losing trade (BE exits are not failures). A+ = volume sweep + displacement MSS outside the shaded hours"
+    tbl.cell(0, 5, note, text_color = dim, text_size = size.tiny, text_halign = text.align_left)

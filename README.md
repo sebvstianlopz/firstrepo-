@@ -137,3 +137,22 @@ Oct 1–14 was not used to design anything, so it serves as an out-of-sample che
 - **A+ in Oct 1–14:** 50% and 60% failures (6 and 5 trades). The low failure rate is not guaranteed.
 - **Break-even at +1R:** losses fall to the same level as a 1R target, while the 2R upside stays.
 - **Rejected filters:** London/NY session only (more failures), 200 EMA trend (mixed), sweep volume (helps on 5m/15m only).
+
+## XAUUSD Liquidity Sweeps [5m]
+
+`pinescript/xauusd_liquidity_sweeps_5m.pine` is the 5m version. **A+** requires all three of these:
+- the sweep candle volume is at least 1.5× its 20-candle average;
+- the MSS candle body is at least 1× ATR (displacement);
+- the signal comes outside 07:00–17:00 UTC.
+
+The stop moves to break-even at +1R, the target is 2R, and a results table on the chart tracks each tier.
+
+Study: `python3 backtest/sweep_5m_backtest.py`, results in `backtest/sweep_5m_results.txt`.
+Data is OANDA and COMEX 5m from Sep 3 to Oct 14 2026, plus OANDA 15m.
+- **A+ failure rate:** 23.8% on OANDA 5m (21 trades), 18.8% on COMEX 5m (16 trades), 41.7% on 15m (12 trades).
+- **All other signals:** 46–51% failures.
+- **Harmful on 5m:** using only higher-timeframe levels, a fast MSS, a 1H trend filter, or London/NY-only signals all raised failures.
+- **Caveats:**
+  - the time-of-day rule was found during testing rather than fixed in advance;
+  - failures rose to 36–38% in the second half of both 5m feeds;
+  - there are only 6 weeks of 5m data.
