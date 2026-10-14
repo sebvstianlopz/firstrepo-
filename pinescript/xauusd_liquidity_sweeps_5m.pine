@@ -16,7 +16,8 @@ indicator("XAUUSD Liquidity Sweeps [5m]", shorttitle = "Sweep 5m", overlay = tru
 //   Mirror for SELL. Entry = MSS close, stop = sweep extreme + 0.3 x ATR, target = R:R x risk,
 //   stop moves to break-even at +1R.
 //
-// A+ (all three must be true)                         B = every other sweep + MSS signal
+// A+ (all three must be true)                         B = every other sweep + MSS signal (lighter labels,
+//                                                         dotted lines; shown by default, alerts optional)
 //   1. VOLUME       the candle that swept the level had >= 1.5 x its 20-candle average volume
 //   2. DISPLACEMENT the MSS candle body is >= 1.0 x ATR (a strong candle, not a drift)
 //   3. TIME         the signal comes OUTSIDE 07:00-17:00 UTC (London / New York signals failed more often)
@@ -51,7 +52,8 @@ int    reclaimN = input.int(3, "Reclaim candles (0 = same candle only)", minval 
 float  maxDepth = input.float(1.5, "Max sweep depth (ATR)", minval = 0.1, step = 0.1, group = G2)
 int    minorLen = input.int(2, "MSS swing length", minval = 1, group = G2)
 int    mssBars  = input.int(12, "MSS window (candles after the sweep)", minval = 1, group = G2)
-string minQ     = input.string("A+ only", "Signals & alerts", options = ["A+ only", "All (A+ and B)"], group = G2)
+bool   showB    = input.bool(true, "Show B setups", group = G2, tooltip = "B = sweep + MSS without all three A+ conditions. Backtest: ~46-51% of B trades failed vs ~20-38% for A+.")
+bool   alertB   = input.bool(false, "Send alerts for B setups", group = G2, tooltip = "Off = alerts only for A+ setups.")
 bool   allowL   = input.bool(true, "Longs", group = G2, inline = "d")
 bool   allowS   = input.bool(true, "Shorts", group = G2, inline = "d")
 
@@ -88,7 +90,7 @@ float vRatio    = not na(vAvg) and vAvg > 0 ? volume / vAvg : 0.0
 bool  confirmed = barstate.isconfirmed
 bool  intraday  = timeframe.isintraday and tfSec < 3600
 bool  inBusy    = not na(time(timeframe.period, busyS, "UTC"))
-bool  onlyAplus = minQ == "A+ only"
+
 
 // minor swings for the MSS
 float mph = ta.pivothigh(high, minorLen, minorLen)
@@ -217,19 +219,22 @@ newTrade(int dir, float stop, bool aplus, int kind, float vr) =>
     float risk = math.abs(close - stop)
     if risk > 0
         float tgt   = close + dir * rr * risk
-        bool  shown = aplus or not onlyAplus
+        bool  shown = aplus or showB
         string q    = aplus ? "A+" : "B"
         Trade t = Trade.new(dir, aplus, shown, close, stop, tgt, risk, bar_index)
         if shown and showSig
             label.new(bar_index, dir == 1 ? low : high, (dir == 1 ? "BUY " : "SELL ") + q,
-                 style = dir == 1 ? label.style_label_up : label.style_label_down, size = size.small,
-                 color = dir == 1 ? color.new(#00c853, aplus ? 0 : 50) : color.new(#d50000, aplus ? 0 : 50), textcolor = color.white,
+                 style = dir == 1 ? label.style_label_up : label.style_label_down, size = aplus ? size.normal : size.tiny,
+                 color = aplus ? (dir == 1 ? color.new(#00c853, 0) : color.new(#d50000, 0)) : (dir == 1 ? color.new(#4dd0e1, 20) : color.new(#ffb74d, 20)),
+                 textcolor = aplus ? color.white : color.black,
                  tooltip = "Liquidity sweep (" + kindName(kind) + ", sweep volume " + str.tostring(vr, "0.0") + "x) + market structure shift, quality " + q + "\nEntry " + str.tostring(close, format.mintick) + "\nStop " + str.tostring(stop, format.mintick) + "\nTarget " + str.tostring(tgt, format.mintick) + (useBE ? "\nMove stop to entry at " + str.tostring(close + dir * beAt * risk, format.mintick) : ""))
             if showLvls
-                t.lE := line.new(bar_index, close, bar_index + 1, close, color = color.new(#9598a1, 0))
-                t.lS := line.new(bar_index, stop, bar_index + 1, stop, color = color.new(#ff5252, 0), style = line.style_dashed)
-                t.lT := line.new(bar_index, tgt, bar_index + 1, tgt, color = color.new(#00e676, 0), style = line.style_dashed)
-        if shown
+                string ls = aplus ? line.style_dashed : line.style_dotted
+                int    tr = aplus ? 0 : 45
+                t.lE := line.new(bar_index, close, bar_index + 1, close, color = color.new(#9598a1, tr))
+                t.lS := line.new(bar_index, stop, bar_index + 1, stop, color = color.new(#ff5252, tr), style = ls)
+                t.lT := line.new(bar_index, tgt, bar_index + 1, tgt, color = color.new(#00e676, tr), style = ls)
+        if aplus or (showB and alertB)
             alert("XAUUSD 5m " + (dir == 1 ? "BUY " : "SELL ") + q + " | sweep of " + kindName(kind) + " + MSS" +
                  " | entry " + str.tostring(close, format.mintick) + " | stop " + str.tostring(stop, format.mintick) +
                  " | target " + str.tostring(tgt, format.mintick) + (useBE ? " | BE at " + str.tostring(close + dir * beAt * risk, format.mintick) : ""),
@@ -245,9 +250,10 @@ record(int idx, float rn) =>
     rn
 
 // ---------------------------------------------------------------- Run on closed candles
-int buySig  = 0
-int sellSig = 0
-bool aplusNow = false
+int buySig  = 0      // A+ buy fired
+int sellSig = 0      // A+ sell fired
+int buyB    = 0      // B buy fired (and B shown)
+int sellB   = 0
 int sweepUp = 0
 int sweepDn = 0
 if confirmed and intraday
@@ -384,14 +390,16 @@ if confirmed and intraday
                 sweeps.remove(i)
     if bestL >= 0
         newTrade(1, stopL, bestL == 1, kindL, vrL)
-        if bestL == 1 or not onlyAplus
+        if bestL == 1
             buySig := 1
-            aplusNow := aplusNow or bestL == 1
+        else if showB
+            buyB := 1
     if bestS >= 0
         newTrade(-1, stopS, bestS == 1, kindS, vrS)
-        if bestS == 1 or not onlyAplus
+        if bestS == 1
             sellSig := 1
-            aplusNow := aplusNow or bestS == 1
+        else if showB
+            sellB := 1
 
     // ---- 4) new liquidity levels (known at this close)
     if useSwing and not na(sph)
@@ -421,9 +429,12 @@ bgcolor(intraday and inBusy ? color.new(#787b86, 94) : na, title = "Excluded hou
 
 // ---------------------------------------------------------------- Alerts
 // For alerts WITH entry / stop / target: create an alert on this indicator -> "Any alert() function call".
-alertcondition(buySig > 0, "BUY signal", "XAUUSD 5m: BUY - liquidity sweep + market structure shift")
-alertcondition(sellSig > 0, "SELL signal", "XAUUSD 5m: SELL - liquidity sweep + market structure shift")
-alertcondition(aplusNow, "A+ signal", "XAUUSD 5m: A+ liquidity sweep signal (volume sweep + displacement MSS, outside London/NY)")
+// That sends A+ setups, plus B setups when "Send alerts for B setups" is on.
+alertcondition(buySig > 0, "A+ BUY", "XAUUSD 5m: A+ BUY - volume sweep + displacement MSS, outside London/NY")
+alertcondition(sellSig > 0, "A+ SELL", "XAUUSD 5m: A+ SELL - volume sweep + displacement MSS, outside London/NY")
+alertcondition(buySig > 0 or sellSig > 0, "A+ any", "XAUUSD 5m: A+ liquidity sweep signal")
+alertcondition(buyB > 0, "B BUY", "XAUUSD 5m: B BUY - liquidity sweep + market structure shift (lower quality)")
+alertcondition(sellB > 0, "B SELL", "XAUUSD 5m: B SELL - liquidity sweep + market structure shift (lower quality)")
 alertcondition(sweepDn > 0, "Sell-side liquidity swept", "XAUUSD 5m: a low was swept")
 alertcondition(sweepUp > 0, "Buy-side liquidity swept", "XAUUSD 5m: a high was swept")
 
@@ -443,7 +454,7 @@ if showTbl and barstate.islast
     for c = 0 to 5
         tbl.cell(c, 0, heads.get(c), text_color = tx, text_size = size.small, bgcolor = hbg)
     array<int>    idxs  = array.from(1, 0, 2)
-    array<string> names = array.from("A+", "B", "Shown")
+    array<string> names = array.from("A+", "B", showB ? "A+ and B" : "Shown (A+)")
     for row = 0 to 2
         int   k   = idxs.get(row)
         int   n   = rN.get(k)
