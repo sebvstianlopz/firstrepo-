@@ -1,0 +1,148 @@
+
+######## exit 1R
+  filter none
+    OANDA 1H   n=103  fail  50.5%  win  41.7%  avg +0.02R  total   +1.7R  maxDD  4.9R   halves -0.06 / +0.09
+    COMEX 1H   n=110  fail  52.7%  win  40.0%  avg -0.00R  total   -0.3R  maxDD  6.4R   halves -0.09 / +0.08
+    OANDA 15m  n=107  fail  54.2%  win  45.8%  avg -0.05R  total   -5.7R  maxDD  9.6R   halves +0.02 / -0.13
+    OANDA 5m   n=148  fail  45.3%  win  54.7%  avg +0.10R  total  +14.1R  maxDD  7.4R   halves -0.02 / +0.21
+  filter A
+    OANDA 1H   n=45   fail  40.0%  win  48.9%  avg +0.16R  total   +7.3R  maxDD  3.1R   halves +0.27 / +0.07
+    COMEX 1H   n=53   fail  43.4%  win  47.2%  avg +0.10R  total   +5.5R  maxDD  4.2R   halves +0.28 / -0.06
+    OANDA 15m  n=17   fail  47.1%  win  52.9%  avg +0.02R  total   +0.4R  maxDD  3.2R   halves +0.20 / -0.13
+    OANDA 5m   n=6    fail  50.0%  win  50.0%  avg -0.02R  total   -0.1R  maxDD  1.1R   halves +0.32 / -0.35
+  filter TREND
+    OANDA 1H   n=57   fail  49.1%  win  45.6%  avg +0.08R  total   +4.7R  maxDD  4.1R   halves +0.08 / +0.09
+    COMEX 1H   n=61   fail  45.9%  win  47.5%  avg +0.13R  total   +8.1R  maxDD  3.4R   halves +0.07 / +0.19
+    OANDA 15m  n=61   fail  57.4%  win  42.6%  avg -0.10R  total   -6.3R  maxDD  9.3R   halves -0.07 / -0.14
+    OANDA 5m   n=80   fail  46.2%  win  53.8%  avg +0.09R  total   +6.9R  maxDD  6.1R   halves +0.02 / +0.15
+  filter SESS
+    OANDA 1H   n=52   fail  55.8%  win  36.5%  avg -0.12R  total   -6.3R  maxDD  8.7R   halves -0.25 / +0.01
+    COMEX 1H   n=53   fail  56.6%  win  35.8%  avg -0.13R  total   -6.6R  maxDD  7.8R   halves -0.27 / +0.01
+    OANDA 15m  n=48   fail  64.6%  win  35.4%  avg -0.25R  total  -12.2R  maxDD 13.6R   halves -0.03 / -0.47
+    OANDA 5m   n=60   fail  53.3%  win  46.7%  avg -0.04R  total   -2.4R  maxDD 12.3R   halves -0.28 / +0.20
+  filter FAST
+    OANDA 1H   n=71   fail  42.3%  win  50.7%  avg +0.09R  total   +6.5R  maxDD  3.8R   halves +0.12 / +0.07
+    COMEX 1H   n=74   fail  45.9%  win  47.3%  avg +0.06R  total   +4.8R  maxDD  4.7R   halves +0.12 / +0.01
+    OANDA 15m  n=74   fail  54.1%  win  45.9%  avg -0.06R  total   -4.3R  maxDD  7.9R   halves -0.12 / +0.01
+    OANDA 5m   n=85   fail  50.6%  win  49.4%  avg -0.00R  total   -0.2R  maxDD  7.7R   halves -0.11 / +0.11
+  filter TIGHT
+    OANDA 1H   n=9    fail  33.3%  win  66.7%  avg +0.42R  total   +3.8R  maxDD  1.1R   halves -0.28 / +0.99
+    COMEX 1H   n=8    fail  37.5%  win  62.5%  avg +0.35R  total   +2.8R  maxDD  1.2R   halves -0.29 / +0.99
+    OANDA 15m  n=4    fail  50.0%  win  50.0%  avg -0.02R  total   -0.1R  maxDD  2.0R   halves -1.02 / +0.98
+    OANDA 5m   n=4    fail  25.0%  win  75.0%  avg +0.46R  total   +1.8R  maxDD  1.0R   halves -0.03 / +0.95
+  filter VOL
+    OANDA 1H   n=31   fail  48.4%  win  41.9%  avg +0.01R  total   +0.4R  maxDD  1.5R   halves -0.08 / +0.10
+    COMEX 1H   n=41   fail  51.2%  win  36.6%  avg -0.01R  total   -0.6R  maxDD  3.4R   halves -0.10 / +0.07
+    OANDA 15m  n=49   fail  44.9%  win  55.1%  avg +0.11R  total   +5.1R  maxDD  4.1R   halves +0.15 / +0.06
+    OANDA 5m   n=57   fail  43.9%  win  56.1%  avg +0.15R  total   +8.7R  maxDD  5.4R   halves +0.21 / +0.10
+
+######## exit 1.5R
+  filter none
+    OANDA 1H   n=103  fail  50.5%  win  41.7%  avg +0.08R  total   +7.9R  maxDD  4.1R   halves -0.02 / +0.18
+    COMEX 1H   n=110  fail  52.7%  win  39.1%  avg +0.05R  total   +5.5R  maxDD  6.9R   halves -0.06 / +0.16
+    OANDA 15m  n=107  fail  60.7%  win  39.3%  avg -0.01R  total   -1.1R  maxDD 15.2R   halves +0.19 / -0.20
+    OANDA 5m   n=148  fail  61.5%  win  38.5%  avg -0.04R  total   -6.1R  maxDD 11.8R   halves -0.08 / -0.00
+  filter A
+    OANDA 1H   n=45   fail  40.0%  win  48.9%  avg +0.22R  total   +9.7R  maxDD  3.1R   halves +0.33 / +0.11
+    COMEX 1H   n=53   fail  43.4%  win  45.3%  avg +0.13R  total   +7.1R  maxDD  4.2R   halves +0.27 / +0.00
+    OANDA 15m  n=17   fail  52.9%  win  47.1%  avg +0.05R  total   +0.9R  maxDD  3.7R   halves +0.38 / -0.24
+    OANDA 5m   n=6    fail  66.7%  win  33.3%  avg -0.26R  total   -1.6R  maxDD  3.1R   halves -0.18 / -0.34
+  filter TREND
+    OANDA 1H   n=57   fail  49.1%  win  45.6%  avg +0.17R  total   +9.7R  maxDD  4.0R   halves +0.14 / +0.20
+    COMEX 1H   n=61   fail  45.9%  win  45.9%  avg +0.21R  total  +12.6R  maxDD  3.8R   halves +0.07 / +0.34
+    OANDA 15m  n=61   fail  63.9%  win  36.1%  avg -0.07R  total   -4.1R  maxDD 13.1R   halves +0.12 / -0.25
+    OANDA 5m   n=80   fail  62.5%  win  37.5%  avg -0.04R  total   -3.3R  maxDD  8.1R   halves -0.04 / -0.04
+  filter SESS
+    OANDA 1H   n=52   fail  55.8%  win  36.5%  avg -0.08R  total   -3.9R  maxDD  7.2R   halves -0.24 / +0.09
+    COMEX 1H   n=53   fail  56.6%  win  35.8%  avg -0.08R  total   -4.3R  maxDD  7.9R   halves -0.29 / +0.12
+    OANDA 15m  n=48   fail  68.8%  win  31.2%  avg -0.22R  total  -10.7R  maxDD 13.2R   halves +0.02 / -0.46
+    OANDA 5m   n=60   fail  71.7%  win  28.3%  avg -0.25R  total  -15.1R  maxDD 19.3R   halves -0.44 / -0.06
+  filter FAST
+    OANDA 1H   n=71   fail  42.3%  win  50.7%  avg +0.15R  total  +10.7R  maxDD  4.2R   halves +0.17 / +0.13
+    COMEX 1H   n=74   fail  45.9%  win  45.9%  avg +0.12R  total   +9.0R  maxDD  4.7R   halves +0.15 / +0.09
+    OANDA 15m  n=74   fail  60.8%  win  39.2%  avg -0.01R  total   -1.0R  maxDD  6.4R   halves +0.01 / -0.04
+    OANDA 5m   n=85   fail  62.4%  win  37.6%  avg -0.05R  total   -4.6R  maxDD 13.4R   halves -0.20 / +0.08
+  filter TIGHT
+    OANDA 1H   n=9    fail  33.3%  win  66.7%  avg +0.66R  total   +5.9R  maxDD  1.1R   halves -0.16 / +1.31
+    COMEX 1H   n=8    fail  37.5%  win  62.5%  avg +0.66R  total   +5.3R  maxDD  1.1R   halves -0.16 / +1.49
+    OANDA 15m  n=4    fail  75.0%  win  25.0%  avg -0.40R  total   -1.6R  maxDD  3.1R   halves -1.02 / +0.23
+    OANDA 5m   n=4    fail  50.0%  win  50.0%  avg +0.21R  total   +0.8R  maxDD  1.0R   halves +0.22 / +0.20
+  filter VOL
+    OANDA 1H   n=31   fail  48.4%  win  41.9%  avg +0.04R  total   +1.3R  maxDD  1.5R   halves -0.05 / +0.12
+    COMEX 1H   n=41   fail  51.2%  win  36.6%  avg +0.02R  total   +0.7R  maxDD  2.9R   halves -0.05 / +0.08
+    OANDA 15m  n=49   fail  49.0%  win  51.0%  avg +0.24R  total  +11.6R  maxDD  4.9R   halves +0.40 / +0.08
+    OANDA 5m   n=57   fail  64.9%  win  35.1%  avg -0.11R  total   -6.1R  maxDD  7.7R   halves -0.04 / -0.17
+
+######## exit 2R
+  filter none
+    OANDA 1H   n=103  fail  50.5%  win  41.7%  avg +0.10R  total  +10.7R  maxDD  3.9R   halves +0.02 / +0.19
+    COMEX 1H   n=110  fail  53.6%  win  38.2%  avg +0.05R  total   +5.2R  maxDD  6.7R   halves -0.02 / +0.11
+    OANDA 15m  n=107  fail  63.6%  win  36.4%  avg +0.01R  total   +0.5R  maxDD 14.1R   halves +0.16 / -0.15
+    OANDA 5m   n=148  fail  66.9%  win  33.1%  avg -0.03R  total   -5.0R  maxDD 10.0R   halves -0.03 / -0.03
+  filter A
+    OANDA 1H   n=45   fail  40.0%  win  48.9%  avg +0.26R  total  +11.7R  maxDD  3.1R   halves +0.40 / +0.13
+    COMEX 1H   n=53   fail  43.4%  win  45.3%  avg +0.15R  total   +8.2R  maxDD  4.2R   halves +0.29 / +0.02
+    OANDA 15m  n=17   fail  52.9%  win  47.1%  avg +0.09R  total   +1.6R  maxDD  4.6R   halves +0.53 / -0.29
+    OANDA 5m   n=6    fail  66.7%  win  33.3%  avg -0.18R  total   -1.1R  maxDD  3.1R   halves -0.02 / -0.34
+  filter TREND
+    OANDA 1H   n=57   fail  49.1%  win  45.6%  avg +0.18R  total  +10.0R  maxDD  4.1R   halves +0.16 / +0.19
+    COMEX 1H   n=61   fail  47.5%  win  44.3%  avg +0.19R  total  +11.3R  maxDD  4.4R   halves +0.11 / +0.26
+    OANDA 15m  n=61   fail  67.2%  win  32.8%  avg -0.08R  total   -5.0R  maxDD 13.0R   halves +0.04 / -0.20
+    OANDA 5m   n=80   fail  71.2%  win  28.8%  avg -0.13R  total  -10.4R  maxDD 12.2R   halves -0.08 / -0.18
+  filter SESS
+    OANDA 1H   n=52   fail  55.8%  win  36.5%  avg -0.04R  total   -2.3R  maxDD  6.7R   halves -0.20 / +0.11
+    COMEX 1H   n=53   fail  58.5%  win  34.0%  avg -0.09R  total   -4.7R  maxDD  7.3R   halves -0.25 / +0.07
+    OANDA 15m  n=48   fail  75.0%  win  25.0%  avg -0.32R  total  -15.5R  maxDD 15.9R   halves -0.21 / -0.43
+    OANDA 5m   n=60   fail  73.3%  win  26.7%  avg -0.18R  total  -10.8R  maxDD 17.5R   halves -0.38 / +0.02
+  filter FAST
+    OANDA 1H   n=71   fail  42.3%  win  50.7%  avg +0.18R  total  +13.1R  maxDD  4.2R   halves +0.23 / +0.14
+    COMEX 1H   n=74   fail  47.3%  win  44.6%  avg +0.10R  total   +7.7R  maxDD  4.7R   halves +0.18 / +0.03
+    OANDA 15m  n=74   fail  63.5%  win  36.5%  avg -0.01R  total   -0.6R  maxDD  7.2R   halves -0.05 / +0.03
+    OANDA 5m   n=85   fail  67.1%  win  32.9%  avg -0.00R  total   -0.4R  maxDD 11.8R   halves -0.14 / +0.13
+  filter TIGHT
+    OANDA 1H   n=9    fail  33.3%  win  66.7%  avg +0.94R  total   +8.4R  maxDD  1.1R   halves -0.03 / +1.71
+    COMEX 1H   n=8    fail  37.5%  win  62.5%  avg +0.98R  total   +7.8R  maxDD  1.1R   halves -0.04 / +1.99
+    OANDA 15m  n=4    fail  75.0%  win  25.0%  avg -0.27R  total   -1.1R  maxDD  3.1R   halves -1.02 / +0.48
+    OANDA 5m   n=4    fail  50.0%  win  50.0%  avg +0.46R  total   +1.8R  maxDD  1.0R   halves +0.47 / +0.45
+  filter VOL
+    OANDA 1H   n=31   fail  48.4%  win  41.9%  avg +0.04R  total   +1.4R  maxDD  1.5R   halves -0.08 / +0.17
+    COMEX 1H   n=41   fail  51.2%  win  36.6%  avg +0.02R  total   +0.8R  maxDD  3.4R   halves -0.05 / +0.09
+    OANDA 15m  n=49   fail  53.1%  win  46.9%  avg +0.21R  total  +10.1R  maxDD  4.9R   halves +0.36 / +0.06
+    OANDA 5m   n=57   fail  68.4%  win  31.6%  avg -0.07R  total   -4.0R  maxDD  6.6R   halves -0.01 / -0.13
+
+######## exit 2R+BE
+  filter none
+    OANDA 1H   n=103  fail  50.5%  win  38.8%  avg +0.09R  total   +9.4R  maxDD  4.5R   halves +0.00 / +0.18
+    COMEX 1H   n=110  fail  52.7%  win  34.5%  avg +0.03R  total   +2.9R  maxDD  7.9R   halves -0.08 / +0.13
+    OANDA 15m  n=107  fail  54.2%  win  30.8%  avg +0.00R  total   +0.0R  maxDD 12.9R   halves +0.14 / -0.14
+    OANDA 5m   n=148  fail  45.3%  win  27.0%  avg +0.07R  total   +9.9R  maxDD 10.8R   halves +0.02 / +0.11
+  filter A
+    OANDA 1H   n=45   fail  40.0%  win  42.2%  avg +0.23R  total  +10.4R  maxDD  3.2R   halves +0.36 / +0.10
+    COMEX 1H   n=53   fail  43.4%  win  39.6%  avg +0.13R  total   +6.9R  maxDD  4.2R   halves +0.24 / +0.02
+    OANDA 15m  n=17   fail  47.1%  win  41.2%  avg +0.12R  total   +2.1R  maxDD  4.2R   halves +0.53 / -0.24
+    OANDA 5m   n=6    fail  50.0%  win  33.3%  avg -0.01R  total   -0.1R  maxDD  2.1R   halves +0.32 / -0.34
+  filter TREND
+    OANDA 1H   n=57   fail  49.1%  win  45.6%  avg +0.18R  total  +10.0R  maxDD  4.1R   halves +0.16 / +0.19
+    COMEX 1H   n=61   fail  45.9%  win  41.0%  avg +0.16R  total   +9.8R  maxDD  4.8R   halves +0.02 / +0.29
+    OANDA 15m  n=61   fail  57.4%  win  27.9%  avg -0.08R  total   -5.0R  maxDD 11.9R   halves +0.00 / -0.16
+    OANDA 5m   n=80   fail  46.2%  win  22.5%  avg -0.01R  total   -1.1R  maxDD  6.8R   halves -0.08 / +0.05
+  filter SESS
+    OANDA 1H   n=52   fail  55.8%  win  36.5%  avg -0.04R  total   -2.3R  maxDD  6.7R   halves -0.20 / +0.11
+    COMEX 1H   n=53   fail  56.6%  win  30.2%  avg -0.12R  total   -6.1R  maxDD  9.3R   halves -0.34 / +0.10
+    OANDA 15m  n=48   fail  64.6%  win  22.9%  avg -0.31R  total  -15.0R  maxDD 15.3R   halves -0.12 / -0.51
+    OANDA 5m   n=60   fail  53.3%  win  23.3%  avg -0.06R  total   -3.6R  maxDD 12.5R   halves -0.25 / +0.13
+  filter FAST
+    OANDA 1H   n=71   fail  42.3%  win  46.5%  avg +0.16R  total  +11.7R  maxDD  4.8R   halves +0.20 / +0.13
+    COMEX 1H   n=74   fail  45.9%  win  40.5%  avg +0.08R  total   +5.9R  maxDD  4.7R   halves +0.10 / +0.06
+    OANDA 15m  n=74   fail  54.1%  win  28.4%  avg -0.04R  total   -2.6R  maxDD  7.1R   halves -0.03 / -0.04
+    OANDA 5m   n=85   fail  50.6%  win  30.6%  avg +0.09R  total   +7.8R  maxDD  9.7R   halves -0.06 / +0.24
+  filter TIGHT
+    OANDA 1H   n=9    fail  33.3%  win  55.6%  avg +0.87R  total   +7.8R  maxDD  1.1R   halves -0.03 / +1.59
+    COMEX 1H   n=8    fail  37.5%  win  50.0%  avg +0.73R  total   +5.8R  maxDD  1.1R   halves -0.04 / +1.49
+    OANDA 15m  n=4    fail  50.0%  win   0.0%  avg -0.52R  total   -2.1R  maxDD  2.1R   halves -1.02 / -0.02
+    OANDA 5m   n=4    fail  25.0%  win  50.0%  avg +0.71R  total   +2.8R  maxDD  1.0R   halves +0.47 / +0.95
+  filter VOL
+    OANDA 1H   n=31   fail  48.4%  win  41.9%  avg +0.04R  total   +1.4R  maxDD  1.5R   halves -0.08 / +0.17
+    COMEX 1H   n=41   fail  51.2%  win  36.6%  avg +0.02R  total   +0.8R  maxDD  3.4R   halves -0.05 / +0.09
+    OANDA 15m  n=49   fail  44.9%  win  42.9%  avg +0.21R  total  +10.2R  maxDD  4.1R   halves +0.37 / +0.05
+    OANDA 5m   n=57   fail  43.9%  win  24.6%  avg +0.06R  total   +3.7R  maxDD  5.4R   halves +0.06 / +0.07

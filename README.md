@@ -123,3 +123,17 @@ Backtest (`python3 backtest/liquidity_sweep_backtest.py`, results in `backtest/l
   5m -0.02R (4 weeks only).
 - Grade A: +0.60R (OANDA, 18 trades) and +0.48R (COMEX, 21 trades), beating random levels.
 - The MSS rule also profits after sweeps of random levels, so most of the edge comes from the MSS.
+
+### Liquidity Sweeps v2: quality tiers, break-even and failure rates
+
+`python3 backtest/sweep_filters_backtest.py` → `backtest/sweep_filters_results.txt`. Data now runs to 2026-10-14.
+Oct 1–14 was not used to design anything, so it serves as an out-of-sample check.
+
+- **Tiers:**
+  - **A+** = PDH/PDL/PWH/PWL sweep + MSS within 6 candles.
+  - **A** = PDH/PDL/PWH/PWL sweep with a slower MSS.
+  - **B** = swing or Asia sweep.
+- **A+ on 1H (to Sep 30):** 30% failures (OANDA, 30 trades) and 35% (COMEX, 34 trades), vs about 50% for all signals.
+- **A+ in Oct 1–14:** 50% and 60% failures (6 and 5 trades). The low failure rate is not guaranteed.
+- **Break-even at +1R:** losses fall to the same level as a 1R target, while the 2R upside stays.
+- **Rejected filters:** London/NY session only (more failures), 200 EMA trend (mixed), sweep volume (helps on 5m/15m only).
