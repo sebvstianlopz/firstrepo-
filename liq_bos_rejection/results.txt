@@ -1,0 +1,33 @@
+
+===== OANDA 5m
+  DEFAULT (bias on, volume >= 1.8x) : n=5    fail  80.0%  avg -0.48R  total   -2.4R   fail 1st/2nd half  50% / 100%
+     BOS level                      : n=1    fail   0.0%  avg +1.88R  total   +1.9R   fail 1st/2nd half nan% /   0%
+     BOS origin                     : n=2    fail 100.0%  avg -1.06R  total   -2.1R   fail 1st/2nd half 100% / 100%
+     Sweep                          : n=2    fail 100.0%  avg -1.07R  total   -2.1R   fail 1st/2nd half 100% / 100%
+  bias filter OFF                    : n=5    fail  80.0%  avg -0.48R  total   -2.4R   fail 1st/2nd half  50% / 100%
+  volume >= 1.5x                     : n=10   fail  80.0%  avg -0.48R  total   -4.8R   fail 1st/2nd half  60% / 100%
+  volume >= 2.5x                     : n=2    fail  50.0%  avg +0.41R  total   +0.8R   fail 1st/2nd half   0% / 100%
+  volume filter OFF                  : n=32   fail  81.2%  avg -0.52R  total  -16.6R   fail 1st/2nd half  75% /  88%
+  COMPARISON: same candle, NO zone   : n=60   fail  66.7%  avg -0.07R  total   -4.1R   fail 1st/2nd half  57% /  77%
+
+===== COMEX 5m
+  DEFAULT (bias on, volume >= 1.8x) : n=8    fail  75.0%  avg -0.32R  total   -2.6R   fail 1st/2nd half  75% /  75%
+     BOS level                      : n=2    fail  50.0%  avg +0.42R  total   +0.8R   fail 1st/2nd half   0% / 100%
+     BOS origin                     : n=2    fail  50.0%  avg +0.43R  total   +0.9R   fail 1st/2nd half   0% / 100%
+     Sweep                          : n=4    fail 100.0%  avg -1.07R  total   -4.3R   fail 1st/2nd half 100% / 100%
+  bias filter OFF                    : n=9    fail  77.8%  avg -0.40R  total   -3.6R   fail 1st/2nd half  75% /  80%
+  volume >= 1.5x                     : n=12   fail  75.0%  avg -0.32R  total   -3.8R   fail 1st/2nd half  67% /  83%
+  volume >= 2.5x                     : n=3    fail 100.0%  avg -1.06R  total   -3.2R   fail 1st/2nd half 100% / 100%
+  volume filter OFF                  : n=35   fail  80.0%  avg -0.49R  total  -17.0R   fail 1st/2nd half  82% /  78%
+  COMPARISON: same candle, NO zone   : n=79   fail  68.4%  avg -0.11R  total   -8.8R   fail 1st/2nd half  62% /  75%
+
+===== OANDA 15m
+  DEFAULT (bias on, volume >= 1.8x) : n=15   fail  80.0%  avg -0.49R  total   -7.4R   fail 1st/2nd half  71% /  88%
+     BOS level                      : n=5    fail  80.0%  avg -0.43R  total   -2.1R   fail 1st/2nd half 100% /  67%
+     BOS origin                     : n=7    fail  71.4%  avg -0.30R  total   -2.1R   fail 1st/2nd half  67% /  75%
+     Sweep                          : n=3    fail 100.0%  avg -1.03R  total   -3.1R   fail 1st/2nd half 100% / 100%
+  bias filter OFF                    : n=17   fail  70.6%  avg -0.28R  total   -4.7R   fail 1st/2nd half  50% /  89%
+  volume >= 1.5x                     : n=22   fail  77.3%  avg -0.39R  total   -8.6R   fail 1st/2nd half  82% /  73%
+  volume >= 2.5x                     : n=7    fail  85.7%  avg -0.74R  total   -5.1R   fail 1st/2nd half 100% /  75%
+  volume filter OFF                  : n=59   fail  67.8%  avg -0.08R  total   -5.0R   fail 1st/2nd half  79% /  57%
+  COMPARISON: same candle, NO zone   : n=95   fail  68.4%  avg -0.15R  total  -14.7R   fail 1st/2nd half  62% /  75%
