@@ -1,0 +1,26 @@
+Development = first 60% of OANDA 5m (12 trading days). 384 settings tested, 6 give >= 3 signals/day.
+Top 10 on development data:
+   n=37    3.1/day  fail  45.9%  avg +0.00R  total   +0.2R {'piv': 2, 'use_sr': True, 'vol': 1.0, 'wick': 0.35, 'close_rule': 'half', 'use_bias': True, 'use_vwap': False, 'rr': 1.0}
+   n=37    3.1/day  fail  56.8%  avg +0.00R  total   +0.2R {'piv': 2, 'use_sr': True, 'vol': 1.0, 'wick': 0.35, 'close_rule': 'half', 'use_bias': True, 'use_vwap': False, 'rr': 1.5}
+   n=46    3.8/day  fail  47.8%  avg -0.03R  total   -1.4R {'piv': 3, 'use_sr': True, 'vol': 1.0, 'wick': 0.35, 'close_rule': 'half', 'use_bias': False, 'use_vwap': False, 'rr': 1.0}
+   n=46    3.8/day  fail  60.9%  avg -0.09R  total   -4.4R {'piv': 3, 'use_sr': True, 'vol': 1.0, 'wick': 0.35, 'close_rule': 'half', 'use_bias': False, 'use_vwap': False, 'rr': 1.5}
+   n=54    4.5/day  fail  53.7%  avg -0.15R  total   -8.2R {'piv': 2, 'use_sr': True, 'vol': 1.0, 'wick': 0.35, 'close_rule': 'half', 'use_bias': False, 'use_vwap': False, 'rr': 1.0}
+   n=54    4.5/day  fail  63.0%  avg -0.15R  total   -8.2R {'piv': 2, 'use_sr': True, 'vol': 1.0, 'wick': 0.35, 'close_rule': 'half', 'use_bias': False, 'use_vwap': False, 'rr': 1.5}
+
+CHOSEN: {'piv': 2, 'use_sr': True, 'vol': 1.0, 'wick': 0.35, 'close_rule': 'half', 'use_bias': True, 'use_vwap': False, 'rr': 1.0}
+
+Unchanged on data NOT used for the choice:
+  OANDA 5m last 40%   n=25    3.1/day  fail  56.0%  avg -0.20R  total   -5.1R
+  COMEX 5m            n=63    3.3/day  fail  44.4%  avg +0.04R  total   +2.4R
+  OANDA 15m           n=115   2.1/day  fail  62.6%  avg -0.27R  total  -31.6R
+
+Trigger variants (chosen zone/candle settings unchanged, all data):
+  entry=close    stop=wick  | OANDA 5m: n=62 3.3/d fail 50% avg -0.08R | COMEX 5m: n=63 3.3/d fail 44% avg +0.04R | OANDA 15m: n=115 2.1/d fail 63% avg -0.27R
+  entry=confirm  stop=wick  | OANDA 5m: n=35 1.8/d fail 49% avg -0.03R | COMEX 5m: n=38 2.0/d fail 37% avg +0.22R | OANDA 15m: n=53 1.0/d fail 49% avg -0.00R
+  entry=close    stop=zone  | OANDA 5m: n=62 3.3/d fail 53% avg -0.11R | COMEX 5m: n=63 3.3/d fail 46% avg +0.04R | OANDA 15m: n=115 2.1/d fail 58% avg -0.20R
+  entry=confirm  stop=zone  | OANDA 5m: n=36 1.9/d fail 44% avg +0.00R | COMEX 5m: n=39 2.1/d fail 38% avg +0.17R | OANDA 15m: n=57 1.0/d fail 47% avg +0.02R
+
+Same candle rules and filters but NO zone required (does the zone add anything?):
+  OANDA 5m            n=218  11.5/day  fail  51.8%  avg -0.12R  total  -26.1R
+  COMEX 5m            n=188   9.9/day  fail  52.7%  avg -0.13R  total  -24.4R
+  OANDA 15m           n=234   4.3/day  fail  54.7%  avg -0.12R  total  -29.1R

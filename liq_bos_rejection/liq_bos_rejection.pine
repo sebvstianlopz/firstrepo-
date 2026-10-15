@@ -1,71 +1,78 @@
 //@version=6
-indicator("1H Sweep/BOS + 5m Volume Rejection", shorttitle = "SwpBOS", overlay = true, max_boxes_count = 300, max_lines_count = 300, max_labels_count = 500)
+indicator("Gold Scalper: 1H Structure + 5m Rejection v2", shorttitle = "GoldScalp", overlay = true, max_boxes_count = 400, max_lines_count = 400, max_labels_count = 500)
 
 // =====================================================================================
-// STEP 1 - 1H STRUCTURE (closed 1H candles only, no repainting)
-//   Swing high / low = 1H pivot (length below).
-//   BOS   : a 1H candle CLOSES beyond the last swing high (bullish) or swing low (bearish).
-//   SWEEP : a 1H candle wicks beyond the last swing high / low but CLOSES back inside.
-//   Bias  : the direction of the latest 1H event (bullish BOS or sweep of a low = bullish).
+// GOLD SCALPER v2 - built for intraday XAUUSD scalping on the 5m chart
 //
-// STEP 2 - ZONES created by every 1H event (shown as boxes, live for "Zone life" hours)
-//   BOS level  : the broken swing level -> retest area (support after a bullish BOS, resistance after bearish)
-//   BOS origin : the last opposite 1H candle before the break (demand / supply where the move started)
-//   Sweep      : the wick area of the sweep candle
-//   A zone is removed when price closes clearly through it, when its life ends, or after it gives a signal.
+// 1H STRUCTURE (closed 1H candles only, no repainting)
+//   Swing highs / lows (pivot), BOS = 1H close beyond the last swing, SWEEP = wick beyond it + close back inside.
+//   1H bias = direction of the latest BOS / sweep.
 //
-// STEP 3 - 5m REJECTION SIGNAL
-//   BUY  (at a bullish zone): the candle trades into the zone, CLOSES back above it, has a long lower wick,
-//                             and its volume is well above average.
-//   SELL (at a bearish zone): mirror image.
-//   With "Only trade with 1H bias" on, BUY needs a bullish 1H bias and SELL a bearish one.
+// ZONES (boxes)
+//   Swing S/R  : every 1H swing low (support) and swing high (resistance)
+//   BOS level  : the broken swing level, waiting for a retest
+//   BOS origin : the last opposite 1H candle before the break (demand / supply)
+//   Sweep      : the wick area of a 1H sweep
+//   Each zone lives 48 h, can be used up to 3 times, and is removed when price closes clearly through it.
 //
-// Results table: every signal is followed as a trade (stop beyond the rejection wick, target R:R)
-// so you can see on your own chart how often the signals worked.
-// Backtest on fresh data (OANDA & COMEX 5m Sep 21 - Oct 15 2026, OANDA 15m Jul 31 - Oct 15):
-// default rules gave only 5-15 signals per sample and 75-80% of them lost - not a proven edge.
+// 5m SIGNAL IN TWO STEPS
+//   1. SETUP (small diamond): a candle wicks into a zone, closes back past the zone middle in the rejection
+//      direction, has above-average volume and a rejection wick of 35 %+ of its range. Only in the 1H bias direction.
+//   2. BUY / SELL label: within the next 3 candles a candle CLOSES beyond the setup candle's high (BUY)
+//      or low (SELL). If price hits the stop first, the setup is cancelled.
+//   Entry = that close. Stop = beyond the zone or the rejection wick (whichever is further) + 0.2 x ATR.
+//   Target = 1R by default (scalp). Trades still open after 2 hours are closed at market in the results table.
+//
+// BACKTEST (fresh OANDA & COMEX 5m Sep 21 - Oct 15 2026, OANDA 15m Jul 31 - Oct 15; 0.30 $ spread, 1R target)
+//   OANDA 5m : 36 signals, 1.9 per day, 44 % failed, +0.00R per trade
+//   COMEX 5m : 39 signals, 2.1 per day, 38 % failed, +0.17R per trade
+//   OANDA 15m: 57 signals, 1.0 per day, 47 % failed, +0.02R per trade
+//   The same entry WITHOUT the zones did worse on all three (48-54 % failed, -0.03 to -0.08R).
+//   Break-even to slightly positive on 3-11 weeks of data - NOT a proven money maker. Use the results table
+//   on your own chart and paper-trade before risking money.
 // =====================================================================================
 
 // ---------------------------------------------------------------- inputs
-string GA = "1H structure"
-int   swingLen  = input.int(3, "Swing length (1H candles each side)", minval = 1, group = GA)
-bool  showEvt   = input.bool(true, "Show BOS / SWEEP labels", group = GA)
+string G1 = "1H structure & zones"
+int   swingLen  = input.int(2, "1H swing length", minval = 1, group = G1)
+bool  zSR       = input.bool(true, "Swing S/R zones", group = G1)
+bool  zBos      = input.bool(true, "BOS level zones", group = G1)
+bool  zOrig     = input.bool(true, "BOS origin zones", group = G1)
+bool  zSweep    = input.bool(true, "Sweep zones", group = G1)
+float lifeHrs   = input.float(48, "Zone life (hours)", minval = 1, group = G1)
+int   maxUses   = input.int(3, "Signals per zone", minval = 1, maxval = 10, group = G1)
+float killBuf   = input.float(0.25, "Remove zone on close beyond it by (x 1H ATR)", minval = 0, step = 0.05, group = G1)
+bool  showZones = input.bool(true, "Show zones", group = G1)
+bool  showEvt   = input.bool(true, "Show BOS / SWEEP labels", group = G1)
 
-string GB = "Zones"
-bool  zBosLvl   = input.bool(true, "BOS level zones", group = GB)
-bool  zOrigin   = input.bool(true, "BOS origin (demand / supply) zones", group = GB)
-bool  zSweep    = input.bool(true, "Sweep zones", group = GB)
-float lvlDepth  = input.float(0.35, "BOS level zone depth (x 1H ATR)", minval = 0.05, step = 0.05, group = GB)
-float maxOrigin = input.float(1.0, "Max origin zone height (x 1H ATR)", minval = 0.1, step = 0.1, group = GB)
-float lifeHrs   = input.float(24, "Zone life (hours)", minval = 1, group = GB)
-float killBuf   = input.float(0.25, "Remove zone when closing beyond it by (x 1H ATR)", minval = 0, step = 0.05, group = GB)
-bool  showZones = input.bool(true, "Show zones", group = GB)
+string G2 = "5m signal"
+float volMult   = input.float(1.0, "Setup volume >= x average", minval = 0.5, step = 0.1, group = G2)
+int   volLen    = input.int(20, "Volume average length", minval = 5, group = G2)
+float wickPct   = input.float(35, "Rejection wick >= % of candle", minval = 10, maxval = 90, step = 5, group = G2)
+int   confBars  = input.int(3, "Candles allowed for confirmation", minval = 1, maxval = 10, group = G2)
+int   coolBars  = input.int(6, "Candles between setups on the same zone", minval = 1, group = G2)
+bool  useBias   = input.bool(true, "Only trade with 1H bias", group = G2)
+bool  allowBuy  = input.bool(true, "BUY", group = G2, inline = "d")
+bool  allowSell = input.bool(true, "SELL", group = G2, inline = "d")
+bool  showSetup = input.bool(true, "Show setup diamonds", group = G2)
 
-string GC = "5m rejection"
-float volMult   = input.float(1.8, "Volume >= x average", minval = 1.0, step = 0.1, group = GC)
-int   volLen    = input.int(20, "Volume average length", minval = 5, group = GC)
-float wickPct   = input.float(50, "Rejection wick >= % of candle", minval = 10, maxval = 90, step = 5, group = GC)
-bool  useBias   = input.bool(true, "Only trade with 1H bias", group = GC)
-bool  allowBuy  = input.bool(true, "BUY signals", group = GC, inline = "s")
-bool  allowSell = input.bool(true, "SELL signals", group = GC, inline = "s")
+string G3 = "Scalp trade & results"
+float rr        = input.float(1.0, "Target (R:R)", minval = 0.5, step = 0.25, group = G3)
+float stopBuf   = input.float(0.2, "Stop buffer (x ATR)", minval = 0, step = 0.05, group = G3)
+float maxHold   = input.float(2, "Close trade after (hours)", minval = 0.25, step = 0.25, group = G3)
+float spreadUsd = input.float(0.30, "Spread / cost ($)", minval = 0, step = 0.05, group = G3)
+bool  showSLTP  = input.bool(true, "Show stop / target lines", group = G3)
+bool  showTbl   = input.bool(true, "Show results table", group = G3)
 
-string GD = "Trade lines & results"
-bool  showSLTP  = input.bool(true, "Show stop / target lines", group = GD)
-float rr        = input.float(2.0, "Target (R:R)", minval = 0.5, step = 0.5, group = GD)
-float stopBuf   = input.float(0.2, "Stop beyond wick (x ATR)", minval = 0, step = 0.05, group = GD)
-float maxHold   = input.float(8, "Count trade as closed after (hours)", minval = 1, group = GD)
-float spreadUsd = input.float(0.30, "Spread / cost ($)", minval = 0, step = 0.05, group = GD)
-bool  showTbl   = input.bool(true, "Show results table", group = GD)
+color cBull = input.color(color.new(#26a69a, 80), "Bullish zone", group = "Colours", inline = "c")
+color cBear = input.color(color.new(#ef5350, 80), "Bearish zone", group = "Colours", inline = "c")
 
-color cBull = input.color(color.new(#26a69a, 75), "Bullish zone", group = "Colours", inline = "c")
-color cBear = input.color(color.new(#ef5350, 75), "Bearish zone", group = "Colours", inline = "c")
-
-// ---------------------------------------------------------------- chart-timeframe values
+// ---------------------------------------------------------------- chart values
 int   secs      = timeframe.in_seconds()
 bool  okTf      = timeframe.isintraday and secs < 3600
 float perHour   = 3600.0 / secs
 int   lifeBars  = int(math.round(lifeHrs * perHour))
-int   holdBars  = int(math.round(maxHold * perHour))
+int   holdBars  = math.max(1, int(math.round(maxHold * perHour)))
 float atrC      = ta.atr(14)
 float avgVol    = ta.sma(volume, volLen)[1]
 bool  closedBar = barstate.isconfirmed
@@ -81,17 +88,27 @@ hourData() =>
 [hO, hH, hL, hC, hAtr, hT, hPH, hPL, hPHt, hPLt] = request.security(syminfo.tickerid, "60", hourData(), lookahead = barmerge.lookahead_on)
 bool hourClosed = not na(hT) and hT != nz(hT[1])
 
-// ---------------------------------------------------------------- state
+// ---------------------------------------------------------------- types & state
 type Zone
     float top
     float bot
-    int   dir        // 1 bullish (look for BUY), -1 bearish (look for SELL)
-    int   kind       // 0 BOS level, 1 BOS origin, 2 Sweep
+    int   dir         // 1 bullish (BUY), -1 bearish (SELL)
+    int   kind        // 0 Swing S/R, 1 BOS level, 2 BOS origin, 3 Sweep
     float atr1
     int   start
+    int   uses = 0
+    int   last = -100000
     box   bx
 
-type Pos
+type Setup
+    int   dir
+    int   kind
+    float hi
+    float lo
+    float stop
+    int   bar
+
+type Trade
     int   dir
     int   kind
     float entry
@@ -101,9 +118,10 @@ type Pos
     line  ls
     line  lt
 
-var array<Zone> zones = array.new<Zone>()
-var array<Pos>  open_ = array.new<Pos>()
-var array<float> hOpen  = array.new<float>()   // last 1H candles (for the BOS origin)
+var array<Zone>  zones  = array.new<Zone>()
+var array<Setup> setups = array.new<Setup>()
+var array<Trade> trades = array.new<Trade>()
+var array<float> hOpen  = array.new<float>()
 var array<float> hHigh  = array.new<float>()
 var array<float> hLow   = array.new<float>()
 var array<float> hClose = array.new<float>()
@@ -112,30 +130,30 @@ var int   swingHiT = na
 var float swingLo  = na
 var int   swingLoT = na
 var int   bias     = 0
+var int   firstDay = na
 
-// results: 0 all, 1 BOS level, 2 BOS origin, 3 Sweep
-var array<int>   resN = array.new_int(4, 0)
-var array<int>   resF = array.new_int(4, 0)
-var array<float> resR = array.new_float(4, 0.0)
+// results: 0 all, 1 Swing S/R, 2 BOS level, 3 BOS origin, 4 Sweep
+var array<int>   resN = array.new_int(5, 0)
+var array<int>   resF = array.new_int(5, 0)
+var array<float> resR = array.new_float(5, 0.0)
 
 kindText(int k) =>
-    k == 0 ? "BOS level" : k == 1 ? "BOS origin" : "Sweep"
+    k == 0 ? "Swing S/R" : k == 1 ? "BOS level" : k == 2 ? "BOS origin" : "Sweep"
 
-makeZone(float top, float bot, int dir, int kind, float a, int leftTime) =>
+newZone(float top, float bot, int dir, int kind, float a, int leftTime) =>
     box b = na
     if showZones
         b := box.new(leftTime, top, time, bot, xloc = xloc.bar_time, extend = extend.right,
-             bgcolor = dir == 1 ? cBull : cBear, border_color = dir == 1 ? color.new(cBull, 30) : color.new(cBear, 30),
-             text = kindText(kind), text_size = size.tiny, text_color = dir == 1 ? color.new(cBull, 0) : color.new(cBear, 0),
+             bgcolor = dir == 1 ? cBull : cBear, border_color = dir == 1 ? color.new(cBull, 40) : color.new(cBear, 40),
+             text = kindText(kind), text_size = size.tiny, text_color = dir == 1 ? color.new(cBull, 10) : color.new(cBear, 10),
              text_halign = text.align_right, text_valign = text.align_top)
-    zones.push(Zone.new(top, bot, dir, kind, a, bar_index, b))
+    zones.push(Zone.new(top, bot, dir, kind, a, bar_index, bx = b))
     top
 
-// ---------------------------------------------------------------- 1) 1H events (once per closed 1H candle)
+// ---------------------------------------------------------------- 1) 1H structure events
 int evtBull = 0
 int evtBear = 0
 if closedBar and okTf and hourClosed and not na(hAtr)
-    // remember the closed 1H candle
     hOpen.push(hO)
     hHigh.push(hH)
     hLow.push(hL)
@@ -145,135 +163,169 @@ if closedBar and okTf and hourClosed and not na(hAtr)
         hHigh.shift()
         hLow.shift()
         hClose.shift()
-    // new swing points confirmed on this 1H candle
     if not na(hPH)
         swingHi  := hPH
         swingHiT := hPHt
+        if zSR
+            newZone(hPH + 0.15 * hAtr, hPH - 0.15 * hAtr, -1, 0, hAtr, hPHt)
     if not na(hPL)
         swingLo  := hPL
         swingLoT := hPLt
+        if zSR
+            newZone(hPL + 0.15 * hAtr, hPL - 0.15 * hAtr, 1, 0, hAtr, hPLt)
     int n = hOpen.size()
-    // swing high: bullish BOS or bearish sweep
     if not na(swingHi)
         if hC > swingHi
             evtBull := 1
             bias := 1
-            if zBosLvl
-                makeZone(swingHi, swingHi - lvlDepth * hAtr, 1, 0, hAtr, hT)
-            if zOrigin and n >= 2
+            if zBos
+                newZone(swingHi, swingHi - 0.35 * hAtr, 1, 1, hAtr, hT)
+            if zOrig and n >= 2
                 for k = n - 2 to math.max(0, n - 11)
                     if hClose.get(k) < hOpen.get(k)
                         float top = hOpen.get(k)
-                        makeZone(top, math.max(hLow.get(k), top - maxOrigin * hAtr), 1, 1, hAtr, hT)
+                        newZone(top, math.max(hLow.get(k), top - hAtr), 1, 2, hAtr, hT)
                         break
             if showEvt
                 line.new(swingHiT, swingHi, hT, swingHi, xloc = xloc.bar_time, color = color.new(#26a69a, 0), style = line.style_dashed)
-                label.new(hT, swingHi, "BOS", xloc = xloc.bar_time, style = label.style_label_down, size = size.small, color = color.new(#26a69a, 0), textcolor = color.white)
+                label.new(hT, swingHi, "BOS", xloc = xloc.bar_time, style = label.style_label_down, size = size.tiny, color = color.new(#26a69a, 0), textcolor = color.white)
             swingHi := na
         else if hH > swingHi and hC < swingHi
             evtBear := 1
             bias := -1
             if zSweep
-                makeZone(hH, swingHi, -1, 2, hAtr, hT)
+                newZone(hH, swingHi, -1, 3, hAtr, hT)
             if showEvt
-                line.new(swingHiT, swingHi, hT, swingHi, xloc = xloc.bar_time, color = color.new(#ef5350, 0), style = line.style_dotted)
-                label.new(hT, hH, "SWEEP", xloc = xloc.bar_time, style = label.style_label_down, size = size.small, color = color.new(#ef5350, 0), textcolor = color.white)
+                label.new(hT, hH, "SWEEP", xloc = xloc.bar_time, style = label.style_label_down, size = size.tiny, color = color.new(#ef5350, 0), textcolor = color.white)
             swingHi := na
-    // swing low: bearish BOS or bullish sweep
     if not na(swingLo)
         if hC < swingLo
             evtBear := 1
             bias := -1
-            if zBosLvl
-                makeZone(swingLo + lvlDepth * hAtr, swingLo, -1, 0, hAtr, hT)
-            if zOrigin and n >= 2
+            if zBos
+                newZone(swingLo + 0.35 * hAtr, swingLo, -1, 1, hAtr, hT)
+            if zOrig and n >= 2
                 for k = n - 2 to math.max(0, n - 11)
                     if hClose.get(k) > hOpen.get(k)
                         float bot = hOpen.get(k)
-                        makeZone(math.min(hHigh.get(k), bot + maxOrigin * hAtr), bot, -1, 1, hAtr, hT)
+                        newZone(math.min(hHigh.get(k), bot + hAtr), bot, -1, 2, hAtr, hT)
                         break
             if showEvt
                 line.new(swingLoT, swingLo, hT, swingLo, xloc = xloc.bar_time, color = color.new(#ef5350, 0), style = line.style_dashed)
-                label.new(hT, swingLo, "BOS", xloc = xloc.bar_time, style = label.style_label_up, size = size.small, color = color.new(#ef5350, 0), textcolor = color.white)
+                label.new(hT, swingLo, "BOS", xloc = xloc.bar_time, style = label.style_label_up, size = size.tiny, color = color.new(#ef5350, 0), textcolor = color.white)
             swingLo := na
         else if hL < swingLo and hC > swingLo
             evtBull := 1
             bias := 1
             if zSweep
-                makeZone(swingLo, hL, 1, 2, hAtr, hT)
+                newZone(swingLo, hL, 1, 3, hAtr, hT)
             if showEvt
-                line.new(swingLoT, swingLo, hT, swingLo, xloc = xloc.bar_time, color = color.new(#26a69a, 0), style = line.style_dotted)
-                label.new(hT, hL, "SWEEP", xloc = xloc.bar_time, style = label.style_label_up, size = size.small, color = color.new(#26a69a, 0), textcolor = color.white)
+                label.new(hT, hL, "SWEEP", xloc = xloc.bar_time, style = label.style_label_up, size = size.tiny, color = color.new(#26a69a, 0), textcolor = color.white)
             swingLo := na
 
-// ---------------------------------------------------------------- 2) follow open signals (results table)
+// ---------------------------------------------------------------- 2) manage open trades (results)
 if closedBar and okTf
-    int np = open_.size()
-    if np > 0
-        for i = np - 1 to 0
-            Pos p = open_.get(i)
-            if bar_index > p.bar
+    if na(firstDay)
+        firstDay := time
+    int nt = trades.size()
+    if nt > 0
+        for i = nt - 1 to 0
+            Trade tr = trades.get(i)
+            if bar_index > tr.bar
                 float res = na
-                if (p.dir == 1 and low <= p.stop) or (p.dir == -1 and high >= p.stop)
+                float risk = math.abs(tr.entry - tr.stop)
+                if (tr.dir == 1 and low <= tr.stop) or (tr.dir == -1 and high >= tr.stop)
                     res := -1.0
-                else if (p.dir == 1 and high >= p.target) or (p.dir == -1 and low <= p.target)
+                else if (tr.dir == 1 and high >= tr.target) or (tr.dir == -1 and low <= tr.target)
                     res := rr
-                else if bar_index - p.bar >= holdBars
-                    res := p.dir * (close - p.entry) / math.abs(p.entry - p.stop)
-                if not na(p.ls)
-                    p.ls.set_x2(bar_index)
-                    p.lt.set_x2(bar_index)
+                else if bar_index - tr.bar >= holdBars
+                    res := tr.dir * (close - tr.entry) / risk
+                if not na(tr.ls)
+                    tr.ls.set_x2(bar_index)
+                    tr.lt.set_x2(bar_index)
                 if not na(res)
-                    float net = res - spreadUsd / math.abs(p.entry - p.stop)
-                    for idx in array.from(0, p.kind + 1)
+                    float net = res - spreadUsd / risk
+                    for idx in array.from(0, tr.kind + 1)
                         resN.set(idx, resN.get(idx) + 1)
                         resF.set(idx, resF.get(idx) + (net < 0 ? 1 : 0))
                         resR.set(idx, resR.get(idx) + net)
-                    open_.remove(i)
+                    trades.remove(i)
 
-// ---------------------------------------------------------------- 3) 5m rejection of the zones
+// ---------------------------------------------------------------- 3) confirmations of earlier setups -> BUY / SELL
 int buyNow  = 0
 int sellNow = 0
 if closedBar and okTf
-    float rng      = high - low
-    bool  bigVol   = not na(avgVol) and avgVol > 0 and volume >= volMult * avgVol
-    bool  longLow  = rng > 0 and (math.min(open, close) - low) >= wickPct / 100 * rng
-    bool  longHigh = rng > 0 and (high - math.max(open, close)) >= wickPct / 100 * rng
+    int ns = setups.size()
+    if ns > 0
+        for i = ns - 1 to 0
+            Setup s = setups.get(i)
+            if bar_index > s.bar
+                bool gone = false
+                if (s.dir == 1 and low <= s.stop) or (s.dir == -1 and high >= s.stop)
+                    gone := true
+                else if (s.dir == 1 and close > s.hi) or (s.dir == -1 and close < s.lo)
+                    gone := true
+                    float risk = math.abs(close - s.stop)
+                    if risk > 0
+                        float tgt = close + s.dir * rr * risk
+                        line l1 = na
+                        line l2 = na
+                        if showSLTP
+                            l1 := line.new(bar_index, s.stop, bar_index + 1, s.stop, color = color.new(#ff5252, 0), style = line.style_dashed)
+                            l2 := line.new(bar_index, tgt, bar_index + 1, tgt, color = color.new(#00e676, 0), style = line.style_dashed)
+                        trades.push(Trade.new(s.dir, s.kind, close, s.stop, tgt, bar_index, l1, l2))
+                        bool first = s.dir == 1 ? buyNow == 0 : sellNow == 0
+                        if first
+                            label.new(bar_index, s.dir == 1 ? low : high, s.dir == 1 ? "BUY" : "SELL",
+                                 style = s.dir == 1 ? label.style_label_up : label.style_label_down, size = size.normal,
+                                 color = s.dir == 1 ? color.new(#00c853, 0) : color.new(#d50000, 0), textcolor = color.white,
+                                 tooltip = "Confirmed rejection of 1H " + kindText(s.kind) + " zone\nEntry " + str.tostring(close, format.mintick) + "\nStop " + str.tostring(s.stop, format.mintick) + "\nTarget " + str.tostring(tgt, format.mintick))
+                            alert("XAUUSD " + (s.dir == 1 ? "BUY" : "SELL") + " | 1H " + kindText(s.kind) + " zone rejected on 5m | entry " +
+                                 str.tostring(close, format.mintick) + " | stop " + str.tostring(s.stop, format.mintick) + " | target " + str.tostring(tgt, format.mintick),
+                                 alert.freq_once_per_bar_close)
+                        buyNow  += s.dir == 1 ? 1 : 0
+                        sellNow += s.dir == -1 ? 1 : 0
+                else if bar_index - s.bar >= confBars
+                    gone := true
+                if gone
+                    setups.remove(i)
+
+// ---------------------------------------------------------------- 4) new setups: 5m rejection of a zone
+int setupBuy  = 0
+int setupSell = 0
+if closedBar and okTf
+    float rng    = high - low
+    bool  volOk  = not na(avgVol) and avgVol > 0 and volume >= volMult * avgVol
+    float lowW   = rng > 0 ? (math.min(open, close) - low) / rng : 0.0
+    float highW  = rng > 0 ? (high - math.max(open, close)) / rng : 0.0
     int nz_ = zones.size()
     if nz_ > 0
         for i = nz_ - 1 to 0
             Zone z = zones.get(i)
             bool drop = false
-            if bar_index - z.start > lifeBars
+            if bar_index - z.start > lifeBars or z.uses >= maxUses
                 drop := true
             else if (z.dir == 1 and close < z.bot - killBuf * z.atr1) or (z.dir == -1 and close > z.top + killBuf * z.atr1)
                 drop := true
-            else
-                bool biasOk = not useBias or z.dir == bias
-                bool buyRej  = z.dir == 1 and allowBuy and buyNow == 0 and low <= z.top and close > z.top and longLow and bigVol
-                bool sellRej = z.dir == -1 and allowSell and sellNow == 0 and high >= z.bot and close < z.bot and longHigh and bigVol
-                if biasOk and (buyRej or sellRej)
-                    int   d    = buyRej ? 1 : -1
-                    float stp  = d == 1 ? low - stopBuf * atrC : high + stopBuf * atrC
-                    float risk = math.abs(close - stp)
-                    float tgt  = close + d * rr * risk
-                    string vr  = str.tostring(volume / avgVol, "0.0") + "x volume"
-                    label.new(bar_index, d == 1 ? low : high, d == 1 ? "BUY" : "SELL",
-                         style = d == 1 ? label.style_label_up : label.style_label_down, size = size.normal,
-                         color = d == 1 ? color.new(#00c853, 0) : color.new(#d50000, 0), textcolor = color.white,
-                         tooltip = "Rejection of 1H " + kindText(z.kind) + " zone, " + vr + "\nEntry " + str.tostring(close, format.mintick) + "\nStop " + str.tostring(stp, format.mintick) + "\nTarget " + str.tostring(tgt, format.mintick))
-                    line l1 = na
-                    line l2 = na
-                    if showSLTP
-                        l1 := line.new(bar_index, stp, bar_index + 1, stp, color = color.new(#ff5252, 0), style = line.style_dashed)
-                        l2 := line.new(bar_index, tgt, bar_index + 1, tgt, color = color.new(#00e676, 0), style = line.style_dashed)
-                    open_.push(Pos.new(d, z.kind, close, stp, tgt, bar_index, l1, l2))
-                    alert("XAUUSD " + (d == 1 ? "BUY" : "SELL") + " | 5m rejection of 1H " + kindText(z.kind) + " zone (" + vr + ")" +
-                         " | entry " + str.tostring(close, format.mintick) + " | stop " + str.tostring(stp, format.mintick) +
-                         " | target " + str.tostring(tgt, format.mintick), alert.freq_once_per_bar_close)
-                    buyNow  += d == 1 ? 1 : 0
-                    sellNow += d == -1 ? 1 : 0
-                    drop := true
+            else if z.start < bar_index and bar_index - z.last >= coolBars and volOk and rng > 0
+                float mid  = (z.top + z.bot) / 2
+                bool  bOk  = not useBias or z.dir == bias
+                bool  buy  = z.dir == 1 and allowBuy and setupBuy == 0 and low <= z.top and close > mid and close > open and lowW >= wickPct / 100
+                bool  sell = z.dir == -1 and allowSell and setupSell == 0 and high >= z.bot and close < mid and close < open and highW >= wickPct / 100
+                if bOk and (buy or sell)
+                    int   d   = buy ? 1 : -1
+                    float stp = d == 1 ? math.min(low, z.bot) - stopBuf * atrC : math.max(high, z.top) + stopBuf * atrC
+                    setups.push(Setup.new(d, z.kind, high, low, stp, bar_index))
+                    z.uses += 1
+                    z.last := bar_index
+                    setupBuy  += d == 1 ? 1 : 0
+                    setupSell += d == -1 ? 1 : 0
+                    if showSetup
+                        label.new(bar_index, d == 1 ? low : high, "", style = label.style_diamond, size = size.tiny,
+                             color = d == 1 ? color.new(#00c853, 30) : color.new(#d50000, 30), yloc = d == 1 ? yloc.belowbar : yloc.abovebar,
+                             tooltip = "Setup: 5m rejection of 1H " + kindText(z.kind) + " zone (" + str.tostring(volume / avgVol, "0.0") + "x volume). Waiting for confirmation.")
+                    if z.uses >= maxUses
+                        drop := true
             if drop
                 if not na(z.bx)
                     z.bx.set_extend(extend.none)
@@ -281,34 +333,36 @@ if closedBar and okTf
                 zones.remove(i)
 
 // ---------------------------------------------------------------- alerts
-alertcondition(buyNow > 0, "BUY", "XAUUSD: BUY - 5m high-volume rejection of a 1H BOS / sweep zone")
-alertcondition(sellNow > 0, "SELL", "XAUUSD: SELL - 5m high-volume rejection of a 1H BOS / sweep zone")
-alertcondition(evtBull > 0, "1H bullish BOS / sweep", "XAUUSD: 1H bullish structure event (BOS up or sweep of a low)")
-alertcondition(evtBear > 0, "1H bearish BOS / sweep", "XAUUSD: 1H bearish structure event (BOS down or sweep of a high)")
+alertcondition(buyNow > 0, "BUY", "XAUUSD: BUY - confirmed 5m rejection of a 1H zone")
+alertcondition(sellNow > 0, "SELL", "XAUUSD: SELL - confirmed 5m rejection of a 1H zone")
+alertcondition(setupBuy > 0 or setupSell > 0, "Setup (heads-up)", "XAUUSD: 5m rejection setup at a 1H zone - waiting for confirmation")
+alertcondition(evtBull > 0 or evtBear > 0, "1H BOS / sweep", "XAUUSD: new 1H BOS or liquidity sweep")
 
 // ---------------------------------------------------------------- results table
-var table t = table.new(position.top_right, 5, 7, bgcolor = color.new(#131722, 10), border_color = color.new(#363a45, 0), border_width = 1)
+var table tb = table.new(position.top_right, 5, 8, bgcolor = color.new(#131722, 10), border_color = color.new(#363a45, 0), border_width = 1)
 if barstate.isfirst
-    t.merge_cells(0, 5, 4, 5)
-    t.merge_cells(0, 6, 4, 6)
+    tb.merge_cells(0, 6, 4, 6)
+    tb.merge_cells(0, 7, 4, 7)
 
 if showTbl and barstate.islast
     color fg  = color.new(#d1d4dc, 0)
     color dim = color.new(#9598a1, 0)
     color hd  = color.new(#2a2e39, 0)
-    array<string> cols = array.from("Signals from", "Trades", "Fail %", "Avg", "Total")
+    array<string> cols = array.from("Signals", "Trades", "Fail %", "Avg", "Total")
     for c = 0 to 4
-        t.cell(c, 0, cols.get(c), text_color = fg, text_size = size.small, bgcolor = hd)
-    array<string> rows = array.from("All zones", "BOS level", "BOS origin", "Sweep")
-    for r = 0 to 3
+        tb.cell(c, 0, cols.get(c), text_color = fg, text_size = size.small, bgcolor = hd)
+    array<string> rows = array.from("All", "Swing S/R", "BOS level", "BOS origin", "Sweep")
+    for r = 0 to 4
         int   n   = resN.get(r)
         float avg = n > 0 ? resR.get(r) / n : na
         color ac  = na(avg) ? fg : avg > 0 ? color.new(#00e676, 0) : color.new(#ff5252, 0)
-        t.cell(0, r + 1, rows.get(r), text_color = r == 0 ? fg : dim, text_size = size.small, text_halign = text.align_left)
-        t.cell(1, r + 1, str.tostring(n), text_color = fg, text_size = size.small)
-        t.cell(2, r + 1, n > 0 ? str.tostring(100.0 * resF.get(r) / n, "0") + "%" : "-", text_color = fg, text_size = size.small)
-        t.cell(3, r + 1, na(avg) ? "-" : (avg >= 0 ? "+" : "") + str.tostring(avg, "0.00") + "R", text_color = ac, text_size = size.small)
-        t.cell(4, r + 1, n > 0 ? (resR.get(r) >= 0 ? "+" : "") + str.tostring(resR.get(r), "0.0") + "R" : "-", text_color = ac, text_size = size.small)
-    string biasTxt = bias == 1 ? "1H bias: BULLISH" : bias == -1 ? "1H bias: BEARISH" : "1H bias: none yet"
-    t.cell(0, 5, biasTxt + "   |   live zones: " + str.tostring(zones.size()) + "   |   open: " + str.tostring(open_.size()), text_color = bias == 1 ? color.new(#26a69a, 0) : bias == -1 ? color.new(#ef5350, 0) : dim, text_size = size.small, text_halign = text.align_left)
-    t.cell(0, 6, okTf ? "Fail = losing trade. Stop beyond rejection wick, target " + str.tostring(rr, "0.0") + "R." : "Use a chart below 1H (built for 5m)", text_color = dim, text_size = size.tiny, text_halign = text.align_left)
+        tb.cell(0, r + 1, rows.get(r), text_color = r == 0 ? fg : dim, text_size = size.small, text_halign = text.align_left)
+        tb.cell(1, r + 1, str.tostring(n), text_color = fg, text_size = size.small)
+        tb.cell(2, r + 1, n > 0 ? str.tostring(100.0 * resF.get(r) / n, "0") + "%" : "-", text_color = fg, text_size = size.small)
+        tb.cell(3, r + 1, na(avg) ? "-" : (avg >= 0 ? "+" : "") + str.tostring(avg, "0.00") + "R", text_color = ac, text_size = size.small)
+        tb.cell(4, r + 1, n > 0 ? (resR.get(r) >= 0 ? "+" : "") + str.tostring(resR.get(r), "0.0") + "R" : "-", text_color = ac, text_size = size.small)
+    float days = na(firstDay) ? na : (time - firstDay) / 86400000.0 * 5.0 / 7.0
+    string perDay = na(days) or days <= 0 ? "-" : str.tostring(resN.get(0) / days, "0.0")
+    string bTxt = bias == 1 ? "BULLISH" : bias == -1 ? "BEARISH" : "none yet"
+    tb.cell(0, 6, "1H bias: " + bTxt + "  |  signals per day: " + perDay + "  |  open: " + str.tostring(trades.size()), text_color = bias == 1 ? color.new(#26a69a, 0) : bias == -1 ? color.new(#ef5350, 0) : dim, text_size = size.small, text_halign = text.align_left)
+    tb.cell(0, 7, okTf ? "Fail = losing trade. Target " + str.tostring(rr, "0.0#") + "R, closed after " + str.tostring(maxHold, "0.##") + " h." : "Use the 5m chart (any timeframe below 1H works)", text_color = dim, text_size = size.tiny, text_halign = text.align_left)
