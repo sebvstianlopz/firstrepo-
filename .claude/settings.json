@@ -6,7 +6,8 @@
     "animation-components@claude-design-skillstack": true,
     "extended-3d-scroll@claude-design-skillstack": true,
     "authoring-motion@claude-design-skillstack": true,
-    "meta-skills@claude-design-skillstack": true
+    "meta-skills@claude-design-skillstack": true,
+    "web-quality-skills@addy-web-quality-skills": true
   },
   "extraKnownMarketplaces": {
     "ui-ux-pro-max-skill": {
@@ -19,6 +20,12 @@
       "source": {
         "source": "github",
         "repo": "freshtechbro/claudedesignskills"
+      }
+    },
+    "addy-web-quality-skills": {
+      "source": {
+        "source": "github",
+        "repo": "addyosmani/web-quality-skills"
       }
     }
   }
