@@ -1,0 +1,10 @@
+# Catálogo fila 23.
+brand: Toyota
+model: "4Runner"
+color: blanco
+category: suv
+priceDay: 100
+seats: 5             # estimado según el modelo, por confirmar
+order: 23
+photos: [./1.jpg]
+photoPending: true    # reemplaza 1.jpg con la foto real y borra esta línea

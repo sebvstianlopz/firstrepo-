@@ -1,0 +1,71 @@
+---
+import Base from '../layouts/Base.astro';
+import Hero from '../components/home/Hero.astro';
+import Browse from '../components/home/Browse.astro';
+import Steps from '../components/home/Steps.astro';
+import Trust from '../components/home/Trust.astro';
+import Faq from '../components/home/Faq.astro';
+import Closing from '../components/home/Closing.astro';
+import VehicleCard from '../components/VehicleCard.astro';
+import { t, path } from '../i18n';
+import type { Lang } from '../config/site';
+import { getVehicles } from '../lib/vehicles';
+import { businessJsonLd } from '../lib/seo';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const d = t(lang);
+const vehicles = (await getVehicles()).filter((v) => v.data.available);
+const featured = vehicles.filter((v) => v.data.featured).slice(0, 6);
+const other: Lang = lang === 'es' ? 'en' : 'es';
+---
+<Base
+  lang={lang}
+  title={d.meta.homeTitle}
+  description={d.meta.homeDesc}
+  alternate={path(other, 'home')}
+  jsonLd={businessJsonLd(lang, Astro.site!, vehicles)}
+>
+  <Hero lang={lang} vehicles={vehicles} />
+  <Browse lang={lang} vehicles={vehicles} />
+
+  <section class="section" aria-labelledby="featured-title">
+    <div class="container">
+      <header class="row">
+        <h2 id="featured-title">{d.featured.title}</h2>
+        <a class="link" href={path(lang, 'catalog')}>{d.featured.all} ({vehicles.length})</a>
+      </header>
+      <div class="cards">
+        {featured.map((v) => <VehicleCard vehicle={v} lang={lang} />)}
+      </div>
+    </div>
+  </section>
+
+  <Steps lang={lang} />
+  <Trust lang={lang} />
+  <Faq lang={lang} />
+  <Closing lang={lang} />
+</Base>
+
+<style>
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px 32px;
+    margin-bottom: clamp(32px, 5vw, 56px);
+  }
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(28px, 4vw, 48px) clamp(16px, 2.5vw, 32px);
+  }
+  @media (max-width: 860px) {
+    .cards {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+</style>

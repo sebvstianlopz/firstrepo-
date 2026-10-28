@@ -1,0 +1,157 @@
+---
+import { Image } from 'astro:assets';
+import Icon from './Icon.astro';
+import { t, path, formatPrice } from '../i18n';
+import { site, type Lang } from '../config/site';
+import { nameParts, vehicleFullName, forRent, forSale, colorHex, type Vehicle } from '../lib/vehicles';
+
+interface Props {
+  vehicle: Vehicle;
+  lang: Lang;
+  eager?: boolean;
+  headingLevel?: 'h2' | 'h3';
+}
+const { vehicle: v, lang, eager = false, headingLevel: H = 'h3' } = Astro.props;
+const d = t(lang);
+const data = v.data;
+const both = data.mode === 'both';
+const { brand, model } = nameParts(v, lang);
+---
+<article class="card">
+  <a class="hit" href={path(lang, 'catalog', v.id)}>
+    <div class="media" style={`view-transition-name: vt-${v.id}`}>
+      <Image
+        src={data.photos[0]}
+        alt={vehicleFullName(v, lang)}
+        widths={[320, 480, 640]}
+        sizes="(max-width: 560px) calc(50vw - 24px), (max-width: 1100px) 31vw, 300px"
+        loading={eager ? 'eager' : 'lazy'}
+        fetchpriority={eager ? 'high' : 'auto'}
+      />
+    </div>
+    <H class="name">{brand && <span class="nw">{brand}</span>} {model}</H>
+  </a>
+  <ul class="specs" aria-label={d.vehicle.specs}>
+    <li>
+      <span class="swatch" style={`background:${colorHex[data.color]}`} aria-hidden="true"></span>
+      <span class="cap">{d.color[data.color]}</span>
+    </li>
+    <li><Icon name="seats" size={16} />{data.seats}<span class="visually-hidden"> {d.seats(data.seats)}</span></li>
+  </ul>
+  <dl class="prices">
+    {forRent(v) && data.priceDay && (
+      <div>
+        <dt class:list={{ 'visually-hidden': !both }}>{d.mode.rent}</dt>
+        <dd><span class="price">{formatPrice(data.priceDay, lang, site.currency)}</span><span class="unit">{d.perDay}</span></dd>
+      </div>
+    )}
+    {forSale(v) && data.priceSale && (
+      <div>
+        <dt class:list={{ 'visually-hidden': !both }}>{d.mode.sale}</dt>
+        <dd><span class="price">{formatPrice(data.priceSale, lang, site.currency)}</span></dd>
+      </div>
+    )}
+  </dl>
+</article>
+
+<style>
+  .card {
+    position: relative;
+    display: grid;
+    gap: 6px;
+    align-content: start;
+    min-width: 0;
+  }
+  .hit {
+    display: grid;
+    gap: 14px;
+    text-decoration: none;
+  }
+  /* The whole card is clickable through the title link. */
+  .hit::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+  }
+  .hit:focus-visible {
+    outline: none;
+  }
+  .hit:focus-visible::after {
+    outline: 2px solid var(--focus);
+    outline-offset: 6px;
+    border-radius: var(--r-img);
+  }
+  .media {
+    aspect-ratio: 4 / 5;
+    overflow: hidden;
+    border-radius: var(--r-img);
+    background: var(--sunk);
+  }
+  .media :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .name {
+    font-size: var(--step-0);
+    font-weight: 500;
+    font-stretch: 112%;
+    line-height: 1.3;
+  }
+  .nw {
+    white-space: nowrap;
+  }
+  .card:hover .name {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.25em;
+  }
+  .specs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+  .specs li {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .cap::first-letter {
+    text-transform: uppercase;
+  }
+  .swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 1px rgb(14 42 51 / 0.3);
+  }
+  .prices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 20px;
+    margin: 2px 0 0;
+  }
+  .prices div {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .prices dt {
+    font-size: var(--step--1);
+    color: var(--muted);
+  }
+  .prices dd {
+    margin: 0;
+  }
+  .unit {
+    margin-left: 2px;
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+</style>

@@ -1,0 +1,10 @@
+# Catálogo fila 28.
+brand: Chevrolet
+model: Tahoe
+color: negro
+category: suv
+priceDay: 290
+seats: 7             # estimado según el modelo, por confirmar
+order: 28
+photos: [./1.jpg]
+photoPending: true    # reemplaza 1.jpg con la foto real y borra esta línea

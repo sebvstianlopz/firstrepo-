@@ -1,0 +1,27 @@
+---
+import Base from '../layouts/Base.astro';
+import { t, path } from '../i18n';
+import type { Lang } from '../config/site';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const d = t(lang);
+---
+<Base lang={lang} title={`${d.notFound.title} | Los Eternos`} description={d.notFound.text} alternate={path(lang === 'es' ? 'en' : 'es', 'home')} noindex>
+  <div class="container page">
+    <h1>{d.notFound.title}</h1>
+    <p class="lede">{d.notFound.text}</p>
+    <a class="btn btn-primary" href={path(lang, 'catalog')}>{d.notFound.cta}</a>
+  </div>
+</Base>
+
+<style>
+  .page {
+    display: grid;
+    justify-items: start;
+    gap: 24px;
+    padding-block: clamp(80px, 14vw, 180px);
+  }
+</style>

@@ -1,0 +1,10 @@
+# Catálogo fila 15.
+brand: Jeep
+model: Wrangler
+color: gris
+category: todoterreno
+priceDay: 120
+seats: 5             # estimado según el modelo, por confirmar
+order: 15
+photos: [./1.jpg]
+photoPending: true    # reemplaza 1.jpg con la foto real y borra esta línea

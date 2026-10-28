@@ -1,0 +1,10 @@
+# Catálogo fila 14.
+brand: Dodge
+model: Durango
+color: negro
+category: suv
+priceDay: 120
+seats: 7             # estimado según el modelo, por confirmar
+order: 14
+photos: [./1.jpg]
+photoPending: true    # reemplaza 1.jpg con la foto real y borra esta línea

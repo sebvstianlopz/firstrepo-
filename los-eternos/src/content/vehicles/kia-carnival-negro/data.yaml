@@ -1,0 +1,10 @@
+# Catálogo fila 48.
+brand: Kia
+model: Carnival
+color: negro
+category: van
+priceDay: 70
+seats: 8             # estimado según el modelo, por confirmar
+order: 48
+photos: [./1.jpg]
+photoPending: true    # reemplaza 1.jpg con la foto real y borra esta línea

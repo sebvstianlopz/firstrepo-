@@ -1,0 +1,102 @@
+---
+import Base from '../layouts/Base.astro';
+import Closing from '../components/home/Closing.astro';
+import Faq from '../components/home/Faq.astro';
+import Icon from '../components/Icon.astro';
+import { t, path } from '../i18n';
+import type { Lang } from '../config/site';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const d = t(lang);
+const other: Lang = lang === 'es' ? 'en' : 'es';
+---
+<Base lang={lang} title={`${d.services.title} | Los Eternos`} description={d.meta.servicesDesc} alternate={path(other, 'services')}>
+  <div class="container page">
+    <header class="head">
+      <h1>{d.services.title}</h1>
+      <p class="lede">{d.services.intro}</p>
+    </header>
+    <ol class="list">
+      {d.services.items.map((s) => (
+        <li>
+          <h2>{s.t}</h2>
+          <p class="muted">{s.d}</p>
+        </li>
+      ))}
+    </ol>
+    <section class="req" aria-labelledby="req-title">
+      <h2 id="req-title">{d.services.reqTitle}</h2>
+      <ul>
+        {d.services.req.map((r) => <li><Icon name="check" size={20} />{r}</li>)}
+      </ul>
+    </section>
+  </div>
+  <Faq lang={lang} />
+  <Closing lang={lang} />
+</Base>
+
+<style>
+  .page {
+    padding-block: clamp(40px, 6vw, 80px) var(--section);
+  }
+  .head {
+    display: grid;
+    gap: 16px;
+    margin-bottom: clamp(40px, 6vw, 72px);
+  }
+  .list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid var(--line);
+  }
+  .list li {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    gap: 12px 48px;
+    padding-block: clamp(24px, 3vw, 36px);
+    border-bottom: 1px solid var(--line);
+  }
+  .list h2 {
+    font-size: var(--step-2);
+  }
+  .list p {
+    max-width: 32em;
+    font-size: var(--step-1);
+    line-height: 1.5;
+  }
+  .req {
+    display: grid;
+    gap: 24px;
+    margin-top: var(--section);
+    padding: clamp(24px, 4vw, 48px);
+    border-radius: 16px;
+    background: var(--surface);
+  }
+  .req ul {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 32px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .req li {
+    display: flex;
+    gap: 12px;
+  }
+  .req :global(svg) {
+    flex: none;
+    margin-top: 3px;
+    color: var(--accent);
+  }
+  @media (max-width: 760px) {
+    .list li,
+    .req ul {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

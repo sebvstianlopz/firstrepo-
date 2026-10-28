@@ -1,0 +1,220 @@
+---
+import WaButton from './WaButton.astro';
+import { t, path } from '../i18n';
+import type { Lang } from '../config/site';
+
+interface Props {
+  lang: Lang;
+  alternate: string;
+}
+const { lang, alternate } = Astro.props;
+const d = t(lang);
+const here = Astro.url.pathname;
+const links = [
+  { href: path(lang, 'catalog'), label: d.nav.catalog },
+  { href: path(lang, 'services'), label: d.nav.services },
+  { href: path(lang, 'about'), label: d.nav.about },
+];
+---
+<header class="site-header">
+  <div class="container bar">
+    <a class="wordmark" href={path(lang, 'home')}>Los Eternos</a>
+
+    <nav id="site-nav" class="nav" aria-label={lang === 'es' ? 'Principal' : 'Main'}>
+      <ul>
+        {links.map((l) => (
+          <li>
+            <a href={l.href} aria-current={here.startsWith(l.href) ? 'page' : undefined}>{l.label}</a>
+          </li>
+        ))}
+        <li class="nav-lang">
+          <a href={alternate} hreflang={lang === 'es' ? 'en' : 'es'} lang={lang === 'es' ? 'en' : 'es'}>{d.switchTo}</a>
+        </li>
+      </ul>
+    </nav>
+
+    <div class="actions">
+      <a class="lang" href={alternate} hreflang={lang === 'es' ? 'en' : 'es'} lang={lang === 'es' ? 'en' : 'es'}>
+        {lang === 'es' ? 'EN' : 'ES'}<span class="visually-hidden">, {d.switchTo}</span>
+      </a>
+      <WaButton lang={lang} label={d.nav.book} class="book" />
+      <button class="menu" type="button" aria-expanded="false" aria-controls="site-nav">
+        <span class="visually-hidden">{lang === 'es' ? 'Menú' : 'Menu'}</span>
+        <span class="bars" aria-hidden="true"></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<script>
+  const btn = document.querySelector<HTMLButtonElement>('.site-header .menu');
+  const header = document.querySelector('.site-header');
+  btn?.addEventListener('click', () => {
+    const open = btn.getAttribute('aria-expanded') !== 'true';
+    btn.setAttribute('aria-expanded', String(open));
+    header?.classList.toggle('is-open', open);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && header?.classList.contains('is-open')) {
+      header.classList.remove('is-open');
+      btn?.setAttribute('aria-expanded', 'false');
+      btn?.focus();
+    }
+  });
+</script>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: color-mix(in oklab, var(--bg) 88%, transparent);
+    backdrop-filter: saturate(1.4) blur(14px);
+    -webkit-backdrop-filter: saturate(1.4) blur(14px);
+    border-bottom: 1px solid var(--line);
+  }
+  .bar {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    min-height: 72px;
+  }
+  .wordmark {
+    font-stretch: var(--wide);
+    font-weight: 400;
+    font-size: 1.2rem;
+    letter-spacing: 0.01em;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .nav {
+    margin-left: auto;
+  }
+  .nav ul {
+    display: flex;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .nav a {
+    display: block;
+    padding: 10px 14px;
+    border-radius: 999px;
+    text-decoration: none;
+    color: var(--muted);
+    font-weight: 450;
+  }
+  .nav a:hover,
+  .nav a[aria-current='page'] {
+    color: var(--text);
+  }
+  .nav a[aria-current='page'] {
+    background: var(--sunk);
+  }
+  .nav-lang {
+    display: none;
+  }
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .lang {
+    display: grid;
+    place-items: center;
+    min-width: 48px;
+    min-height: 48px;
+    border-radius: 999px;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: var(--step--1);
+    letter-spacing: 0.04em;
+    color: var(--muted);
+  }
+  .lang:hover {
+    color: var(--text);
+  }
+  .menu {
+    display: none;
+    width: 48px;
+    height: 48px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .bars,
+  .bars::before {
+    display: block;
+    width: 18px;
+    height: 1.5px;
+    margin-inline: auto;
+    background: currentColor;
+    transition: transform 0.25s var(--ease);
+  }
+  .bars {
+    transform: translateY(-3px);
+  }
+  .bars::before {
+    content: '';
+    transform: translateY(6px);
+  }
+  .is-open .bars {
+    transform: rotate(45deg);
+  }
+  .is-open .bars::before {
+    transform: rotate(-90deg);
+  }
+
+  @media (max-width: 860px) {
+    .menu {
+      display: inline-block;
+    }
+    .lang {
+      display: none;
+    }
+    .actions {
+      margin-left: auto;
+    }
+    .nav {
+      position: absolute;
+      inset: 100% 0 auto 0;
+      display: none;
+      padding: 8px var(--gutter) 20px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--line);
+    }
+    .is-open .nav {
+      display: block;
+    }
+    .nav ul {
+      flex-direction: column;
+    }
+    .nav a {
+      padding: 14px 4px;
+      border-radius: 0;
+      font-size: var(--step-1);
+      font-stretch: 112%;
+      color: var(--text);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav a[aria-current='page'] {
+      background: none;
+      color: var(--accent);
+    }
+    .nav-lang {
+      display: block;
+    }
+    .nav-lang a {
+      border-bottom: 0;
+      color: var(--muted);
+    }
+  }
+  @media (max-width: 400px) {
+    .actions :global(.book) {
+      padding-right: 1em;
+    }
+  }
+</style>

@@ -1,0 +1,9 @@
+# Catálogo fila 40.
+model: { es: SUV compacto, en: Compact SUV }
+color: blanco
+category: compacto
+priceDay: 70
+seats: 5             # estimado según el modelo, por confirmar
+order: 40
+photos: [./1.jpg]
+photoPending: true    # reemplaza 1.jpg con la foto real y borra esta línea

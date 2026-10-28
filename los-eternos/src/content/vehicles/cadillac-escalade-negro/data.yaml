@@ -1,0 +1,10 @@
+# Catálogo fila 4.
+brand: Cadillac
+model: Escalade
+color: negro
+category: lujo
+priceDay: 320
+seats: 7             # estimado según el modelo, por confirmar
+featured: true
+order: 4
+photos: [./1.jpg]

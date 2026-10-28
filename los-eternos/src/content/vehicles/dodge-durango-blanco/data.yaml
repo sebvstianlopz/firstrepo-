@@ -1,0 +1,9 @@
+# Catálogo fila 10.
+brand: Dodge
+model: Durango
+color: blanco
+category: suv
+priceDay: 120
+seats: 7             # estimado según el modelo, por confirmar
+order: 10
+photos: [./1.jpg]

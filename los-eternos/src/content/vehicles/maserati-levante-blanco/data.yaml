@@ -1,0 +1,10 @@
+# Catálogo fila 36.
+brand: Maserati
+model: Levante
+color: blanco
+category: lujo
+priceDay: 210
+seats: 5             # estimado según el modelo, por confirmar
+order: 36
+photos: [./1.jpg]
+photoPending: true    # reemplaza 1.jpg con la foto real y borra esta línea

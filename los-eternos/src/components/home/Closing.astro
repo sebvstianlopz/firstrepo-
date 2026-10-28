@@ -1,0 +1,54 @@
+---
+import WaButton from '../WaButton.astro';
+import { t } from '../../i18n';
+import type { Lang } from '../../config/site';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const d = t(lang);
+---
+<section class="closing" aria-labelledby="closing-title">
+  <div class="container inner">
+    <h2 id="closing-title">{d.closing.title}</h2>
+    <p>{d.closing.text}</p>
+    <WaButton lang={lang} label={d.wa.write} class="on-dark" />
+  </div>
+</section>
+
+<style>
+  .closing {
+    background: var(--mar);
+    color: var(--piedra);
+    padding-block: clamp(80px, 12vw, 160px);
+  }
+  .inner {
+    display: grid;
+    justify-items: start;
+    gap: 20px;
+  }
+  h2 {
+    font-size: var(--step-4);
+    font-weight: 250;
+  }
+  p {
+    max-width: 30em;
+    font-size: var(--step-1);
+    line-height: 1.5;
+    color: color-mix(in oklab, var(--piedra) 78%, var(--mar));
+  }
+  .closing :global(.on-dark) {
+    margin-top: 16px;
+    background: var(--piedra);
+    color: var(--mar);
+  }
+  .closing :global(.on-dark:hover) {
+    background: var(--larimar-soft);
+  }
+  @media (prefers-color-scheme: dark) {
+    .closing {
+      background: var(--sunk);
+    }
+  }
+</style>

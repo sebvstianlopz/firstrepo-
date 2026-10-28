@@ -1,0 +1,202 @@
+---
+import { Image } from 'astro:assets';
+import WaButton from '../WaButton.astro';
+import { t, path } from '../../i18n';
+import { cities, type Lang } from '../../config/site';
+import { categorySummary, type Vehicle } from '../../lib/vehicles';
+
+interface Props {
+  lang: Lang;
+  vehicles: Vehicle[];
+}
+const { lang, vehicles } = Astro.props;
+const d = t(lang);
+const categories = categorySummary(vehicles).map((c) => c.category);
+// Three real portrait photos for the mosaic, most premium first.
+const shots = vehicles
+  .filter((v) => v.data.featured && !v.data.photoPending && v.data.photos[0].height > v.data.photos[0].width)
+  .sort((a, b) => (b.data.priceDay ?? 0) - (a.data.priceDay ?? 0))
+  .slice(0, 3);
+---
+<section class="hero">
+  <div class="container grid">
+    <div class="copy">
+      <h1 class="visually-hidden">{d.meta.homeTitle}</h1>
+      <form class="sentence" action={path(lang, 'catalog')} method="get" data-hero>
+        <p class="line">
+          {d.hero.want} {d.hero.rent}
+          <label class="visually-hidden" for="hero-cat">{d.hero.categoryLabel}</label>
+          <select id="hero-cat" name="cat" class="pick">
+            <option value="">{d.categoryArticle.any}</option>
+            {categories.map((c) => <option value={c}>{d.categoryArticle[c]}</option>)}
+          </select>
+          {d.hero.in}
+          <label class="visually-hidden" for="hero-city">{d.hero.cityLabel}</label>
+          <select id="hero-city" name="city" class="pick">
+            {cities.map((c) => <option value={c}>{c}</option>)}
+          </select><span aria-hidden="true">.</span>
+        </p>
+        <p class="sub">{d.hero.sub}</p>
+        <div class="ctas">
+          <button class="btn btn-primary" type="submit">{d.hero.cta}</button>
+          <WaButton lang={lang} label={d.wa.write} class="btn-quiet-wa" />
+        </div>
+      </form>
+    </div>
+
+    <div class="mosaic" aria-hidden="true">
+      {shots.map((v, i) => (
+        <div class={`shot shot-${i}`}>
+          <Image
+            src={v.data.photos[0]}
+            alt=""
+            widths={[240, 320]}
+            sizes={i === 0 ? '(max-width: 860px) 60vw, 320px' : '(max-width: 860px) 30vw, 160px'}
+            loading="eager"
+            fetchpriority={i === 0 ? 'high' : 'auto'}
+          />
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<script>
+  // Selects in the sentence take the width of their chosen word,
+  // for browsers without `field-sizing: content`.
+  const form = document.querySelector<HTMLFormElement>('[data-hero]');
+  if (form) {
+    const picks = form.querySelectorAll<HTMLSelectElement>('select.pick');
+    if (!CSS.supports('field-sizing', 'content')) {
+      const probe = document.createElement('span');
+      probe.className = 'pick-probe';
+      form.append(probe);
+      const fit = (s: HTMLSelectElement) => {
+        probe.textContent = s.selectedOptions[0]?.textContent ?? '';
+        s.style.width = `calc(${probe.getBoundingClientRect().width}px + 1.1em)`;
+      };
+      picks.forEach((s) => {
+        fit(s);
+        s.addEventListener('change', () => fit(s));
+      });
+      document.fonts?.ready.then(() => picks.forEach(fit));
+    }
+    form.addEventListener('submit', () => {
+      const cat = form.querySelector<HTMLSelectElement>('#hero-cat');
+      if (cat && !cat.value) cat.disabled = true; // keep the URL clean
+      try {
+        sessionStorage.setItem('le:city', form.querySelector<HTMLSelectElement>('#hero-city')?.value ?? '');
+      } catch {}
+    });
+  }
+</script>
+
+<style>
+  .hero {
+    padding-block: clamp(40px, 7vw, 96px) clamp(56px, 8vw, 112px);
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    gap: clamp(32px, 5vw, 72px);
+    align-items: center;
+  }
+  .line {
+    font-size: var(--step-4);
+    font-weight: 300;
+    font-stretch: var(--wide);
+    line-height: 1.18;
+    letter-spacing: -0.01em;
+  }
+  .pick {
+    field-sizing: content;
+    appearance: none;
+    max-width: 100%;
+    margin: 0;
+    padding: 0 0.85em 0 0;
+    border: 0;
+    border-bottom: 2px solid currentColor;
+    border-radius: 0;
+    background: transparent
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' fill='none' stroke='%232b6b77' stroke-width='2'%3E%3Cpath d='m1 1.5 6 6 6-6'/%3E%3C/svg%3E")
+      no-repeat right 0.05em center / 0.4em auto;
+    color: var(--accent);
+    font: inherit;
+    line-height: 1.1;
+    cursor: pointer;
+  }
+  .pick:hover {
+    border-bottom-width: 3px;
+  }
+  @media (prefers-color-scheme: dark) {
+    .pick {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' fill='none' stroke='%238fc6cf' stroke-width='2'%3E%3Cpath d='m1 1.5 6 6 6-6'/%3E%3C/svg%3E");
+    }
+  }
+  .pick option {
+    font-size: 1rem;
+    font-stretch: 100%;
+    color: var(--text);
+    background: var(--surface);
+  }
+  :global(.pick-probe) {
+    position: absolute;
+    visibility: hidden;
+    white-space: pre;
+    font-size: var(--step-4);
+    font-weight: 300;
+    font-stretch: var(--wide);
+  }
+  .sub {
+    margin-top: clamp(20px, 3vw, 32px);
+    max-width: 34em;
+    font-size: var(--step-1);
+    line-height: 1.5;
+    color: var(--muted);
+  }
+  .ctas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 32px;
+  }
+  .ctas :global(.btn-quiet-wa) {
+    background: transparent;
+    color: var(--text);
+    border-color: var(--line);
+  }
+  .ctas :global(.btn-quiet-wa:hover) {
+    border-color: var(--text);
+    background: transparent;
+  }
+
+  .mosaic {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 10px;
+  }
+  .shot {
+    overflow: hidden;
+    border-radius: var(--r-img);
+    background: var(--sunk);
+  }
+  .shot :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .shot-0 {
+    grid-row: 1 / 3;
+    aspect-ratio: 3 / 4;
+  }
+
+  @media (max-width: 860px) {
+    .grid {
+      grid-template-columns: 1fr;
+    }
+    .mosaic {
+      max-width: 520px;
+    }
+  }
+</style>

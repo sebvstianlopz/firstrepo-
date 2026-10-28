@@ -1,0 +1,307 @@
+---
+import Base from '../layouts/Base.astro';
+import VehicleCard from '../components/VehicleCard.astro';
+import WaButton from '../components/WaButton.astro';
+import { t, path } from '../i18n';
+import type { Lang } from '../config/site';
+import { getVehicles, categorySummary, forSale } from '../lib/vehicles';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const d = t(lang);
+const vehicles = (await getVehicles()).filter((v) => v.data.available);
+const categories = categorySummary(vehicles);
+const hasSale = vehicles.some(forSale);
+const seatOptions = [5, 7].filter((n) => vehicles.some((v) => v.data.seats >= n));
+const other: Lang = lang === 'es' ? 'en' : 'es';
+---
+<Base
+  lang={lang}
+  title={`${d.catalog.title} | Los Eternos`}
+  description={d.meta.catalogDesc}
+  alternate={path(other, 'catalog')}
+>
+  <div class="container page">
+    <header class="head">
+      <h1>{d.catalog.title}</h1>
+      <p class="lede">{d.catalog.intro}</p>
+    </header>
+
+    <form class="filters" data-filters aria-label={d.catalog.filters}>
+      {hasSale && (
+        <fieldset class="chips">
+          <legend class="visually-hidden">{d.mode.all}</legend>
+          {(['all', 'rent', 'sale'] as const).map((m) => (
+            <label class="chip">
+              <input type="radio" name="mode" value={m === 'all' ? '' : m} checked={m === 'all'} />
+              <span>{d.mode[m]}</span>
+            </label>
+          ))}
+        </fieldset>
+      )}
+      <fieldset class="chips">
+        <legend class="visually-hidden">{d.vehicle.category}</legend>
+        <label class="chip">
+          <input type="radio" name="cat" value="" checked />
+          <span>{d.catalog.categoryAll}</span>
+        </label>
+        {categories.map((c) => (
+          <label class="chip">
+            <input type="radio" name="cat" value={c.category} />
+            <span>{d.category[c.category]}</span>
+          </label>
+        ))}
+      </fieldset>
+      <div class="row">
+        <p class="count" aria-live="polite" data-count>{d.catalog.count(vehicles.length)}</p>
+        <div class="selects">
+          <label class="visually-hidden" for="f-seats">{d.catalog.seatsAny}</label>
+          <select class="select" id="f-seats" name="seats">
+            <option value="">{d.catalog.seatsAny}</option>
+            {seatOptions.map((n) => <option value={n}>{d.catalog.seatsMin(n)}</option>)}
+          </select>
+          <label class="visually-hidden" for="f-sort">{d.catalog.sort}</label>
+          <select class="select" id="f-sort" name="sort">
+            <option value="">{d.catalog.sortOptions.recommended}</option>
+            <option value="price-asc">{d.catalog.sortOptions.priceAsc}</option>
+            <option value="price-desc">{d.catalog.sortOptions.priceDesc}</option>
+          </select>
+        </div>
+      </div>
+    </form>
+
+    <ul class="grid" data-grid>
+      {vehicles.map((v, i) => (
+        <li
+          data-cat={v.data.category}
+          data-seats={v.data.seats}
+          data-price={v.data.priceDay ?? v.data.priceSale}
+          data-order={i}
+          data-mode={v.data.mode}
+        >
+          <VehicleCard vehicle={v} lang={lang} eager={i < 4} headingLevel="h2" />
+        </li>
+      ))}
+    </ul>
+
+    <div class="empty" data-empty hidden>
+      <h2>{d.catalog.emptyTitle}</h2>
+      <p class="muted">{d.catalog.emptyText}</p>
+      <div class="empty-actions">
+        <button class="btn btn-quiet" type="button" data-clear>{d.catalog.clear}</button>
+        <WaButton lang={lang} label={d.wa.write} />
+      </div>
+    </div>
+  </div>
+</Base>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>('[data-filters]')!;
+  const grid = document.querySelector<HTMLUListElement>('[data-grid]')!;
+  const items = [...grid.querySelectorAll<HTMLLIElement>(':scope > li')];
+  const countEl = document.querySelector<HTMLElement>('[data-count]')!;
+  const empty = document.querySelector<HTMLElement>('[data-empty]')!;
+  const lang = document.documentElement.lang.startsWith('es') ? 'es' : 'en';
+  const countLabel = (n: number) =>
+    lang === 'es' ? (n === 1 ? '1 vehículo' : `${n} vehículos`) : n === 1 ? '1 vehicle' : `${n} vehicles`;
+  const keys = ['mode', 'cat', 'seats', 'sort'];
+
+  // Restore filters from the URL (links from the home page use ?cat=…).
+  const params = new URLSearchParams(location.search);
+  for (const key of keys) {
+    const value = params.get(key);
+    if (value === null) continue;
+    const field = form.elements.namedItem(key);
+    if (field instanceof RadioNodeList || field instanceof HTMLSelectElement) field.value = value;
+  }
+  const city = params.get('city');
+  if (city) {
+    try {
+      sessionStorage.setItem('le:city', city);
+    } catch {}
+  }
+
+  function apply() {
+    const data = new FormData(form);
+    const mode = String(data.get('mode') ?? '');
+    const cat = String(data.get('cat') ?? '');
+    const seats = Number(data.get('seats') || 0);
+    const sort = String(data.get('sort') ?? '');
+
+    let shown = 0;
+    for (const li of items) {
+      const ok =
+        (!cat || li.dataset.cat === cat) &&
+        (!seats || Number(li.dataset.seats) >= seats) &&
+        (!mode || li.dataset.mode === mode || li.dataset.mode === 'both');
+      li.hidden = !ok;
+      if (ok) shown++;
+    }
+    const by = (k: string) => (li: HTMLLIElement) => Number(li.dataset[k]);
+    const sorted = [...items].sort((a, b) =>
+      sort === 'price-asc'
+        ? by('price')(a) - by('price')(b)
+        : sort === 'price-desc'
+          ? by('price')(b) - by('price')(a)
+          : by('order')(a) - by('order')(b),
+    );
+    grid.append(...sorted);
+
+    countEl.textContent = countLabel(shown);
+    empty.hidden = shown > 0;
+
+    const next = new URLSearchParams();
+    for (const key of keys) {
+      const value = String(data.get(key) ?? '');
+      if (value) next.set(key, value);
+    }
+    const qs = next.toString();
+    history.replaceState(null, '', qs ? `?${qs}` : location.pathname);
+  }
+
+  form.addEventListener('change', apply);
+  form.addEventListener('submit', (e) => e.preventDefault());
+  document.querySelector('[data-clear]')?.addEventListener('click', () => {
+    form.reset();
+    apply();
+  });
+  apply();
+</script>
+
+<style>
+  .page {
+    padding-block: clamp(40px, 6vw, 80px) var(--section);
+  }
+  .head {
+    display: grid;
+    gap: 16px;
+    margin-bottom: clamp(28px, 4vw, 48px);
+  }
+  .filters {
+    position: sticky;
+    top: 72px;
+    z-index: 10;
+    display: grid;
+    gap: 12px;
+    margin-inline: calc(-1 * var(--gutter));
+    padding: 14px var(--gutter);
+    background: color-mix(in oklab, var(--bg) 92%, transparent);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--line);
+  }
+  fieldset {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+  }
+  .chips {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-block: 2px;
+  }
+  .chips::-webkit-scrollbar {
+    display: none;
+  }
+  .chip {
+    position: relative;
+    flex: none;
+  }
+  .chip input {
+    position: absolute;
+    opacity: 0;
+    inset: 0;
+    margin: 0;
+    cursor: pointer;
+  }
+  .chip span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 18px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    font-weight: 450;
+    white-space: nowrap;
+    transition: background-color 0.2s var(--ease), color 0.2s var(--ease), border-color 0.2s var(--ease);
+  }
+  .chip:hover span {
+    border-color: var(--text);
+  }
+  .chip input:checked + span {
+    background: var(--btn-bg);
+    border-color: var(--btn-bg);
+    color: var(--btn-text);
+  }
+  .chip input:focus-visible + span {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+  .row {
+    min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+  }
+  .count {
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .selects {
+    display: flex;
+    gap: 8px;
+  }
+  .selects .select {
+    width: auto;
+    min-height: 44px;
+    font-size: 0.94rem;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: clamp(28px, 4vw, 48px) clamp(14px, 2vw, 28px);
+    margin: clamp(28px, 4vw, 40px) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .grid > li[hidden] {
+    display: none;
+  }
+  .empty {
+    display: grid;
+    justify-items: start;
+    gap: 12px;
+    padding-block: 48px;
+  }
+  .empty-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 8px;
+  }
+  @media (max-width: 1100px) {
+    .grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 760px) {
+    .grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .selects {
+      width: 100%;
+      min-width: 0;
+    }
+    .selects .select {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+</style>

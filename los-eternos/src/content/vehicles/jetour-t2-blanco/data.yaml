@@ -1,0 +1,9 @@
+# Catálogo fila 3. Nombre por confirmar: la parrilla dice JETOUR; el PDF decía Ford Bronco Sport.
+brand: Jetour
+model: T2
+color: blanco
+category: suv
+priceDay: 160
+seats: 5             # estimado según el modelo, por confirmar
+order: 3
+photos: [./1.jpg]

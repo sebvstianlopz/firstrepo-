@@ -1,0 +1,10 @@
+# Catálogo fila 8. Nombre por confirmar: logo Honda en la foto; el PDF decía SUV mediano.
+brand: Honda
+model: CR-V
+color: negro
+category: suv
+priceDay: 100
+seats: 5             # estimado según el modelo, por confirmar
+featured: true
+order: 8
+photos: [./1.jpg]

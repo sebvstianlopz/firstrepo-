@@ -1,0 +1,135 @@
+---
+import Base from '../layouts/Base.astro';
+import Closing from '../components/home/Closing.astro';
+import Icon from '../components/Icon.astro';
+import { Image } from 'astro:assets';
+import { t, path } from '../i18n';
+import { site, type Lang } from '../config/site';
+import { waLink } from '../lib/whatsapp';
+import { getVehicles } from '../lib/vehicles';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const d = t(lang);
+const other: Lang = lang === 'es' ? 'en' : 'es';
+const photo = (await getVehicles()).find((v) => v.data.featured && !v.data.photoPending);
+const cities = [...new Set(site.locations.map((l) => l.city))];
+---
+<Base lang={lang} title={`${d.about.title} | Los Eternos`} description={d.meta.aboutDesc} alternate={path(other, 'about')}>
+  <div class="container page">
+    <div class="intro">
+      <div class="text">
+        <h1>{d.about.title}</h1>
+        <p class="lead">{d.about.lead}</p>
+        <p class="muted body">{d.about.body}</p>
+      </div>
+      {photo && (
+        <div class="photo">
+          <Image src={photo.data.photos[0]} alt="" widths={[320]} sizes="320px" />
+        </div>
+      )}
+    </div>
+
+    <div class="facts">
+      <section aria-labelledby="contact-title">
+        <h2 id="contact-title" class="h-small">{d.about.contact}</h2>
+        <ul>
+          <li><a href={waLink({ kind: 'general' }, lang)} target="_blank" rel="noopener"><Icon name="whatsapp" /> WhatsApp {site.phoneDisplay}</a></li>
+          <li><a href={`tel:+${site.whatsapp}`}><Icon name="phone" /> {site.phoneDisplay}</a></li>
+          <li><a href={site.social.instagram} target="_blank" rel="noopener"><Icon name="instagram" /> Instagram</a></li>
+        </ul>
+      </section>
+      <section aria-labelledby="hours-title">
+        <h2 id="hours-title" class="h-small">{d.about.hours}</h2>
+        <p><Icon name="clock" /> {site.hours[lang]}</p>
+      </section>
+      <section aria-labelledby="where-title">
+        <h2 id="where-title" class="h-small">{d.about.whereTitle}</h2>
+        <p><Icon name="pin" /> {site.address}</p>
+        <p class="muted">{cities.join(', ')}</p>
+        <a class="link" href={site.mapsUrl} target="_blank" rel="noopener">{d.about.openMap}</a>
+      </section>
+    </div>
+  </div>
+  <Closing lang={lang} />
+</Base>
+
+<style>
+  .page {
+    padding-block: clamp(40px, 6vw, 80px) var(--section);
+  }
+  .intro {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 4fr);
+    gap: clamp(32px, 6vw, 96px);
+    align-items: end;
+  }
+  .text {
+    display: grid;
+    gap: 24px;
+  }
+  .lead {
+    max-width: 22em;
+    font-size: var(--step-2);
+    font-weight: 300;
+    font-stretch: var(--wide);
+    line-height: 1.3;
+  }
+  .body {
+    max-width: 34em;
+    font-size: var(--step-1);
+    line-height: 1.55;
+  }
+  .photo {
+    max-width: 320px;
+    aspect-ratio: 3 / 4;
+    overflow: hidden;
+    border-radius: var(--r-img);
+  }
+  .photo :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .facts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 40px;
+    margin-top: var(--section);
+    padding-top: 32px;
+    border-top: 1px solid var(--line);
+  }
+  .h-small {
+    margin-bottom: 14px;
+    font-size: var(--step-0);
+    font-weight: 500;
+    font-stretch: 112%;
+  }
+  ul {
+    display: grid;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .facts a:not(.link),
+  .facts p {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 40px;
+    text-decoration: none;
+  }
+  .facts a:not(.link):hover {
+    text-decoration: underline;
+    text-underline-offset: 0.25em;
+  }
+  @media (max-width: 760px) {
+    .intro,
+    .facts {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

@@ -1,0 +1,102 @@
+---
+import Icon from './Icon.astro';
+import { t, path } from '../i18n';
+import { site, type Lang } from '../config/site';
+import { waLink } from '../lib/whatsapp';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const d = t(lang);
+const year = new Date().getFullYear();
+---
+<footer class="site-footer">
+  <div class="container">
+    <div class="top">
+      <div>
+        <p class="wordmark">Los Eternos</p>
+        <p class="muted tagline">{d.footer.tagline}</p>
+      </div>
+      <nav aria-label={lang === 'es' ? 'Pie de página' : 'Footer'}>
+        <ul>
+          <li><a href={path(lang, 'catalog')}>{d.nav.catalog}</a></li>
+          <li><a href={path(lang, 'services')}>{d.nav.services}</a></li>
+          <li><a href={path(lang, 'about')}>{d.nav.about}</a></li>
+        </ul>
+      </nav>
+      <ul class="contact">
+        <li>
+          <a href={waLink({ kind: 'general' }, lang)} target="_blank" rel="noopener">
+            <Icon name="whatsapp" size={18} /> WhatsApp {site.phoneDisplay}
+          </a>
+        </li>
+        <li>
+          <a href={`tel:+${site.whatsapp}`}><Icon name="phone" size={18} /> {site.phoneDisplay}</a>
+        </li>
+        <li>
+          <a href={site.social.instagram} target="_blank" rel="noopener"><Icon name="instagram" size={18} /> Instagram</a>
+        </li>
+        <li class="muted"><Icon name="clock" size={18} /> {site.hours[lang]}</li>
+      </ul>
+    </div>
+    <p class="legal muted">© {year} {site.name}. {d.footer.rights}</p>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    border-top: 1px solid var(--line);
+    padding-block: 64px 32px;
+    font-size: 0.95rem;
+  }
+  .top {
+    display: grid;
+    grid-template-columns: 1.4fr 0.8fr 1.2fr;
+    gap: 40px;
+  }
+  .wordmark {
+    font-stretch: var(--wide);
+    font-weight: 300;
+    font-size: var(--step-2);
+    line-height: 1.1;
+  }
+  .tagline {
+    margin-top: 10px;
+    max-width: 26em;
+  }
+  ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 4px;
+  }
+  li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 40px;
+  }
+  a {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 40px;
+    text-decoration: none;
+  }
+  a:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.25em;
+  }
+  .legal {
+    margin-top: 48px;
+    font-size: var(--step--1);
+  }
+  @media (max-width: 760px) {
+    .top {
+      grid-template-columns: 1fr;
+      gap: 28px;
+    }
+  }
+</style>

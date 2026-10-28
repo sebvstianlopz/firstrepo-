@@ -1,0 +1,275 @@
+/* Los Eternos — design tokens and base styles.
+   Palette drawn from Dominican materials: the Caribbean (mar), Zona Colonial
+   coral stone (piedra), larimar, and mahogany (caoba, used only for prices). */
+
+:root {
+  --mar: #0e2a33;
+  --piedra: #edefec;
+  --piedra-raised: #f6f7f5;
+  --piedra-sunk: #e2e6e2;
+  --larimar: #8fc6cf;
+  --larimar-soft: #cfe5e8;
+  --larimar-deep: #2b6b77;
+  --caoba: #7a4330;
+  --wa: #25d366;
+
+  --bg: var(--piedra);
+  --surface: var(--piedra-raised);
+  --sunk: var(--piedra-sunk);
+  --text: var(--mar);
+  --muted: #475e66;
+  --line: rgb(14 42 51 / 0.14);
+  --accent: var(--larimar-deep);
+  --price: var(--caoba);
+  --btn-bg: var(--mar);
+  --btn-text: var(--piedra);
+  --focus: var(--larimar-deep);
+
+  --font: 'Archivo Variable', 'Archivo', system-ui, sans-serif;
+  --wide: 125%;
+
+  /* Modular scale, ratio 1.25 on a 17px body */
+  --step--1: 0.85rem;
+  --step-0: 1.0625rem;
+  --step-1: 1.33rem;
+  --step-2: 1.66rem;
+  --step-3: clamp(1.75rem, 1.3rem + 1.6vw, 2.6rem);
+  --step-4: clamp(2.1rem, 1.2rem + 3.6vw, 4.2rem);
+
+  --gutter: clamp(16px, 4vw, 48px);
+  --max: 1240px;
+  --section: clamp(72px, 10vw, 136px);
+  --r-img: 6px;
+  --r-field: 10px;
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b2229;
+    --surface: #10303a;
+    --sunk: #0a1d23;
+    --text: #e4ebe9;
+    --muted: #a2b6ba;
+    --line: rgb(228 235 233 / 0.14);
+    --accent: var(--larimar);
+    --price: #e3ab92;
+    --btn-bg: var(--larimar);
+    --btn-text: var(--mar);
+    --focus: var(--larimar);
+    color-scheme: dark;
+  }
+}
+
+@view-transition {
+  navigation: auto;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scroll-padding-top: 88px;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: var(--step-0);
+  line-height: 1.6;
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 320;
+  font-stretch: var(--wide);
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: var(--step-4);
+  line-height: 1.06;
+}
+h2 {
+  font-size: var(--step-3);
+}
+h3 {
+  font-size: var(--step-1);
+  font-weight: 450;
+  font-stretch: 112%;
+  letter-spacing: 0;
+}
+
+p {
+  margin: 0;
+  text-wrap: pretty;
+}
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.container {
+  width: 100%;
+  max-width: calc(var(--max) + 2 * var(--gutter));
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+.section {
+  padding-block: var(--section);
+}
+
+.lede {
+  font-size: var(--step-1);
+  line-height: 1.5;
+  color: var(--muted);
+  max-width: 34em;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.price {
+  color: var(--price);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6em;
+  min-height: 48px;
+  padding: 0.7em 1.5em;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font: inherit;
+  font-weight: 500;
+  font-size: var(--step-0);
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.2s var(--ease), color 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+.btn-primary {
+  background: var(--btn-bg);
+  color: var(--btn-text);
+}
+.btn-primary:hover {
+  background: color-mix(in oklab, var(--btn-bg) 86%, var(--larimar));
+}
+.btn-quiet {
+  border-color: var(--line);
+  color: var(--text);
+  background: transparent;
+}
+.btn-quiet:hover {
+  border-color: var(--text);
+}
+.btn-block {
+  width: 100%;
+}
+
+/* Text link with arrow-free underline that thickens on hover */
+.link {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.25em;
+  font-weight: 500;
+}
+.link:hover {
+  text-decoration-thickness: 2px;
+}
+
+/* Form fields */
+.field {
+  display: grid;
+  gap: 6px;
+}
+.field label,
+.field .label {
+  font-size: var(--step--1);
+  color: var(--muted);
+  font-weight: 500;
+}
+.input,
+.select {
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: 0.6em 0.9em;
+  border: 1px solid var(--line);
+  border-radius: var(--r-field);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+.select {
+  appearance: none;
+  padding-right: 2.4em;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none' stroke='%23475e66' stroke-width='1.6'%3E%3Cpath d='m1 1.5 5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.9em center;
+}
+.input:hover,
+.select:hover {
+  border-color: color-mix(in oklab, var(--line), var(--text) 30%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  @view-transition {
+    navigation: none;
+  }
+}

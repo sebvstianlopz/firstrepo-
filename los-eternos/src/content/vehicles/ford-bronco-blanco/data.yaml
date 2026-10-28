@@ -1,0 +1,10 @@
+# Catálogo fila 9.
+brand: Ford
+model: Bronco
+color: blanco
+category: todoterreno
+priceDay: 200
+seats: 5             # estimado según el modelo, por confirmar
+featured: true
+order: 9
+photos: [./1.jpg]

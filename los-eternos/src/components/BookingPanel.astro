@@ -1,0 +1,278 @@
+---
+import WaButton from './WaButton.astro';
+import { t, formatPrice } from '../i18n';
+import { site, type Lang } from '../config/site';
+import { vehicleFullName, forRent, forSale, type Vehicle } from '../lib/vehicles';
+
+interface Props {
+  vehicle: Vehicle;
+  lang: Lang;
+  pageUrl: string;
+}
+const { vehicle: v, lang, pageUrl } = Astro.props;
+const d = t(lang);
+const car = vehicleFullName(v, lang);
+const rent = forRent(v) && !!v.data.priceDay;
+const sale = forSale(v) && !!v.data.priceSale;
+const salePrice = v.data.priceSale ? formatPrice(v.data.priceSale, lang, site.currency) : undefined;
+---
+<div
+  class="panel"
+  data-booking
+  data-car={car}
+  data-url={pageUrl}
+  data-lang={lang}
+  data-price-day={v.data.priceDay}
+  data-sale-price={salePrice}
+  data-default={rent ? 'rent' : 'sale'}
+>
+  {rent && sale && (
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" aria-selected="true" aria-controls="bk-rent" id="tab-rent" data-tab="rent">{d.booking.rentTab}</button>
+      <button type="button" role="tab" aria-selected="false" aria-controls="bk-sale" id="tab-sale" data-tab="sale" tabindex="-1">{d.booking.saleTab}</button>
+    </div>
+  )}
+
+  {rent && (
+    <div id="bk-rent" class="pane" role={rent && sale ? 'tabpanel' : undefined} aria-labelledby={rent && sale ? 'tab-rent' : undefined} data-pane="rent">
+      <p class="headline">
+        <span class="price big">{formatPrice(v.data.priceDay!, lang, site.currency)}</span>
+        <span class="muted">{d.perDay}</span>
+      </p>
+      <div class="dates">
+        <div class="field">
+          <label for="bk-from">{d.booking.pickup}</label>
+          <input class="input" type="date" id="bk-from" name="from" />
+        </div>
+        <div class="field">
+          <label for="bk-to">{d.booking.return}</label>
+          <input class="input" type="date" id="bk-to" name="to" />
+        </div>
+      </div>
+      <div class="field">
+        <label for="bk-place">{d.booking.where}</label>
+        <select class="select" id="bk-place" name="place">
+          {site.locations.map((l) => <option value={l.label[lang]} data-city={l.city}>{l.label[lang]}</option>)}
+        </select>
+      </div>
+      <p class="total" aria-live="polite" data-total>{d.booking.pickDates}</p>
+      <WaButton
+        lang={lang}
+        label={d.wa.book}
+        block
+        intent={{ kind: 'rent', car, place: site.locations[0].label[lang], url: pageUrl }}
+        class="bk-btn"
+      />
+    </div>
+  )}
+
+  {sale && (
+    <div id="bk-sale" class="pane" role={rent && sale ? 'tabpanel' : undefined} aria-labelledby={rent && sale ? 'tab-sale' : undefined} data-pane="sale" hidden={rent}>
+      <p class="headline">
+        <span class="muted small">{d.booking.salePrice}</span>
+        <span class="price big">{salePrice}</span>
+      </p>
+      <div class="field">
+        <label for="bk-visit">{d.booking.visitDate}</label>
+        <input class="input" type="date" id="bk-visit" name="visit" />
+        <p class="muted small">{d.booking.visitHint}</p>
+      </div>
+      <WaButton lang={lang} label={d.wa.visit} block intent={{ kind: 'sale', car, price: salePrice, url: pageUrl }} class="bk-btn" />
+    </div>
+  )}
+</div>
+
+<script>
+  import { waLink, type Intent } from '../lib/whatsapp';
+
+  const panel = document.querySelector<HTMLElement>('[data-booking]');
+  if (panel) {
+    const { car = '', url, lang: l, priceDay, salePrice } = panel.dataset;
+    const lang = l === 'en' ? 'en' : 'es';
+    const day = Number(priceDay || 0);
+    const $ = <T extends Element>(sel: string) => panel.querySelector<T>(sel);
+    const from = $<HTMLInputElement>('#bk-from');
+    const to = $<HTMLInputElement>('#bk-to');
+    const place = $<HTMLSelectElement>('#bk-place');
+    const visit = $<HTMLInputElement>('#bk-visit');
+    const total = $<HTMLElement>('[data-total]');
+    let active: 'rent' | 'sale' = panel.dataset.default === 'sale' ? 'sale' : 'rent';
+
+    const iso = (d: Date) => d.toISOString().slice(0, 10);
+    const addDays = (s: string, n: number) => {
+      const d = new Date(`${s}T00:00:00Z`);
+      d.setUTCDate(d.getUTCDate() + n);
+      return iso(d);
+    };
+    const today = iso(new Date(Date.now() - new Date().getTimezoneOffset() * 60000));
+    if (from) from.min = today;
+    if (to) to.min = addDays(today, 1);
+    if (visit) visit.min = today;
+
+    // Pre-select the delivery point in the city chosen on the home page.
+    try {
+      const city = sessionStorage.getItem('le:city');
+      const match = city && place ? [...place.options].find((o) => o.dataset.city === city) : null;
+      if (match && place) place.value = match.value;
+    } catch {}
+
+    const money = (n: number) =>
+      `US$ ${new Intl.NumberFormat(lang === 'es' ? 'es-DO' : 'en-US', { maximumFractionDigits: 0 }).format(n)}`;
+    const daysLabel = (n: number) => (lang === 'es' ? (n === 1 ? '1 día' : `${n} días`) : n === 1 ? '1 day' : `${n} days`);
+    const hint = total?.textContent ?? '';
+    const estimate =
+      lang === 'es' ? 'Precio estimado. Te confirmamos el total por WhatsApp.' : 'Estimated price. We confirm the total on WhatsApp.';
+
+    function update() {
+      let intent: Intent;
+      if (active === 'rent') {
+        if (from?.value && to) {
+          to.min = addDays(from.value, 1);
+          if (to.value && to.value <= from.value) to.value = '';
+        }
+        const days =
+          from?.value && to?.value
+            ? Math.round((Date.parse(to.value) - Date.parse(from.value)) / 86400000)
+            : 0;
+        if (total) {
+          if (days > 0) {
+            total.innerHTML = '';
+            const line = document.createElement('span');
+            line.className = 'total-line';
+            line.textContent = `${daysLabel(days)} × ${money(day)} = `;
+            const sum = document.createElement('strong');
+            sum.className = 'price';
+            sum.textContent = money(days * day);
+            line.append(sum);
+            const note = document.createElement('span');
+            note.className = 'muted small';
+            note.textContent = estimate;
+            total.append(line, note);
+          } else total.textContent = hint;
+        }
+        intent = {
+          kind: 'rent',
+          car,
+          from: days > 0 ? from!.value : undefined,
+          to: days > 0 ? to!.value : undefined,
+          days: days > 0 ? days : undefined,
+          place: place?.value,
+          url,
+        };
+      } else {
+        intent = { kind: 'sale', car, price: salePrice, visit: visit?.value || undefined, url };
+      }
+      const href = waLink(intent, lang);
+      const label = panel!.querySelector<HTMLElement>(`[data-pane="${active}"] [data-wa-label]`)?.textContent ?? '';
+      document.querySelectorAll<HTMLAnchorElement>('[data-pane] [data-wa], [data-bar] [data-wa]').forEach((a) => {
+        if (a.closest('[data-pane]') && !a.closest(`[data-pane="${active}"]`)) return;
+        a.href = href;
+      });
+      document.querySelectorAll<HTMLElement>('[data-bar] [data-wa-label]').forEach((s) => (s.textContent = label));
+      document.dispatchEvent(new CustomEvent('booking:mode', { detail: active }));
+    }
+
+    // Tabs (only present when a vehicle is both for rent and for sale)
+    const tabs = [...panel.querySelectorAll<HTMLButtonElement>('[data-tab]')];
+    const select = (tab: HTMLButtonElement) => {
+      active = tab.dataset.tab === 'sale' ? 'sale' : 'rent';
+      tabs.forEach((t) => {
+        const on = t === tab;
+        t.setAttribute('aria-selected', String(on));
+        t.tabIndex = on ? 0 : -1;
+      });
+      panel.querySelectorAll<HTMLElement>('[data-pane]').forEach((p) => (p.hidden = p.dataset.pane !== active));
+      update();
+    };
+    tabs.forEach((tab, i) => {
+      tab.addEventListener('click', () => select(tab));
+      tab.addEventListener('keydown', (e) => {
+        if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+        const next = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+        next.focus();
+        select(next);
+      });
+    });
+
+    panel.addEventListener('input', update);
+    panel.addEventListener('change', update);
+    update();
+  }
+</script>
+
+<style>
+  .panel {
+    display: grid;
+    gap: 20px;
+    padding: clamp(20px, 3vw, 32px);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--surface);
+  }
+  .tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 4px;
+    border-radius: 999px;
+    background: var(--sunk);
+  }
+  .tabs button {
+    min-height: 40px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .tabs button[aria-selected='true'] {
+    background: var(--surface);
+    color: var(--text);
+  }
+  .pane {
+    display: grid;
+    gap: 18px;
+  }
+  .pane[hidden] {
+    display: none;
+  }
+  .headline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 8px;
+  }
+  .big {
+    font-size: var(--step-3);
+    font-weight: 400;
+    font-stretch: var(--wide);
+    line-height: 1;
+  }
+  .small {
+    font-size: var(--step--1);
+  }
+  .dates {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 12px;
+  }
+  .total {
+    display: grid;
+    gap: 4px;
+    min-height: 3.2em;
+    color: var(--muted);
+  }
+  .total :global(.total-line) {
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  .total :global(.small) {
+    font-size: var(--step--1);
+  }
+  @media (max-width: 380px) {
+    .dates {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
