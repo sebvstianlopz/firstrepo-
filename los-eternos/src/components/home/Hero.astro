@@ -22,10 +22,10 @@ const airports = site.locations.map((l) => l.label.es.match(/\((\w{3})\)/)?.[1])
   {/* A car drives across as the visitor scrolls; the headline and booking bar wipe in behind it. */}
   <ScrollFlyIn
     client:load
-    imageUrl={asset('images/hero-car.svg')}
+    imageUrl={asset('images/hero-car.webp')}
     imageAlt=""
     reveal
-    revealAt={0.3}
+    revealAt={0.055}
     className="hero-fly"
     stickyClassName="hero-stage"
     imageClassName="hero-car"
@@ -113,7 +113,8 @@ const airports = site.locations.map((l) => l.label.es.match(/\((\w{3})\)/)?.[1])
 
   /* Elements rendered by the React component (no Astro scope attribute). */
   .hero :global(.hero-fly) {
-    --fly-w: 78%;
+    --fly-w: 64%;
+    --car-pb: clamp(16px, 3vw, 48px);
     height: 240vh;
   }
   .hero :global(.hero-stage) {
@@ -122,7 +123,28 @@ const airports = site.locations.map((l) => l.label.es.match(/\((\w{3})\)/)?.[1])
   }
   .hero :global(.hero-car) {
     align-items: flex-end;
-    padding-bottom: 3%;
+    padding-bottom: var(--car-pb);
+  }
+  /* Light trail behind the car: streaks at taillight height that fade out to the left.
+     Same height as the car image (width / 3), so the streaks line up at any size. */
+  .hero :global(.hero-car)::before {
+    content: '';
+    position: absolute;
+    right: 94.5%;
+    bottom: var(--car-pb);
+    width: 45%;
+    aspect-ratio: 1.35;
+    pointer-events: none;
+    background:
+      linear-gradient(90deg, transparent, rgb(255 90 69 / 0.9)) 0 22% / 100% 3px no-repeat,
+      linear-gradient(90deg, transparent 30%, rgb(255 90 69 / 0.55)) 0 34% / 100% 1px no-repeat,
+      linear-gradient(90deg, transparent 10%, rgb(224 48 30 / 0.7)) 0 48% / 100% 2px no-repeat,
+      linear-gradient(90deg, transparent 45%, rgb(224 48 30 / 0.4)) 0 86% / 100% 2px no-repeat,
+      radial-gradient(60% 45% at 100% 38%, rgb(224 48 30 / 0.28), transparent 70%);
+    filter: blur(0.6px);
+    /* --p is the car's progress (0 → 1); the trail fades over the last quarter so it
+       leaves the stage with the car instead of lingering at the right edge. */
+    opacity: clamp(0, (1 - var(--p, 0)) * 4, 1);
   }
   /* Reduced motion: no car and no scroll track, just the finished hero. */
   @media (prefers-reduced-motion: reduce) {
@@ -308,13 +330,11 @@ const airports = site.locations.map((l) => l.label.es.match(/\((\w{3})\)/)?.[1])
       --corner: 22px;
       padding-inline: 10px;
     }
-    .hero :global(.hero-fly) {
-      --fly-w: 128%;
-      height: 220vh;
-    }
     /* Drive across the booking bar, the part it reveals. */
-    .hero :global(.hero-car) {
-      padding-bottom: calc((100svh - 92px) * 0.22);
+    .hero :global(.hero-fly) {
+      --fly-w: 104%;
+      --car-pb: calc((100svh - 92px) * 0.22);
+      height: 220vh;
     }
     .frame {
       clip-path: polygon(
