@@ -20,7 +20,7 @@ const airports = site.locations.map((l) => l.label.es.match(/\((\w{3})\)/)?.[1])
 ---
 <section
   class="hero"
-  style={`--trail-img: url(${asset('images/hero-car-trail.svg')}); --taillight-img: url(${asset('images/hero-car-taillight.svg')})`}
+  style={`--trail-img: url(${asset('images/hero-car-trail.svg')}); --fx-img: url(${asset('images/hero-car-fx.svg')})`}
 >
   {/* A car drives across as the visitor scrolls; the headline and booking bar wipe in behind it. */}
   <ScrollFlyIn
@@ -158,13 +158,18 @@ const airports = site.locations.map((l) => l.label.es.match(/\((\w{3})\)/)?.[1])
        leaves the stage with the car instead of lingering at the right edge. */
     opacity: clamp(0, (1 - var(--p, 0)) * 4, 1);
   }
-  /* Taillight: a breathing glow and a light sweep running down the LED bar (x = 0…400). */
+  /* On top of the photo: the taillight's breathing glow and LED sweep, and tire smoke
+     billowing back from each tire. It spans x = -900…2000 and y = -500…900 of the photo,
+     so it is shifted down by its extra 233 units below the image (233 / 1400 of its height). */
   .hero :global(.hero-car)::after {
     z-index: 2;
-    left: 0;
-    width: 20%;
-    aspect-ratio: 400 / 667;
-    background-image: var(--taillight-img);
+    left: -45%;
+    width: 145%;
+    aspect-ratio: 2900 / 1400;
+    transform: translateY(16.643%);
+    background-image: var(--fx-img);
+    /* Trailing smoke leaves with the car, like the light trail. */
+    opacity: clamp(0, (1 - var(--p, 0)) * 4, 1);
   }
   /* Reduced motion: no car and no scroll track, just the finished hero. */
   @media (prefers-reduced-motion: reduce) {
