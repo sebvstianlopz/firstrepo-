@@ -18,7 +18,7 @@ Built with [Astro](https://astro.build) as a static site. No server, no database
 | Show a car on the home page | Add `featured: true` |
 | Offer a car for sale | Add `mode: sale` (or `both`) and `priceSale: 25000`. The catalog's sale filter and the car's Buy tab appear automatically |
 | Replace the home page hero photo | Overwrite `src/assets/hero.jpg` (landscape, at least 2400 × 1350 px, car on the right half) |
-| Replace the car that drives across the hero | Overwrite `public/images/hero-car.svg`, or add a transparent side-view PNG to `public/images/` and point `imageUrl` in `src/components/home/Hero.astro` at it. Set `revealAt` there to where the car's rear sits, as a fraction of the image width |
+| Replace the car that drives across the hero | Overwrite `public/images/hero-car.webp` with a transparent side-view image of a car facing right (about 3:1). In `src/components/home/Hero.astro`, set `revealAt` to where the rear bumper sits, as a fraction of the image width |
 | Change the WhatsApp number, hours, delivery points or Instagram | `src/config/site.ts` |
 | Change any text on the site (ES and EN) | `src/i18n/index.ts` |
 
