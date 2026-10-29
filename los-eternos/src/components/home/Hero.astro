@@ -115,6 +115,7 @@ const airports = site.locations.map((l) => l.label.es.match(/\((\w{3})\)/)?.[1])
   .hero :global(.hero-fly) {
     --fly-w: 64%;
     --car-pb: clamp(16px, 3vw, 48px);
+    --reveal-feather: 24%;
     height: 240vh;
   }
   .hero :global(.hero-stage) {
@@ -333,6 +334,7 @@ const airports = site.locations.map((l) => l.label.es.match(/\((\w{3})\)/)?.[1])
     /* Drive across the booking bar, the part it reveals. */
     .hero :global(.hero-fly) {
       --fly-w: 104%;
+      --reveal-feather: 40%;
       --car-pb: calc((100svh - 92px) * 0.22);
       height: 220vh;
     }
