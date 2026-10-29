@@ -18,7 +18,10 @@ const categories = categorySummary(vehicles).map((c) => c.category);
 const prices = vehicles.map((v) => v.data.priceDay).filter((p): p is number => !!p);
 const airports = site.locations.map((l) => l.label.es.match(/\((\w{3})\)/)?.[1]).filter(Boolean);
 ---
-<section class="hero">
+<section
+  class="hero"
+  style={`--trail-img: url(${asset('images/hero-car-trail.svg')}); --taillight-img: url(${asset('images/hero-car-taillight.svg')})`}
+>
   {/* A car drives across as the visitor scrolls; the headline and booking bar wipe in behind it. */}
   <ScrollFlyIn
     client:load
@@ -126,26 +129,40 @@ const airports = site.locations.map((l) => l.label.es.match(/\((\w{3})\)/)?.[1])
     align-items: flex-end;
     padding-bottom: var(--car-pb);
   }
-  /* Light trail behind the car: streaks at taillight height that fade out to the left.
-     Same height as the car image (width / 3), so the streaks line up at any size. */
-  .hero :global(.hero-car)::before {
+  /* Light effects drawn in the car photo's own pixel space (2000 × 667) and laid over the
+     image box: the box sits at the bottom of the car container, full width, width / 3 tall.
+     Layer order: trail (under the car) → car photo → taillight glow (on top). */
+  .hero :global(.hero-car img) {
+    position: relative;
+    z-index: 1;
+  }
+  .hero :global(.hero-car)::before,
+  .hero :global(.hero-car)::after {
     content: '';
     position: absolute;
-    right: 94.5%;
     bottom: var(--car-pb);
-    width: 45%;
-    aspect-ratio: 1.35;
     pointer-events: none;
-    background:
-      linear-gradient(90deg, transparent, rgb(255 90 69 / 0.9)) 0 22% / 100% 3px no-repeat,
-      linear-gradient(90deg, transparent 30%, rgb(255 90 69 / 0.55)) 0 34% / 100% 1px no-repeat,
-      linear-gradient(90deg, transparent 10%, rgb(224 48 30 / 0.7)) 0 48% / 100% 2px no-repeat,
-      linear-gradient(90deg, transparent 45%, rgb(224 48 30 / 0.4)) 0 86% / 100% 2px no-repeat,
-      radial-gradient(60% 45% at 100% 38%, rgb(224 48 30 / 0.28), transparent 70%);
-    filter: blur(0.6px);
+    background: no-repeat 0 0 / 100% 100%;
+  }
+  /* Light trail: streaks start just under the body at taillight height, with light pulses
+     flowing back along them. It spans x = -1000…300 of the photo. */
+  .hero :global(.hero-car)::before {
+    z-index: 0;
+    left: -50%;
+    width: 65%;
+    aspect-ratio: 1300 / 667;
+    background-image: var(--trail-img);
     /* --p is the car's progress (0 → 1); the trail fades over the last quarter so it
        leaves the stage with the car instead of lingering at the right edge. */
     opacity: clamp(0, (1 - var(--p, 0)) * 4, 1);
+  }
+  /* Taillight: a breathing glow and a light sweep running down the LED bar (x = 0…400). */
+  .hero :global(.hero-car)::after {
+    z-index: 2;
+    left: 0;
+    width: 20%;
+    aspect-ratio: 400 / 667;
+    background-image: var(--taillight-img);
   }
   /* Reduced motion: no car and no scroll track, just the finished hero. */
   @media (prefers-reduced-motion: reduce) {

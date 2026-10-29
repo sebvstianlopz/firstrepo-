@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1000 0 1300 667" preserveAspectRatio="none">
+  <style>
+    .flow { animation: flow 0.8s linear infinite; }
+    @keyframes flow { to { transform: translateX(-280px); } }
+    @media (prefers-reduced-motion: reduce) { .flow { animation: none; } }
+  </style>
+  <defs>
+    <linearGradient id="fade" gradientUnits="userSpaceOnUse" x1="-1000" y1="0" x2="160" y2="0">
+      <stop offset="0" stop-color="#e0301e" stop-opacity="0"/>
+      <stop offset=".65" stop-color="#e0301e" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#ff5a45"/>
+    </linearGradient>
+    <!-- One light pulse per 280px tile, repeated along the trail. -->
+    <linearGradient id="pulse" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="280" y2="0" spreadMethod="repeat">
+      <stop offset="0" stop-color="#ffd2c8" stop-opacity="0"/>
+      <stop offset=".45" stop-color="#ffd2c8" stop-opacity="0"/>
+      <stop offset=".55" stop-color="#fff1ec" stop-opacity="1"/>
+      <stop offset=".75" stop-color="#ffd2c8" stop-opacity="0"/>
+      <stop offset="1" stop-color="#ffd2c8" stop-opacity="0"/>
+    </linearGradient>
+    <!-- Pulses are brightest at the car and fade out along the trail. -->
+    <linearGradient id="reach" gradientUnits="userSpaceOnUse" x1="-1000" y1="0" x2="160" y2="0">
+      <stop offset="0" stop-color="#000"/>
+      <stop offset=".5" stop-color="#555"/>
+      <stop offset="1" stop-color="#fff"/>
+    </linearGradient>
+    <mask id="pulse-mask" maskUnits="userSpaceOnUse" x="-1000" y="0" width="1300" height="667">
+      <g fill="url(#reach)"><rect x="-1000" y="148.5" width="1224" height="3" rx="1.5" fill="url(#reach)"/><rect x="-1000" y="197" width="1184" height="6" rx="3" fill="url(#reach)"/><rect x="-1000" y="253" width="1157" height="4" rx="2" fill="url(#reach)"/><rect x="-1000" y="306.5" width="1152" height="7" rx="3.5" fill="url(#reach)"/><rect x="-1000" y="348.5" width="1150" height="3" rx="1.5" fill="url(#reach)"/><rect x="-1000" y="424" width="1127" height="2" rx="1" fill="url(#reach)"/></g>
+    </mask>
+    <radialGradient id="haze" cx="140" cy="270" r="420" gradientUnits="userSpaceOnUse" gradientTransform="translate(140 270) scale(1 .38) translate(-140 -270)">
+      <stop offset="0" stop-color="#e0301e" stop-opacity=".32"/>
+      <stop offset="1" stop-color="#e0301e" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-5%" y="-200%" width="110%" height="500%"><feGaussianBlur stdDeviation="1.4"/></filter>
+  </defs>
+  <rect x="-1000" y="60" width="1300" height="420" fill="url(#haze)"/>
+  <g filter="url(#soft)"><rect x="-1000" y="148.5" width="1224" height="3" rx="1.5" fill="url(#fade)" opacity="0.55"/><rect x="-1000" y="197" width="1184" height="6" rx="3" fill="url(#fade)" opacity="0.95"/><rect x="-1000" y="253" width="1157" height="4" rx="2" fill="url(#fade)" opacity="0.8"/><rect x="-1000" y="306.5" width="1152" height="7" rx="3.5" fill="url(#fade)" opacity="1"/><rect x="-1000" y="348.5" width="1150" height="3" rx="1.5" fill="url(#fade)" opacity="0.6"/><rect x="-1000" y="424" width="1127" height="2" rx="1" fill="url(#fade)" opacity="0.4"/></g>
+  <g mask="url(#pulse-mask)"><g class="flow"><rect x="-1000" y="100" width="1860" height="360" fill="url(#pulse)"/></g></g>
+</svg>
