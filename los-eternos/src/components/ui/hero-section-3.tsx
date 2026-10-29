@@ -30,6 +30,12 @@ interface ScrollFlyInProps extends React.HTMLAttributes<HTMLDivElement> {
 */
 const W = "var(--fly-w, 60%)";
 const IMAGE_LEFT = `calc(var(--p) * (100% + ${W}) - ${W})`;
+// The reveal edge: where the image's rear sits (`revealAt` of its width).
+const EDGE = `(${IMAGE_LEFT} + var(--reveal-at) * ${W})`;
+// Content fades in over this band behind the edge instead of appearing along a hard line.
+// It narrows to nothing as the image leaves, so everything ends fully visible.
+const FEATHER = `(var(--reveal-feather, 22%) * (1 - var(--p)))`;
+const REVEAL_MASK = `linear-gradient(to right, #000 calc(${EDGE} - ${FEATHER}), transparent calc(${EDGE}))`;
 
 const ScrollFlyIn = React.forwardRef<HTMLDivElement, ScrollFlyInProps>(
   (
@@ -108,7 +114,11 @@ const ScrollFlyIn = React.forwardRef<HTMLDivElement, ScrollFlyInProps>(
             style={
               reveal
                 ? {
-                    clipPath: `inset(0 calc(100% - (${IMAGE_LEFT} + var(--reveal-at) * ${W})) 0 0)`,
+                    // The mask draws the soft fade; the clip sits where the mask is already
+                    // transparent, so it's never seen but keeps hidden controls unclickable.
+                    maskImage: REVEAL_MASK,
+                    WebkitMaskImage: REVEAL_MASK,
+                    clipPath: `inset(0 calc(100% - ${EDGE}) 0 0)`,
                   }
                 : undefined
             }
