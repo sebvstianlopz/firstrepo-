@@ -39,6 +39,7 @@ const es = {
     cityLabel: 'Ciudad',
     cta: 'Ver vehículos',
     scroll: 'Desliza',
+    cue: 'Desliza para descubrir',
   },
   browse: {
     title: 'Encuentra el tuyo',
@@ -169,6 +170,7 @@ const en: Dict = {
     cityLabel: 'City',
     cta: 'See vehicles',
     scroll: 'Scroll',
+    cue: 'Scroll to discover',
   },
   browse: {
     title: 'Find yours',

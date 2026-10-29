@@ -1,0 +1,21 @@
+/* Tailwind for the React components in src/components/ui (shadcn).
+   Preflight is left out on purpose: the site's own reset and type styles live in
+   global.css, and Tailwind's would override them. Classes are only generated from
+   the ui folder, so utilities never collide with the Astro components' class names. */
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities) source(none);
+@source '../components/ui';
+
+/* shadcn color names, mapped to the site's tokens. */
+@theme inline {
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --color-muted: var(--panel);
+  --color-muted-foreground: var(--muted);
+  --color-primary: var(--signal);
+  --color-primary-foreground: var(--on-signal);
+  --color-border: var(--line);
+  --font-sans: var(--font);
+  --font-mono: var(--mono);
+}
