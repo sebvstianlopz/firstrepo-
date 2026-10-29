@@ -1,0 +1,10 @@
+# Catálogo fila 7.
+brand: Mercedes-Benz
+model: GLS
+color: blanco
+category: lujo
+priceDay: 290
+seats: 7             # estimado según el modelo, por confirmar
+featured: true
+order: 7
+photos: [./1.jpg]

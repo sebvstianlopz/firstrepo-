@@ -1,0 +1,10 @@
+# Catálogo fila 37.
+brand: Mercedes-Benz
+model: GLE
+color: blanco
+category: lujo
+priceDay: 240
+seats: 5             # estimado según el modelo, por confirmar
+order: 37
+photos: [./1.jpg]
+photoPending: true    # reemplaza 1.jpg con la foto real y borra esta línea

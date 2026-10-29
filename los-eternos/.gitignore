@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.astro/
+
+# The repo root ignores lib/ (Python template); this project needs src/lib.
+!src/lib/

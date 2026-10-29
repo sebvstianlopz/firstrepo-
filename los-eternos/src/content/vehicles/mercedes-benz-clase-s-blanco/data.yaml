@@ -1,0 +1,10 @@
+# Catálogo fila 13.
+brand: Mercedes-Benz
+model: Clase S
+color: blanco
+category: lujo
+priceDay: 200
+seats: 5             # estimado según el modelo, por confirmar
+order: 13
+photos: [./1.jpg]
+photoPending: true    # reemplaza 1.jpg con la foto real y borra esta línea

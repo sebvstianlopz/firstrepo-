@@ -1,0 +1,9 @@
+# Catálogo fila 50.
+model: { es: SUV, en: SUV }
+color: negro
+category: suv
+priceDay: 90
+seats: 5             # estimado según el modelo, por confirmar
+order: 50
+photos: [./1.jpg]
+photoPending: true    # reemplaza 1.jpg con la foto real y borra esta línea

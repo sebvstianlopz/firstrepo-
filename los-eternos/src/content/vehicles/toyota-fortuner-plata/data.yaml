@@ -1,0 +1,10 @@
+# Catálogo fila 41.
+brand: Toyota
+model: Fortuner
+color: plata
+category: suv
+priceDay: 130
+seats: 7             # estimado según el modelo, por confirmar
+order: 41
+photos: [./1.jpg]
+photoPending: true    # reemplaza 1.jpg con la foto real y borra esta línea

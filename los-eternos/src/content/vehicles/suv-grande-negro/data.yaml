@@ -1,0 +1,9 @@
+# Catálogo fila 38.
+model: { es: SUV grande, en: Full-size SUV }
+color: negro
+category: lujo
+priceDay: 320
+seats: 7             # estimado según el modelo, por confirmar
+order: 38
+photos: [./1.jpg]
+photoPending: true    # reemplaza 1.jpg con la foto real y borra esta línea

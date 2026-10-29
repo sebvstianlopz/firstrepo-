@@ -1,0 +1,303 @@
+/* Los Eternos — design tokens and base styles.
+   A dark showroom: near-black, graphite panels, warm white, and one signal red
+   used sparingly. Wide Archivo capitals for display, JetBrains Mono for data. */
+
+:root {
+  --bg: #0b0c0d;
+  --panel: #16181a;
+  --panel-2: #202326;
+  --line: rgb(242 240 236 / 0.12);
+  --line-strong: rgb(242 240 236 / 0.28);
+  --text: #f2f0ec;
+  --muted: #8a8f93;
+  /* Fills only (buttons, active states), always with white text: 4.55:1. */
+  --signal: #e0301e;
+  --signal-hover: #d42a1c;
+  --on-signal: #ffffff;
+  /* Red as text or thin strokes: ~6:1 on --bg. */
+  --signal-text: #ff5a45;
+  --wa: #25d366;
+  --focus: var(--text);
+
+  --font: 'Archivo Variable', 'Archivo', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  /* Modular scale, ratio 1.25 on a 17px body */
+  --step--1: 0.85rem;
+  --step-0: 1.0625rem;
+  --step-1: 1.33rem;
+  --step-2: 1.66rem;
+  --step-3: clamp(1.9rem, 1.2rem + 2.4vw, 3.1rem);
+  --step-4: clamp(2.5rem, 1.1rem + 5.4vw, 6.25rem);
+
+  --gutter: clamp(16px, 4vw, 48px);
+  --max: 1320px;
+  --section: clamp(80px, 11vw, 152px);
+  --r-img: 6px;
+  --cut: 14px;
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+
+  color-scheme: dark;
+}
+
+@view-transition {
+  navigation: auto;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scroll-padding-top: 96px;
+  background: var(--bg);
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: var(--step-0);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 800;
+  font-stretch: 125%;
+  line-height: 0.98;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: var(--step-4);
+}
+h2 {
+  font-size: var(--step-3);
+}
+h3 {
+  font-size: var(--step-0);
+  font-weight: 700;
+  font-stretch: 118%;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
+}
+
+p {
+  margin: 0;
+  text-wrap: pretty;
+}
+
+a {
+  color: inherit;
+}
+
+::selection {
+  background: var(--signal);
+  color: var(--on-signal);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.container {
+  width: 100%;
+  max-width: calc(var(--max) + 2 * var(--gutter));
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+.section {
+  padding-block: var(--section);
+}
+
+.lede {
+  max-width: 34em;
+  font-size: var(--step-1);
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+/* Data labels: real values only (fleet number, seats, prices, dates). */
+.mono {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
+
+.price {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Signature shape: top-right and bottom-left corners cut at 45°. */
+.chamfer {
+  clip-path: polygon(
+    0 0,
+    calc(100% - var(--cut)) 0,
+    100% var(--cut),
+    100% 100%,
+    var(--cut) 100%,
+    0 calc(100% - var(--cut))
+  );
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Buttons */
+.btn {
+  --cut: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7em;
+  min-height: 50px;
+  padding: 0.7em 1.6em;
+  border: 1px solid transparent;
+  border-radius: 0;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-stretch: 115%;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.2s var(--ease), color 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+.btn:focus-visible {
+  outline-offset: -6px;
+}
+.btn-primary {
+  clip-path: polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, var(--cut) 100%, 0 calc(100% - var(--cut)));
+  background: var(--signal);
+  color: var(--on-signal);
+}
+.btn-primary:hover {
+  background: var(--signal-hover);
+}
+.btn-ghost {
+  border-color: var(--line-strong);
+  background: transparent;
+  color: var(--text);
+}
+.btn-ghost:hover {
+  border-color: var(--text);
+}
+.btn-light {
+  clip-path: polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, var(--cut) 100%, 0 calc(100% - var(--cut)));
+  background: var(--text);
+  color: var(--bg);
+}
+.btn-light:hover {
+  background: #fff;
+}
+.btn-block {
+  width: 100%;
+}
+
+.link {
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: var(--signal-text);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.35em;
+}
+.link:hover {
+  text-decoration-thickness: 2px;
+}
+
+/* Form fields */
+.field {
+  display: grid;
+  gap: 8px;
+}
+.field label,
+.field .label {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.input,
+.select {
+  width: 100%;
+  min-width: 0;
+  min-height: 50px;
+  padding: 0.6em 0.9em;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--panel-2);
+  color: var(--text);
+  font: inherit;
+}
+.input::-webkit-calendar-picker-indicator {
+  filter: invert(0.9);
+  cursor: pointer;
+}
+.select {
+  appearance: none;
+  padding-right: 2.6em;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none' stroke='%238a8f93' stroke-width='1.6'%3E%3Cpath d='m1 1.5 5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.95em center;
+}
+.select option {
+  background: var(--panel);
+  color: var(--text);
+}
+.input:hover,
+.select:hover {
+  border-color: var(--line-strong);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  @view-transition {
+    navigation: none;
+  }
+}

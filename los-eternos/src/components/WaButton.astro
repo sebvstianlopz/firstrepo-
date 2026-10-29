@@ -1,0 +1,28 @@
+---
+import Icon from './Icon.astro';
+import { waLink, type Intent } from '../lib/whatsapp';
+import type { Lang } from '../config/site';
+
+interface Props {
+  lang: Lang;
+  intent?: Intent;
+  label: string;
+  block?: boolean;
+  /** primary = signal red; ghost = outlined; light = warm white (on red/photo backgrounds) */
+  variant?: 'primary' | 'ghost' | 'light';
+  id?: string;
+  class?: string;
+}
+const { lang, intent = { kind: 'general' }, label, block = false, variant = 'primary', id, class: cls } = Astro.props;
+---
+<a
+  id={id}
+  class:list={['btn', `btn-${variant}`, { 'btn-block': block }, cls]}
+  href={waLink(intent, lang)}
+  target="_blank"
+  rel="noopener"
+  data-wa
+>
+  <Icon name="whatsapp" size={18} />
+  <span data-wa-label>{label}</span>
+</a>

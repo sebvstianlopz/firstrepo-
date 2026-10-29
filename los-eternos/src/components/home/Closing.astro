@@ -1,0 +1,63 @@
+---
+import WaButton from '../WaButton.astro';
+import { t } from '../../i18n';
+import type { Lang } from '../../config/site';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const d = t(lang);
+---
+<section class="closing" aria-labelledby="closing-title">
+  <div class="container inner">
+    <h2 id="closing-title">{d.closing.title}</h2>
+    <p>{d.closing.text}</p>
+    <WaButton lang={lang} label={d.wa.write} />
+  </div>
+  <div class="mark" aria-hidden="true" data-text="Los Eternos"></div>
+</section>
+
+<style>
+  .closing {
+    position: relative;
+    overflow: hidden;
+    padding-top: var(--section);
+    border-top: 1px solid var(--line);
+  }
+  .inner {
+    display: grid;
+    justify-items: start;
+    gap: 22px;
+  }
+  h2 {
+    font-size: var(--step-4);
+  }
+  p {
+    max-width: 30em;
+    font-size: var(--step-1);
+    line-height: 1.5;
+    color: var(--muted);
+  }
+  .inner :global(.btn) {
+    margin-top: 10px;
+  }
+  /* The name, set huge and cropped by the footer: the last thing on the page. */
+  .mark {
+    margin: clamp(56px, 8vw, 112px) 0 -0.2em;
+    padding-inline: var(--gutter);
+    max-width: none;
+    font-size: 9.6vw;
+    font-weight: 800;
+    font-stretch: 125%;
+    line-height: 0.8;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: var(--panel-2);
+    user-select: none;
+  }
+  .mark::before {
+    content: attr(data-text);
+  }
+</style>

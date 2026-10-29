@@ -1,0 +1,9 @@
+# Catálogo fila 5.
+brand: Mercedes-Benz
+model: GLE
+color: negro
+category: lujo
+priceDay: 300
+seats: 5             # estimado según el modelo, por confirmar
+order: 5
+photos: [./1.jpg]

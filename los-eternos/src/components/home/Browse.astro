@@ -1,0 +1,205 @@
+---
+import { Image } from 'astro:assets';
+import Icon from '../Icon.astro';
+import { t, path, formatPrice } from '../../i18n';
+import { site, type Lang } from '../../config/site';
+import { categorySummary, type Vehicle } from '../../lib/vehicles';
+
+interface Props {
+  lang: Lang;
+  vehicles: Vehicle[];
+}
+const { lang, vehicles } = Astro.props;
+const d = t(lang);
+// Luxury leads as the large tile; the rest keep their usual order.
+const groups = categorySummary(vehicles).sort((a, b) => Number(b.category === 'lujo') - Number(a.category === 'lujo'));
+const services = [
+  { icon: 'pin' as const, ...d.services.items[1] },
+  { icon: 'calendar' as const, ...d.services.items[0] },
+];
+---
+<section class="section browse" aria-labelledby="browse-title">
+  <div class="container">
+    <header class="head">
+      <h2 id="browse-title">{d.browse.title}</h2>
+      <p class="lede">{d.browse.text}</p>
+    </header>
+
+    <ul class="bento">
+      {groups.map((g, i) => (
+        <li class:list={['tile', 'photo-tile', { big: i === 0 }]}>
+          <a href={`${path(lang, 'catalog')}?cat=${g.category}`}>
+            {g.cover && (
+              <Image
+                class="bg"
+                src={g.cover.data.photos[0]}
+                alt=""
+                widths={i === 0 ? [480, 720] : [320, 480]}
+                sizes={i === 0 ? '(max-width: 760px) 100vw, 50vw' : '(max-width: 760px) 50vw, 25vw'}
+              />
+            )}
+            <span class="badge" aria-hidden="true"><Icon name="arrow-up-right" size={16} /></span>
+            <span class="text">
+              <span class="name">{d.category[g.category]}</span>
+              <span class="mono meta">
+                {d.browse.count(g.count)}
+                {g.from && ` · ${d.from} ${formatPrice(g.from, lang, site.currency)}${d.perDay}`}
+              </span>
+            </span>
+          </a>
+        </li>
+      ))}
+      <li class="tile service all">
+        <a href={path(lang, 'catalog')}>
+          <span class="badge" aria-hidden="true"><Icon name="arrow-up-right" size={16} /></span>
+          <span class="text">
+            <span class="mono meta">{d.catalog.count(vehicles.length)}</span>
+            <span class="name small">{d.featured.all}</span>
+          </span>
+        </a>
+      </li>
+      {services.map((s) => (
+        <li class="tile service">
+          <a href={path(lang, 'services')}>
+            <span class="badge" aria-hidden="true"><Icon name={s.icon} size={16} /></span>
+            <span class="text">
+              <span class="name small">{s.t}</span>
+              <span class="desc">{s.d}</span>
+            </span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </div>
+</section>
+
+<style>
+  .head {
+    display: grid;
+    gap: 18px;
+    margin-bottom: clamp(32px, 5vw, 56px);
+  }
+  .bento {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-auto-rows: clamp(180px, 19vw, 260px);
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .tile {
+    position: relative;
+    min-width: 0;
+  }
+  .big {
+    grid-column: span 2;
+    grid-row: span 2;
+  }
+  .tile a {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    height: 100%;
+    overflow: hidden;
+    border-radius: var(--r-img);
+    background: var(--panel);
+    text-decoration: none;
+    isolation: isolate;
+  }
+  .tile :global(.bg) {
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.8s var(--ease), filter 0.4s var(--ease);
+    filter: saturate(0.85) brightness(0.8);
+  }
+  .photo-tile a::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(0deg, rgb(11 12 13 / 0.9) 0%, rgb(11 12 13 / 0.2) 55%, transparent 80%);
+  }
+  .tile a:hover :global(.bg) {
+    transform: scale(1.04);
+    filter: saturate(1) brightness(0.9);
+  }
+  .badge {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    background: rgb(11 12 13 / 0.6);
+    border: 1px solid var(--line-strong);
+    color: var(--text);
+    transition: transform 0.3s var(--ease), background-color 0.3s var(--ease), border-color 0.3s var(--ease);
+  }
+  .tile a:hover .badge,
+  .tile a:focus-visible .badge {
+    transform: translate(2px, -2px);
+    background: var(--signal);
+    border-color: var(--signal);
+    color: var(--on-signal);
+  }
+  .text {
+    display: grid;
+    gap: 8px;
+    padding: 18px;
+  }
+  .name {
+    font-size: var(--step-1);
+    font-weight: 800;
+    font-stretch: 125%;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+  .big .name {
+    font-size: var(--step-3);
+  }
+  .name.small {
+    font-size: var(--step-0);
+    line-height: 1.15;
+  }
+  .meta {
+    color: rgb(242 240 236 / 0.78);
+  }
+  .service a {
+    align-items: flex-end;
+    border: 1px solid var(--line);
+  }
+  .service a:hover {
+    border-color: var(--line-strong);
+  }
+  .desc {
+    color: var(--muted);
+    font-size: 0.92rem;
+    line-height: 1.5;
+  }
+  @media (max-width: 900px) {
+    .bento {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-auto-rows: 200px;
+    }
+  }
+  @media (max-width: 480px) {
+    .bento {
+      grid-auto-rows: 170px;
+    }
+    .text {
+      padding: 14px;
+    }
+    .name {
+      font-size: var(--step-0);
+    }
+    .desc {
+      display: none;
+    }
+  }
+</style>

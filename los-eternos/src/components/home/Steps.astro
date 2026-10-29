@@ -1,0 +1,56 @@
+---
+import { t } from '../../i18n';
+import type { Lang } from '../../config/site';
+
+interface Props {
+  lang: Lang;
+}
+const d = t(Astro.props.lang);
+---
+<section class="section" aria-labelledby="steps-title">
+  <div class="container">
+    <h2 id="steps-title">{d.steps.title}</h2>
+    <ol class="steps">
+      {d.steps.items.map((s, i) => (
+        <li>
+          <span class="n" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+          <h3>{s.t}</h3>
+          <p class="muted">{s.d}</p>
+        </li>
+      ))}
+    </ol>
+  </div>
+</section>
+
+<style>
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(24px, 4vw, 56px);
+    margin: clamp(32px, 5vw, 56px) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  li {
+    display: grid;
+    gap: 14px;
+    align-content: start;
+    padding-top: 22px;
+    border-top: 1px solid var(--line-strong);
+  }
+  .n {
+    font-size: var(--step-3);
+    font-weight: 800;
+    font-stretch: 125%;
+    line-height: 1;
+    color: var(--signal-text);
+  }
+  p {
+    max-width: 30em;
+  }
+  @media (max-width: 760px) {
+    .steps {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

@@ -1,0 +1,10 @@
+# Catálogo fila 22.
+brand: Chevrolet
+model: Silverado
+color: rojo
+category: pickup
+priceDay: 160
+seats: 5             # estimado según el modelo, por confirmar
+order: 22
+photos: [./1.jpg]
+photoPending: true    # reemplaza 1.jpg con la foto real y borra esta línea

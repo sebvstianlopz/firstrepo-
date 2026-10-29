@@ -1,0 +1,269 @@
+---
+import WaButton from './WaButton.astro';
+import { t, path } from '../i18n';
+import type { Lang } from '../config/site';
+
+interface Props {
+  lang: Lang;
+  alternate: string;
+}
+const { lang, alternate } = Astro.props;
+const d = t(lang);
+const here = Astro.url.pathname;
+const other = lang === 'es' ? 'en' : 'es';
+const links = [
+  { href: path(lang, 'catalog'), label: d.nav.catalog },
+  { href: path(lang, 'services'), label: d.nav.services },
+  { href: path(lang, 'about'), label: d.nav.about },
+];
+---
+<header class="site-header" data-header>
+  <div class="container bar">
+    <a class="wordmark" href={path(lang, 'home')}>Los Eternos</a>
+
+    <nav id="site-nav" class="nav" aria-label={lang === 'es' ? 'Principal' : 'Main'}>
+      <ul>
+        {links.map((l) => (
+          <li>
+            <a href={l.href} aria-current={here.startsWith(l.href) ? 'page' : undefined}>{l.label}</a>
+          </li>
+        ))}
+        <li class="nav-lang">
+          <a href={alternate} hreflang={other} lang={other}>{d.switchTo}</a>
+        </li>
+      </ul>
+    </nav>
+
+    <div class="actions">
+      <a class="lang mono" href={alternate} hreflang={other} lang={other}>
+        <span aria-hidden="true">{other.toUpperCase()}</span><span class="visually-hidden">{d.switchTo}</span>
+      </a>
+      <WaButton lang={lang} label={d.nav.book} class="book" />
+      <button class="menu" type="button" aria-expanded="false" aria-controls="site-nav">
+        <span class="visually-hidden">{lang === 'es' ? 'Menú' : 'Menu'}</span>
+        <span class="bars" aria-hidden="true"></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<script>
+  const header = document.querySelector<HTMLElement>('[data-header]');
+  const btn = header?.querySelector<HTMLButtonElement>('.menu');
+  btn?.addEventListener('click', () => {
+    const open = btn.getAttribute('aria-expanded') !== 'true';
+    btn.setAttribute('aria-expanded', String(open));
+    header?.classList.toggle('is-open', open);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && header?.classList.contains('is-open')) {
+      header.classList.remove('is-open');
+      btn?.setAttribute('aria-expanded', 'false');
+      btn?.focus();
+    }
+  });
+  // A hairline appears once the page scrolls under the header.
+  const onScroll = () => header?.classList.toggle('is-stuck', window.scrollY > 8);
+  addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+</script>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgb(11 12 13 / 0.82);
+    backdrop-filter: blur(16px) saturate(1.2);
+    -webkit-backdrop-filter: blur(16px) saturate(1.2);
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.3s var(--ease);
+  }
+  .site-header.is-stuck {
+    border-bottom-color: var(--line);
+  }
+  .bar {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    min-height: 76px;
+  }
+  .wordmark {
+    font-size: 1.05rem;
+    font-weight: 600;
+    font-stretch: 125%;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .nav {
+    margin-left: auto;
+  }
+  .nav ul {
+    display: flex;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .nav a {
+    position: relative;
+    display: block;
+    padding: 12px 14px;
+    text-decoration: none;
+    color: var(--muted);
+    font-size: 0.95rem;
+    transition: color 0.2s var(--ease);
+  }
+  .nav a:hover,
+  .nav a[aria-current='page'] {
+    color: var(--text);
+  }
+  .nav a[aria-current='page']::after {
+    content: '';
+    position: absolute;
+    left: 14px;
+    right: 14px;
+    bottom: 6px;
+    height: 2px;
+    background: var(--signal);
+  }
+  .nav-lang {
+    display: none;
+  }
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .lang {
+    display: grid;
+    place-items: center;
+    min-width: 48px;
+    min-height: 48px;
+    color: var(--muted);
+    text-decoration: none;
+  }
+  .lang:hover {
+    color: var(--text);
+  }
+  .actions :global(.book) {
+    min-height: 44px;
+    padding-inline: 1.2em;
+  }
+  .menu {
+    display: none;
+    width: 48px;
+    height: 48px;
+    border: 1px solid var(--line-strong);
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .bars,
+  .bars::before {
+    display: block;
+    width: 18px;
+    height: 1.5px;
+    margin-inline: auto;
+    background: currentColor;
+    transition: transform 0.25s var(--ease);
+  }
+  .bars {
+    transform: translateY(-3px);
+  }
+  .bars::before {
+    content: '';
+    transform: translateY(6px);
+  }
+  .is-open .bars {
+    transform: rotate(45deg);
+  }
+  .is-open .bars::before {
+    transform: rotate(-90deg);
+  }
+
+  @media (max-width: 860px) {
+    .menu {
+      display: inline-block;
+    }
+    .lang {
+      display: none;
+    }
+    .actions {
+      margin-left: auto;
+    }
+    .nav {
+      position: absolute;
+      inset: 100% 0 auto 0;
+      display: none;
+      padding: 8px var(--gutter) 24px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--line);
+    }
+    .is-open .nav {
+      display: block;
+    }
+    .nav ul {
+      flex-direction: column;
+    }
+    .nav a {
+      padding: 18px 0;
+      font-size: var(--step-2);
+      font-weight: 800;
+      font-stretch: 125%;
+      text-transform: uppercase;
+      color: var(--text);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav a[aria-current='page'] {
+      color: var(--signal-text);
+    }
+    .nav a[aria-current='page']::after {
+      display: none;
+    }
+    .nav-lang {
+      display: block;
+    }
+    .nav-lang a {
+      border-bottom: 0;
+      font-size: var(--step-0);
+      font-weight: 400;
+      font-stretch: 100%;
+      text-transform: none;
+      color: var(--muted);
+    }
+  }
+  @media (max-width: 480px) {
+    .bar {
+      gap: 10px;
+    }
+    .wordmark {
+      font-size: 0.86rem;
+      letter-spacing: 0.02em;
+    }
+    .actions {
+      gap: 6px;
+    }
+    .actions :global(.book) {
+      padding-inline: 0.9em;
+      letter-spacing: 0.04em;
+    }
+  }
+  /* Narrowest phones: the button keeps only the WhatsApp icon. */
+  @media (max-width: 360px) {
+    .actions :global(.book [data-wa-label]) {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+    }
+    .actions :global(.book) {
+      width: 48px;
+      padding: 0;
+    }
+  }
+</style>

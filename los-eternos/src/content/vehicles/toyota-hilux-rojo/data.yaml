@@ -1,0 +1,10 @@
+# Catálogo fila 18.
+brand: Toyota
+model: Hilux
+color: rojo
+category: pickup
+priceDay: 120
+seats: 5             # estimado según el modelo, por confirmar
+order: 18
+photos: [./1.jpg]
+photoPending: true    # reemplaza 1.jpg con la foto real y borra esta línea

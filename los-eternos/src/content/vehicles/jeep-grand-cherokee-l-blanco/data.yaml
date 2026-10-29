@@ -1,0 +1,10 @@
+# Catálogo fila 34.
+brand: Jeep
+model: Grand Cherokee L
+color: blanco
+category: suv
+priceDay: 150
+seats: 7             # estimado según el modelo, por confirmar
+order: 34
+photos: [./1.jpg]
+photoPending: true    # reemplaza 1.jpg con la foto real y borra esta línea

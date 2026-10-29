@@ -1,0 +1,10 @@
+# Catálogo fila 25.
+brand: Toyota
+model: Highlander
+color: blanco
+category: suv
+priceDay: 85
+seats: 7             # estimado según el modelo, por confirmar
+order: 25
+photos: [./1.jpg]
+photoPending: true    # reemplaza 1.jpg con la foto real y borra esta línea

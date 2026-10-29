@@ -1,0 +1,10 @@
+---
+import View from '../../../views/VehicleView.astro';
+import { getVehicles, type Vehicle } from '../../../lib/vehicles';
+
+export async function getStaticPaths() {
+  return (await getVehicles()).map((vehicle) => ({ params: { slug: vehicle.id }, props: { vehicle } }));
+}
+const { vehicle } = Astro.props as { vehicle: Vehicle };
+---
+<View lang="en" vehicle={vehicle} />

@@ -1,0 +1,10 @@
+# Catálogo fila 6.
+brand: Suzuki
+model: Jimny
+color: lima
+category: todoterreno
+priceDay: 90
+seats: 4             # estimado según el modelo, por confirmar
+featured: true
+order: 6
+photos: [./1.jpg]

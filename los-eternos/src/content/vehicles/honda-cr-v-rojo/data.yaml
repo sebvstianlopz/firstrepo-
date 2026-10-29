@@ -1,0 +1,10 @@
+# Catálogo fila 33.
+brand: Honda
+model: CR-V
+color: rojo
+category: suv
+priceDay: 70
+seats: 5             # estimado según el modelo, por confirmar
+order: 33
+photos: [./1.jpg]
+photoPending: true    # reemplaza 1.jpg con la foto real y borra esta línea

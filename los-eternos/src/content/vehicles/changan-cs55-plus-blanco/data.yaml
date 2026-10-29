@@ -1,0 +1,10 @@
+# Catálogo fila 2. Nombre por confirmar: modelo leído del logo en la foto.
+brand: Changan
+model: CS55 Plus
+color: blanco
+category: compacto
+priceDay: 75
+seats: 5             # estimado según el modelo, por confirmar
+featured: true
+order: 2
+photos: [./1.jpg]

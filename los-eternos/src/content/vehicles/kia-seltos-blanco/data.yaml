@@ -1,0 +1,10 @@
+# Catálogo fila 39.
+brand: Kia
+model: Seltos
+color: blanco
+category: compacto
+priceDay: 90
+seats: 5             # estimado según el modelo, por confirmar
+order: 39
+photos: [./1.jpg]
+photoPending: true    # reemplaza 1.jpg con la foto real y borra esta línea
