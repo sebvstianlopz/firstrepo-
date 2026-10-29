@@ -119,7 +119,7 @@ const airports = site.locations.map((l) => l.label.es.match(/\((\w{3})\)/)?.[1])
     width: 100%;
     height: 100%;
     object-fit: cover;
-    object-position: 70% 60%;
+    object-position: 85% 60%;
   }
   .scrim {
     position: absolute;
@@ -253,6 +253,14 @@ const airports = site.locations.map((l) => l.label.es.match(/\((\w{3})\)/)?.[1])
       display: none;
     }
   }
+  /* Tablets: the cover crop pulls the car under the copy, so the scrim reaches further. */
+  @media (min-width: 761px) and (max-width: 1100px) {
+    .scrim {
+      background:
+        linear-gradient(90deg, rgb(11 12 13 / 0.85) 0%, rgb(11 12 13 / 0.6) 50%, transparent 78%),
+        linear-gradient(0deg, rgb(11 12 13 / 0.6) 0%, transparent 40%);
+    }
+  }
   @media (max-width: 760px) {
     .hero {
       --corner: 22px;
@@ -270,11 +278,11 @@ const airports = site.locations.map((l) => l.label.es.match(/\((\w{3})\)/)?.[1])
       );
     }
     .frame :global(.photo) {
-      height: 62%;
-      object-position: 72% 50%;
+      height: 54%;
+      object-position: 68% 60%;
     }
     .scrim {
-      background: linear-gradient(0deg, var(--bg) 38%, rgb(11 12 13 / 0.7) 52%, transparent 70%);
+      background: linear-gradient(0deg, var(--bg) 40%, rgb(11 12 13 / 0.6) 50%, transparent 62%);
     }
     .glass {
       clip-path: inset(46% 0 0 0);
