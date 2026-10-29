@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1400 -100 1700 867" preserveAspectRatio="none">
+  <style>
+    path { fill: none; stroke-linecap: round; }
+    .faint { opacity: .45; }
+    /* Glow built from wide, faint strokes instead of blur filters: cheap to animate. */
+    .halo { stroke: #e0301e; stroke-width: 44; stroke-opacity: .06; }
+    .glow { stroke: #ff3b24; stroke-width: 15; stroke-opacity: .2; }
+    .body { stroke: #ff5a45; stroke-width: 4.5; stroke-opacity: .95; }
+    .core { stroke: #fff1ea; stroke-width: 1.7; }
+    /* Bright pulses racing back along each strand, each at its own pace. */
+    .pulse {
+      stroke: #fff; stroke-width: 3.2;
+      stroke-dasharray: 55 345;
+      animation: race calc(1.1s + var(--i) * 0.07s) linear infinite;
+      animation-delay: calc(var(--i) * -0.23s);
+    }
+    @keyframes race { to { stroke-dashoffset: -400; } }
+    @media (prefers-reduced-motion: reduce) { .pulse { animation: none; opacity: 0; } }
+  </style>
+  <defs>
+    <!-- Full strength at the car, fading out along the trail. -->
+    <linearGradient id="reach" gradientUnits="userSpaceOnUse" x1="-1400" y1="0" x2="220" y2="0">
+      <stop offset="0" stop-color="#000"/>
+      <stop offset=".25" stop-color="#4a4a4a"/>
+      <stop offset=".62" stop-color="#fff"/>
+    </linearGradient>
+    <mask id="fade" maskUnits="userSpaceOnUse" x="-1400" y="-100" width="1700" height="867">
+      <rect x="-1400" y="-100" width="1700" height="867" fill="url(#reach)"/>
+    </mask>
+  </defs>
+  <g mask="url(#fade)">
+  <path class="halo" style="--i:0" pathLength="1000" d="M216 148 C-44 148 -380 218 -620 208 S-1000 0 -1400 21" />
+  <path class="halo" style="--i:1" pathLength="1000" d="M210 156 C-50 156 -380 234 -620 227 S-1000 0 -1400 54" />
+  <path class="halo" style="--i:2" pathLength="1000" d="M204 164 C-56 164 -380 233 -620 223 S-1000 32 -1400 39" />
+  <path class="halo" style="--i:3" pathLength="1000" d="M172 238 C-88 238 -380 322 -620 325 S-1000 139 -1400 192" />
+  <path class="halo" style="--i:4" pathLength="1000" d="M170 245 C-90 245 -380 338 -620 346 S-1000 134 -1400 229" />
+  <path class="halo" style="--i:5" pathLength="1000" d="M169 252 C-91 252 -380 332 -620 334 S-1000 173 -1400 200" />
+  <path class="halo" style="--i:6" pathLength="1000" d="M168 259 C-92 259 -380 349 -620 357 S-1000 166 -1400 241" />
+  <path class="halo" style="--i:7" pathLength="1000" d="M164 312 C-96 312 -380 407 -620 421 S-1000 254 -1400 332" />
+  <path class="halo" style="--i:8" pathLength="1000" d="M163 320 C-97 320 -380 409 -620 421 S-1000 280 -1400 327" />
+  <path class="halo" style="--i:9" pathLength="1000" d="M162 328 C-98 328 -380 430 -620 449 S-1000 269 -1400 378" />
+  <path class="halo faint" style="--i:10" pathLength="1000" d="M128 425 C-120 425 -420 470 -760 480 S-1150 430 -1400 450" />
+  <path class="glow" style="--i:0" pathLength="1000" d="M216 148 C-44 148 -380 218 -620 208 S-1000 0 -1400 21" />
+  <path class="glow" style="--i:1" pathLength="1000" d="M210 156 C-50 156 -380 234 -620 227 S-1000 0 -1400 54" />
+  <path class="glow" style="--i:2" pathLength="1000" d="M204 164 C-56 164 -380 233 -620 223 S-1000 32 -1400 39" />
+  <path class="glow" style="--i:3" pathLength="1000" d="M172 238 C-88 238 -380 322 -620 325 S-1000 139 -1400 192" />
+  <path class="glow" style="--i:4" pathLength="1000" d="M170 245 C-90 245 -380 338 -620 346 S-1000 134 -1400 229" />
+  <path class="glow" style="--i:5" pathLength="1000" d="M169 252 C-91 252 -380 332 -620 334 S-1000 173 -1400 200" />
+  <path class="glow" style="--i:6" pathLength="1000" d="M168 259 C-92 259 -380 349 -620 357 S-1000 166 -1400 241" />
+  <path class="glow" style="--i:7" pathLength="1000" d="M164 312 C-96 312 -380 407 -620 421 S-1000 254 -1400 332" />
+  <path class="glow" style="--i:8" pathLength="1000" d="M163 320 C-97 320 -380 409 -620 421 S-1000 280 -1400 327" />
+  <path class="glow" style="--i:9" pathLength="1000" d="M162 328 C-98 328 -380 430 -620 449 S-1000 269 -1400 378" />
+  <path class="glow faint" style="--i:10" pathLength="1000" d="M128 425 C-120 425 -420 470 -760 480 S-1150 430 -1400 450" />
+  <path class="body" style="--i:0" pathLength="1000" d="M216 148 C-44 148 -380 218 -620 208 S-1000 0 -1400 21" />
+  <path class="body" style="--i:1" pathLength="1000" d="M210 156 C-50 156 -380 234 -620 227 S-1000 0 -1400 54" />
+  <path class="body" style="--i:2" pathLength="1000" d="M204 164 C-56 164 -380 233 -620 223 S-1000 32 -1400 39" />
+  <path class="body" style="--i:3" pathLength="1000" d="M172 238 C-88 238 -380 322 -620 325 S-1000 139 -1400 192" />
+  <path class="body" style="--i:4" pathLength="1000" d="M170 245 C-90 245 -380 338 -620 346 S-1000 134 -1400 229" />
+  <path class="body" style="--i:5" pathLength="1000" d="M169 252 C-91 252 -380 332 -620 334 S-1000 173 -1400 200" />
+  <path class="body" style="--i:6" pathLength="1000" d="M168 259 C-92 259 -380 349 -620 357 S-1000 166 -1400 241" />
+  <path class="body" style="--i:7" pathLength="1000" d="M164 312 C-96 312 -380 407 -620 421 S-1000 254 -1400 332" />
+  <path class="body" style="--i:8" pathLength="1000" d="M163 320 C-97 320 -380 409 -620 421 S-1000 280 -1400 327" />
+  <path class="body" style="--i:9" pathLength="1000" d="M162 328 C-98 328 -380 430 -620 449 S-1000 269 -1400 378" />
+  <path class="body faint" style="--i:10" pathLength="1000" d="M128 425 C-120 425 -420 470 -760 480 S-1150 430 -1400 450" />
+  <path class="core" style="--i:0" pathLength="1000" d="M216 148 C-44 148 -380 218 -620 208 S-1000 0 -1400 21" />
+  <path class="core" style="--i:1" pathLength="1000" d="M210 156 C-50 156 -380 234 -620 227 S-1000 0 -1400 54" />
+  <path class="core" style="--i:2" pathLength="1000" d="M204 164 C-56 164 -380 233 -620 223 S-1000 32 -1400 39" />
+  <path class="core" style="--i:3" pathLength="1000" d="M172 238 C-88 238 -380 322 -620 325 S-1000 139 -1400 192" />
+  <path class="core" style="--i:4" pathLength="1000" d="M170 245 C-90 245 -380 338 -620 346 S-1000 134 -1400 229" />
+  <path class="core" style="--i:5" pathLength="1000" d="M169 252 C-91 252 -380 332 -620 334 S-1000 173 -1400 200" />
+  <path class="core" style="--i:6" pathLength="1000" d="M168 259 C-92 259 -380 349 -620 357 S-1000 166 -1400 241" />
+  <path class="core" style="--i:7" pathLength="1000" d="M164 312 C-96 312 -380 407 -620 421 S-1000 254 -1400 332" />
+  <path class="core" style="--i:8" pathLength="1000" d="M163 320 C-97 320 -380 409 -620 421 S-1000 280 -1400 327" />
+  <path class="core" style="--i:9" pathLength="1000" d="M162 328 C-98 328 -380 430 -620 449 S-1000 269 -1400 378" />
+  <path class="core faint" style="--i:10" pathLength="1000" d="M128 425 C-120 425 -420 470 -760 480 S-1150 430 -1400 450" />
+  <path class="pulse" style="--i:0" pathLength="1000" d="M216 148 C-44 148 -380 218 -620 208 S-1000 0 -1400 21" />
+  <path class="pulse" style="--i:1" pathLength="1000" d="M210 156 C-50 156 -380 234 -620 227 S-1000 0 -1400 54" />
+  <path class="pulse" style="--i:2" pathLength="1000" d="M204 164 C-56 164 -380 233 -620 223 S-1000 32 -1400 39" />
+  <path class="pulse" style="--i:3" pathLength="1000" d="M172 238 C-88 238 -380 322 -620 325 S-1000 139 -1400 192" />
+  <path class="pulse" style="--i:4" pathLength="1000" d="M170 245 C-90 245 -380 338 -620 346 S-1000 134 -1400 229" />
+  <path class="pulse" style="--i:5" pathLength="1000" d="M169 252 C-91 252 -380 332 -620 334 S-1000 173 -1400 200" />
+  <path class="pulse" style="--i:6" pathLength="1000" d="M168 259 C-92 259 -380 349 -620 357 S-1000 166 -1400 241" />
+  <path class="pulse" style="--i:7" pathLength="1000" d="M164 312 C-96 312 -380 407 -620 421 S-1000 254 -1400 332" />
+  <path class="pulse" style="--i:8" pathLength="1000" d="M163 320 C-97 320 -380 409 -620 421 S-1000 280 -1400 327" />
+  <path class="pulse" style="--i:9" pathLength="1000" d="M162 328 C-98 328 -380 430 -620 449 S-1000 269 -1400 378" />
+  <path class="pulse faint" style="--i:10" pathLength="1000" d="M128 425 C-120 425 -420 470 -760 480 S-1150 430 -1400 450" />
+  </g>
+</svg>
