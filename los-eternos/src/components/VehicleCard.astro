@@ -3,7 +3,7 @@ import { Image } from 'astro:assets';
 import Icon from './Icon.astro';
 import { t, path, formatPrice } from '../i18n';
 import { site, type Lang } from '../config/site';
-import { nameParts, vehicleFullName, forRent, forSale, colorHex, type Vehicle } from '../lib/vehicles';
+import { nameParts, vehicleFullName, fleetNo, forRent, forSale, type Vehicle } from '../lib/vehicles';
 
 interface Props {
   vehicle: Vehicle;
@@ -18,53 +18,115 @@ const both = data.mode === 'both';
 const { brand, model } = nameParts(v, lang);
 ---
 <article class="card">
-  <a class="hit" href={path(lang, 'catalog', v.id)}>
-    <div class="media" style={`view-transition-name: vt-${v.id}`}>
-      <Image
-        src={data.photos[0]}
-        alt={vehicleFullName(v, lang)}
-        widths={[320, 480, 640]}
-        sizes="(max-width: 560px) calc(50vw - 24px), (max-width: 1100px) 31vw, 300px"
-        loading={eager ? 'eager' : 'lazy'}
-        fetchpriority={eager ? 'high' : 'auto'}
-      />
+  <div class="media" style={`view-transition-name: vt-${v.id}`}>
+    <Image
+      src={data.photos[0]}
+      alt={vehicleFullName(v, lang)}
+      widths={[320, 480, 640]}
+      sizes="(max-width: 560px) calc(50vw - 24px), (max-width: 1100px) 31vw, 320px"
+      loading={eager ? 'eager' : 'lazy'}
+    />
+    <span class="fleet mono">{fleetNo(v)}</span>
+  </div>
+  <div class="body">
+    <div class="row">
+      <H class="name">
+        <a class="hit" href={path(lang, 'catalog', v.id)}>
+          {brand && <span class="brand mono">{brand}</span>}
+          <span class="model">{model}</span>
+        </a>
+      </H>
+      <span class="go" aria-hidden="true"><Icon name="arrow-up-right" size={18} /></span>
     </div>
-    <H class="name">{brand && <span class="nw">{brand}</span>} {model}</H>
-  </a>
-  <ul class="specs" aria-label={d.vehicle.specs}>
-    <li>
-      <span class="swatch" style={`background:${colorHex[data.color]}`} aria-hidden="true"></span>
-      <span class="cap">{d.color[data.color]}</span>
-    </li>
-    <li><Icon name="seats" size={16} />{data.seats}<span class="visually-hidden"> {d.seats(data.seats)}</span></li>
-  </ul>
-  <dl class="prices">
-    {forRent(v) && data.priceDay && (
-      <div>
-        <dt class:list={{ 'visually-hidden': !both }}>{d.mode.rent}</dt>
-        <dd><span class="price">{formatPrice(data.priceDay, lang, site.currency)}</span><span class="unit">{d.perDay}</span></dd>
-      </div>
-    )}
-    {forSale(v) && data.priceSale && (
-      <div>
-        <dt class:list={{ 'visually-hidden': !both }}>{d.mode.sale}</dt>
-        <dd><span class="price">{formatPrice(data.priceSale, lang, site.currency)}</span></dd>
-      </div>
-    )}
-  </dl>
+    <p class="specs mono">
+      <span>{d.seats(data.seats)}</span>
+      <span>{d.color[data.color]}</span>
+    </p>
+    <dl class="prices">
+      {forRent(v) && data.priceDay && (
+        <div>
+          <dt class:list={['mono', { 'visually-hidden': !both }]}>{d.mode.rent}</dt>
+          <dd><span class="price">{formatPrice(data.priceDay, lang, site.currency)}</span><span class="unit mono">{d.perDay}</span></dd>
+        </div>
+      )}
+      {forSale(v) && data.priceSale && (
+        <div>
+          <dt class:list={['mono', { 'visually-hidden': !both }]}>{d.mode.sale}</dt>
+          <dd><span class="price">{formatPrice(data.priceSale, lang, site.currency)}</span></dd>
+        </div>
+      )}
+    </dl>
+  </div>
 </article>
 
 <style>
   .card {
     position: relative;
     display: grid;
-    gap: 6px;
     align-content: start;
+    min-width: 0;
+  }
+  .media {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    border-radius: var(--r-img);
+    background: var(--panel);
+  }
+  .media :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 50% 62%;
+    transition: transform 0.7s var(--ease);
+  }
+  .card:hover .media :global(img) {
+    transform: scale(1.035);
+  }
+  .fleet {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    padding: 4px 8px;
+    background: rgb(11 12 13 / 0.78);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    font-size: 0.75rem;
+  }
+  .body {
+    display: grid;
+    gap: 10px;
+    padding: 16px 0 18px;
+    border-bottom: 1px solid var(--line);
+  }
+  /* Red rule that draws across on hover. */
+  .card::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 1px;
+    background: var(--signal);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.5s var(--ease);
+  }
+  .card:hover::after {
+    transform: scaleX(1);
+  }
+  .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    gap: 12px;
+  }
+  .name {
     min-width: 0;
   }
   .hit {
     display: grid;
-    gap: 14px;
+    gap: 6px;
     text-decoration: none;
   }
   /* The whole card is clickable through the title link. */
@@ -79,63 +141,35 @@ const { brand, model } = nameParts(v, lang);
   }
   .hit:focus-visible::after {
     outline: 2px solid var(--focus);
-    outline-offset: 6px;
-    border-radius: var(--r-img);
+    outline-offset: 4px;
   }
-  .media {
-    aspect-ratio: 4 / 5;
-    overflow: hidden;
-    border-radius: var(--r-img);
-    background: var(--sunk);
+  .brand {
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-weight: 400;
+    font-stretch: 100%;
+    line-height: 1;
   }
-  .media :global(img) {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-  .name {
-    font-size: var(--step-0);
-    font-weight: 500;
-    font-stretch: 112%;
-    line-height: 1.3;
-  }
-  .nw {
-    white-space: nowrap;
-  }
-  .card:hover .name {
-    text-decoration: underline;
-    text-decoration-thickness: 1px;
-    text-underline-offset: 0.25em;
+  .model {
+    font-size: var(--step-1);
+    font-weight: 800;
+    font-stretch: 125%;
+    line-height: 1.02;
+    text-transform: uppercase;
+    overflow-wrap: anywhere;
   }
   .specs {
     display: flex;
     flex-wrap: wrap;
     gap: 4px 14px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
     color: var(--muted);
-    font-size: 0.9rem;
-  }
-  .specs li {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .cap::first-letter {
-    text-transform: uppercase;
-  }
-  .swatch {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    box-shadow: inset 0 0 0 1px rgb(14 42 51 / 0.3);
+    font-size: 0.75rem;
   }
   .prices {
     display: flex;
     flex-wrap: wrap;
-    gap: 2px 20px;
-    margin: 2px 0 0;
+    gap: 4px 20px;
+    margin: 0;
   }
   .prices div {
     display: flex;
@@ -143,15 +177,32 @@ const { brand, model } = nameParts(v, lang);
     gap: 8px;
   }
   .prices dt {
-    font-size: var(--step--1);
     color: var(--muted);
+    font-size: 0.75rem;
   }
   .prices dd {
     margin: 0;
   }
+  .price {
+    font-size: var(--step-0);
+  }
   .unit {
-    margin-left: 2px;
+    margin-left: 4px;
     color: var(--muted);
-    font-size: 0.9rem;
+    font-size: 0.75rem;
+  }
+  .go {
+    flex: none;
+    color: var(--muted);
+    transition: color 0.3s var(--ease), transform 0.3s var(--ease);
+  }
+  .card:hover .go {
+    color: var(--signal-text);
+    transform: translate(2px, -2px);
+  }
+  @media (max-width: 560px) {
+    .model {
+      font-size: var(--step-0);
+    }
   }
 </style>

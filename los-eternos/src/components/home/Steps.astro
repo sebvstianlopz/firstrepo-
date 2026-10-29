@@ -13,7 +13,7 @@ const d = t(Astro.props.lang);
     <ol class="steps">
       {d.steps.items.map((s, i) => (
         <li>
-          <span class="n" aria-hidden="true">{i + 1}</span>
+          <span class="n" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
           <h3>{s.t}</h3>
           <p class="muted">{s.d}</p>
         </li>
@@ -30,21 +30,20 @@ const d = t(Astro.props.lang);
     margin: clamp(32px, 5vw, 56px) 0 0;
     padding: 0;
     list-style: none;
-    counter-reset: none;
   }
   li {
     display: grid;
-    gap: 12px;
+    gap: 14px;
     align-content: start;
-    padding-top: 20px;
-    border-top: 1px solid var(--text);
+    padding-top: 22px;
+    border-top: 1px solid var(--line-strong);
   }
   .n {
     font-size: var(--step-3);
-    font-weight: 200;
-    font-stretch: var(--wide);
+    font-weight: 800;
+    font-stretch: 125%;
     line-height: 1;
-    color: var(--accent);
+    color: var(--signal-text);
   }
   p {
     max-width: 30em;

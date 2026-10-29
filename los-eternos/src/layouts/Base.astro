@@ -1,5 +1,7 @@
 ---
 import '@fontsource-variable/archivo/wdth.css';
+import '@fontsource/jetbrains-mono/latin-400.css';
+import archivoLatin from '@fontsource-variable/archivo/files/archivo-latin-wdth-normal.woff2?url';
 import '../styles/global.css';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
@@ -34,6 +36,7 @@ const ogUrl = new URL(og.src, Astro.site);
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="preload" href={archivoLatin} as="font" type="font/woff2" crossorigin />
     <title>{title}</title>
     <meta name="description" content={description} />
     {noindex && <meta name="robots" content="noindex" />}
@@ -43,8 +46,7 @@ const ogUrl = new URL(og.src, Astro.site);
     <link rel="alternate" hreflang="x-default" href={esUrl} />
     <link rel="icon" href={asset('favicon.svg')} type="image/svg+xml" />
     <link rel="sitemap" href={asset('sitemap-index.xml')} />
-    <meta name="theme-color" content="#edefec" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0b2229" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#0b0c0d" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content={site.name} />
     <meta property="og:locale" content={lang === 'es' ? 'es_DO' : 'en_US'} />
@@ -74,9 +76,8 @@ const ogUrl = new URL(og.src, Astro.site);
     top: -60px;
     z-index: 100;
     padding: 10px 16px;
-    border-radius: 999px;
-    background: var(--btn-bg);
-    color: var(--btn-text);
+    background: var(--signal);
+    color: var(--on-signal);
     text-decoration: none;
   }
   .skip:focus {

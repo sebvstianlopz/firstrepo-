@@ -55,7 +55,7 @@ const other: Lang = lang === 'es' ? 'en' : 'es';
         ))}
       </fieldset>
       <div class="row">
-        <p class="count" aria-live="polite" data-count>{d.catalog.count(vehicles.length)}</p>
+        <p class="count mono" aria-live="polite" data-count>{d.catalog.count(vehicles.length)}</p>
         <div class="selects">
           <label class="visually-hidden" for="f-seats">{d.catalog.seatsAny}</label>
           <select class="select" id="f-seats" name="seats">
@@ -81,7 +81,7 @@ const other: Lang = lang === 'es' ? 'en' : 'es';
           data-order={i}
           data-mode={v.data.mode}
         >
-          <VehicleCard vehicle={v} lang={lang} eager={i < 4} headingLevel="h2" />
+          <VehicleCard vehicle={v} lang={lang} eager={i < 2} headingLevel="h2" />
         </li>
       ))}
     </ul>
@@ -90,7 +90,7 @@ const other: Lang = lang === 'es' ? 'en' : 'es';
       <h2>{d.catalog.emptyTitle}</h2>
       <p class="muted">{d.catalog.emptyText}</p>
       <div class="empty-actions">
-        <button class="btn btn-quiet" type="button" data-clear>{d.catalog.clear}</button>
+        <button class="btn btn-ghost" type="button" data-clear>{d.catalog.clear}</button>
         <WaButton lang={lang} label={d.wa.write} />
       </div>
     </div>
@@ -172,25 +172,25 @@ const other: Lang = lang === 'es' ? 'en' : 'es';
 
 <style>
   .page {
-    padding-block: clamp(40px, 6vw, 80px) var(--section);
+    padding-block: clamp(40px, 6vw, 88px) var(--section);
   }
   .head {
     display: grid;
-    gap: 16px;
+    gap: 18px;
     margin-bottom: clamp(28px, 4vw, 48px);
   }
   .filters {
     position: sticky;
-    top: 72px;
+    top: 76px;
     z-index: 10;
     display: grid;
     gap: 12px;
     margin-inline: calc(-1 * var(--gutter));
     padding: 14px var(--gutter);
-    background: color-mix(in oklab, var(--bg) 92%, transparent);
+    background: rgb(22 24 26 / 0.9);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
-    border-bottom: 1px solid var(--line);
+    border-block: 1px solid var(--line);
   }
   fieldset {
     margin: 0;
@@ -200,7 +200,7 @@ const other: Lang = lang === 'es' ? 'en' : 'es';
   }
   .chips {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     overflow-x: auto;
     scrollbar-width: none;
     padding-block: 2px;
@@ -223,20 +223,25 @@ const other: Lang = lang === 'es' ? 'en' : 'es';
     display: inline-flex;
     align-items: center;
     min-height: 44px;
-    padding: 0 18px;
+    padding: 0 16px;
     border: 1px solid var(--line);
-    border-radius: 999px;
-    font-weight: 450;
+    font-size: 0.8rem;
+    font-weight: 700;
+    font-stretch: 115%;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
     white-space: nowrap;
+    color: var(--muted);
     transition: background-color 0.2s var(--ease), color 0.2s var(--ease), border-color 0.2s var(--ease);
   }
   .chip:hover span {
-    border-color: var(--text);
+    border-color: var(--line-strong);
+    color: var(--text);
   }
   .chip input:checked + span {
-    background: var(--btn-bg);
-    border-color: var(--btn-bg);
-    color: var(--btn-text);
+    background: var(--signal);
+    border-color: var(--signal);
+    color: var(--on-signal);
   }
   .chip input:focus-visible + span {
     outline: 2px solid var(--focus);
@@ -252,7 +257,6 @@ const other: Lang = lang === 'es' ? 'en' : 'es';
   }
   .count {
     color: var(--muted);
-    font-variant-numeric: tabular-nums;
   }
   .selects {
     display: flex;
@@ -261,12 +265,12 @@ const other: Lang = lang === 'es' ? 'en' : 'es';
   .selects .select {
     width: auto;
     min-height: 44px;
-    font-size: 0.94rem;
+    font-size: 0.9rem;
   }
   .grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: clamp(28px, 4vw, 48px) clamp(14px, 2vw, 28px);
+    gap: clamp(28px, 3.5vw, 44px) clamp(14px, 2vw, 24px);
     margin: clamp(28px, 4vw, 40px) 0 0;
     padding: 0;
     list-style: none;
@@ -277,8 +281,11 @@ const other: Lang = lang === 'es' ? 'en' : 'es';
   .empty {
     display: grid;
     justify-items: start;
-    gap: 12px;
-    padding-block: 48px;
+    gap: 14px;
+    padding-block: 56px;
+  }
+  .empty h2 {
+    font-size: var(--step-2);
   }
   .empty-actions {
     display: flex;

@@ -17,6 +17,7 @@ Built with [Astro](https://astro.build) as a static site. No server, no database
 | Hide a car without deleting it | Add `available: false` |
 | Show a car on the home page | Add `featured: true` |
 | Offer a car for sale | Add `mode: sale` (or `both`) and `priceSale: 25000`. The catalog's sale filter and the car's Buy tab appear automatically |
+| Replace the home page hero photo | Overwrite `src/assets/hero.jpg` (landscape, at least 2400 × 1350 px, car on the right half) |
 | Change the WhatsApp number, hours, delivery points or Instagram | `src/config/site.ts` |
 | Change any text on the site (ES and EN) | `src/i18n/index.ts` |
 

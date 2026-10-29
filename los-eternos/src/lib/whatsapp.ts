@@ -5,8 +5,8 @@ import { site, type Lang } from '../config/site';
 
 export type Intent =
   | { kind: 'general' }
-  | { kind: 'rent'; car: string; from?: string; to?: string; days?: number; place?: string; url?: string }
-  | { kind: 'sale'; car: string; price?: string; visit?: string; url?: string };
+  | { kind: 'rent'; car: string; fleet?: string; from?: string; to?: string; days?: number; place?: string; url?: string }
+  | { kind: 'sale'; car: string; fleet?: string; price?: string; visit?: string; url?: string };
 
 const fmtDate = (iso: string, lang: Lang) =>
   new Intl.DateTimeFormat(lang === 'es' ? 'es-DO' : 'en-US', { day: 'numeric', month: 'long', timeZone: 'UTC' })
@@ -20,7 +20,8 @@ export function waMessage(intent: Intent, lang: Lang): string {
   if (intent.kind === 'general') {
     parts.push(es ? 'Quisiera reservar un vehículo.' : 'I’d like to book a vehicle.');
   } else if (intent.kind === 'rent') {
-    let line = es ? `Me interesa alquilar el ${intent.car}` : `I’d like to rent the ${intent.car}`;
+    const car = intent.fleet ? `${intent.car} (${intent.fleet})` : intent.car;
+    let line = es ? `Me interesa alquilar el ${car}` : `I’d like to rent the ${car}`;
     if (intent.from && intent.to) {
       const span = es
         ? ` del ${fmtDate(intent.from, lang)} al ${fmtDate(intent.to, lang)}`
@@ -33,7 +34,8 @@ export function waMessage(intent: Intent, lang: Lang): string {
     if (intent.url) parts.push(intent.url);
   } else {
     let line = es ? `Me interesa comprar el ${intent.car}` : `I’m interested in buying the ${intent.car}`;
-    if (intent.price) line += ` (${intent.price})`;
+    const extra = [intent.fleet, intent.price].filter(Boolean).join(', ');
+    if (extra) line += ` (${extra})`;
     line += '.';
     if (intent.visit) {
       line += es

@@ -16,7 +16,7 @@ const year = new Date().getFullYear();
     <div class="top">
       <div>
         <p class="wordmark">Los Eternos</p>
-        <p class="muted tagline">{d.footer.tagline}</p>
+        <p class="mono muted tagline">{d.footer.tagline}</p>
       </div>
       <nav aria-label={lang === 'es' ? 'Pie de página' : 'Footer'}>
         <ul>
@@ -40,14 +40,14 @@ const year = new Date().getFullYear();
         <li class="muted"><Icon name="clock" size={18} /> {site.hours[lang]}</li>
       </ul>
     </div>
-    <p class="legal muted">© {year} {site.name}. {d.footer.rights}</p>
+    <p class="legal mono muted">© {year} {site.name}. {d.footer.rights}</p>
   </div>
 </footer>
 
 <style>
   .site-footer {
     border-top: 1px solid var(--line);
-    padding-block: 64px 32px;
+    padding-block: 56px 28px;
     font-size: 0.95rem;
   }
   .top {
@@ -56,21 +56,22 @@ const year = new Date().getFullYear();
     gap: 40px;
   }
   .wordmark {
-    font-stretch: var(--wide);
-    font-weight: 300;
-    font-size: var(--step-2);
-    line-height: 1.1;
+    font-size: var(--step-1);
+    font-weight: 800;
+    font-stretch: 125%;
+    line-height: 1;
+    text-transform: uppercase;
   }
   .tagline {
-    margin-top: 10px;
-    max-width: 26em;
+    margin-top: 14px;
+    max-width: 30em;
   }
   ul {
     margin: 0;
     padding: 0;
     list-style: none;
     display: grid;
-    gap: 4px;
+    gap: 2px;
   }
   li {
     display: flex;
@@ -84,14 +85,15 @@ const year = new Date().getFullYear();
     gap: 10px;
     min-height: 40px;
     text-decoration: none;
+    color: var(--text);
   }
   a:hover {
-    text-decoration: underline;
-    text-underline-offset: 0.25em;
+    color: var(--signal-text);
   }
   .legal {
     margin-top: 48px;
-    font-size: var(--step--1);
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
   }
   @media (max-width: 760px) {
     .top {

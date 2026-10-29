@@ -1,66 +1,43 @@
 /* Los Eternos — design tokens and base styles.
-   Palette drawn from Dominican materials: the Caribbean (mar), Zona Colonial
-   coral stone (piedra), larimar, and mahogany (caoba, used only for prices). */
+   A dark showroom: near-black, graphite panels, warm white, and one signal red
+   used sparingly. Wide Archivo capitals for display, JetBrains Mono for data. */
 
 :root {
-  --mar: #0e2a33;
-  --piedra: #edefec;
-  --piedra-raised: #f6f7f5;
-  --piedra-sunk: #e2e6e2;
-  --larimar: #8fc6cf;
-  --larimar-soft: #cfe5e8;
-  --larimar-deep: #2b6b77;
-  --caoba: #7a4330;
+  --bg: #0b0c0d;
+  --panel: #16181a;
+  --panel-2: #202326;
+  --line: rgb(242 240 236 / 0.12);
+  --line-strong: rgb(242 240 236 / 0.28);
+  --text: #f2f0ec;
+  --muted: #8a8f93;
+  /* Fills only (buttons, active states), always with white text: 4.55:1. */
+  --signal: #e0301e;
+  --signal-hover: #d42a1c;
+  --on-signal: #ffffff;
+  /* Red as text or thin strokes: ~6:1 on --bg. */
+  --signal-text: #ff5a45;
   --wa: #25d366;
-
-  --bg: var(--piedra);
-  --surface: var(--piedra-raised);
-  --sunk: var(--piedra-sunk);
-  --text: var(--mar);
-  --muted: #475e66;
-  --line: rgb(14 42 51 / 0.14);
-  --accent: var(--larimar-deep);
-  --price: var(--caoba);
-  --btn-bg: var(--mar);
-  --btn-text: var(--piedra);
-  --focus: var(--larimar-deep);
+  --focus: var(--text);
 
   --font: 'Archivo Variable', 'Archivo', system-ui, sans-serif;
-  --wide: 125%;
+  --mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
 
   /* Modular scale, ratio 1.25 on a 17px body */
   --step--1: 0.85rem;
   --step-0: 1.0625rem;
   --step-1: 1.33rem;
   --step-2: 1.66rem;
-  --step-3: clamp(1.75rem, 1.3rem + 1.6vw, 2.6rem);
-  --step-4: clamp(2.1rem, 1.2rem + 3.6vw, 4.2rem);
+  --step-3: clamp(1.9rem, 1.2rem + 2.4vw, 3.1rem);
+  --step-4: clamp(2.5rem, 1.1rem + 5.4vw, 6.25rem);
 
   --gutter: clamp(16px, 4vw, 48px);
-  --max: 1240px;
-  --section: clamp(72px, 10vw, 136px);
+  --max: 1320px;
+  --section: clamp(80px, 11vw, 152px);
   --r-img: 6px;
-  --r-field: 10px;
+  --cut: 14px;
   --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
 
-  color-scheme: light;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0b2229;
-    --surface: #10303a;
-    --sunk: #0a1d23;
-    --text: #e4ebe9;
-    --muted: #a2b6ba;
-    --line: rgb(228 235 233 / 0.14);
-    --accent: var(--larimar);
-    --price: #e3ab92;
-    --btn-bg: var(--larimar);
-    --btn-text: var(--mar);
-    --focus: var(--larimar);
-    color-scheme: dark;
-  }
+  color-scheme: dark;
 }
 
 @view-transition {
@@ -76,7 +53,8 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  scroll-padding-top: 88px;
+  scroll-padding-top: 96px;
+  background: var(--bg);
 }
 
 body {
@@ -86,7 +64,6 @@ body {
   font-family: var(--font);
   font-size: var(--step-0);
   line-height: 1.6;
-  font-optical-sizing: auto;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -101,25 +78,26 @@ h1,
 h2,
 h3 {
   margin: 0;
-  font-weight: 320;
-  font-stretch: var(--wide);
-  line-height: 1.12;
+  font-weight: 800;
+  font-stretch: 125%;
+  line-height: 0.98;
   letter-spacing: -0.01em;
+  text-transform: uppercase;
   text-wrap: balance;
 }
 
 h1 {
   font-size: var(--step-4);
-  line-height: 1.06;
 }
 h2 {
   font-size: var(--step-3);
 }
 h3 {
-  font-size: var(--step-1);
-  font-weight: 450;
-  font-stretch: 112%;
-  letter-spacing: 0;
+  font-size: var(--step-0);
+  font-weight: 700;
+  font-stretch: 118%;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
 }
 
 p {
@@ -131,10 +109,14 @@ a {
   color: inherit;
 }
 
+::selection {
+  background: var(--signal);
+  color: var(--on-signal);
+}
+
 :focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 3px;
-  border-radius: 4px;
 }
 
 .container {
@@ -149,20 +131,41 @@ a {
 }
 
 .lede {
+  max-width: 34em;
   font-size: var(--step-1);
   line-height: 1.5;
   color: var(--muted);
-  max-width: 34em;
 }
 
 .muted {
   color: var(--muted);
 }
 
-.price {
-  color: var(--price);
-  font-weight: 500;
+/* Data labels: real values only (fleet number, seats, prices, dates). */
+.mono {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   font-variant-numeric: tabular-nums;
+}
+
+.price {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Signature shape: top-right and bottom-left corners cut at 45°. */
+.chamfer {
+  clip-path: polygon(
+    0 0,
+    calc(100% - var(--cut)) 0,
+    100% var(--cut),
+    100% 100%,
+    var(--cut) 100%,
+    0 calc(100% - var(--cut))
+  );
 }
 
 .visually-hidden {
@@ -179,48 +182,63 @@ a {
 
 /* Buttons */
 .btn {
+  --cut: 10px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.6em;
-  min-height: 48px;
-  padding: 0.7em 1.5em;
+  gap: 0.7em;
+  min-height: 50px;
+  padding: 0.7em 1.6em;
   border: 1px solid transparent;
-  border-radius: 999px;
+  border-radius: 0;
   font: inherit;
-  font-weight: 500;
-  font-size: var(--step-0);
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-stretch: 115%;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   line-height: 1.2;
   text-decoration: none;
   cursor: pointer;
   transition: background-color 0.2s var(--ease), color 0.2s var(--ease), border-color 0.2s var(--ease);
 }
+.btn:focus-visible {
+  outline-offset: -6px;
+}
 .btn-primary {
-  background: var(--btn-bg);
-  color: var(--btn-text);
+  clip-path: polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, var(--cut) 100%, 0 calc(100% - var(--cut)));
+  background: var(--signal);
+  color: var(--on-signal);
 }
 .btn-primary:hover {
-  background: color-mix(in oklab, var(--btn-bg) 86%, var(--larimar));
+  background: var(--signal-hover);
 }
-.btn-quiet {
-  border-color: var(--line);
-  color: var(--text);
+.btn-ghost {
+  border-color: var(--line-strong);
   background: transparent;
+  color: var(--text);
 }
-.btn-quiet:hover {
+.btn-ghost:hover {
   border-color: var(--text);
+}
+.btn-light {
+  clip-path: polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, var(--cut) 100%, 0 calc(100% - var(--cut)));
+  background: var(--text);
+  color: var(--bg);
+}
+.btn-light:hover {
+  background: #fff;
 }
 .btn-block {
   width: 100%;
 }
 
-/* Text link with arrow-free underline that thickens on hover */
 .link {
-  color: var(--accent);
+  color: var(--text);
   text-decoration: underline;
+  text-decoration-color: var(--signal-text);
   text-decoration-thickness: 1px;
-  text-underline-offset: 0.25em;
-  font-weight: 500;
+  text-underline-offset: 0.35em;
 }
 .link:hover {
   text-decoration-thickness: 2px;
@@ -229,36 +247,46 @@ a {
 /* Form fields */
 .field {
   display: grid;
-  gap: 6px;
+  gap: 8px;
 }
 .field label,
 .field .label {
-  font-size: var(--step--1);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--muted);
-  font-weight: 500;
 }
 .input,
 .select {
   width: 100%;
   min-width: 0;
-  min-height: 48px;
+  min-height: 50px;
   padding: 0.6em 0.9em;
   border: 1px solid var(--line);
-  border-radius: var(--r-field);
-  background: var(--surface);
+  border-radius: 0;
+  background: var(--panel-2);
   color: var(--text);
   font: inherit;
 }
+.input::-webkit-calendar-picker-indicator {
+  filter: invert(0.9);
+  cursor: pointer;
+}
 .select {
   appearance: none;
-  padding-right: 2.4em;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none' stroke='%23475e66' stroke-width='1.6'%3E%3Cpath d='m1 1.5 5 5 5-5'/%3E%3C/svg%3E");
+  padding-right: 2.6em;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none' stroke='%238a8f93' stroke-width='1.6'%3E%3Cpath d='m1 1.5 5 5 5-5'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 0.9em center;
+  background-position: right 0.95em center;
+}
+.select option {
+  background: var(--panel);
+  color: var(--text);
 }
 .input:hover,
 .select:hover {
-  border-color: color-mix(in oklab, var(--line), var(--text) 30%);
+  border-color: var(--line-strong);
 }
 
 @media (prefers-reduced-motion: reduce) {

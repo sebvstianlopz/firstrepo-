@@ -25,6 +25,9 @@ export function vehicleFullName(v: Vehicle, lang: Lang) {
   return [...parts, v.data.year].filter(Boolean).join(' ');
 }
 
+/** Fleet number from the catalog order, e.g. "LE-07". Staff and clients can quote it on WhatsApp. */
+export const fleetNo = (v: Vehicle) => `LE-${String(v.data.order).padStart(2, '0')}`;
+
 export const forRent = (v: Vehicle) => v.data.mode !== 'sale';
 export const forSale = (v: Vehicle) => v.data.mode !== 'rent';
 

@@ -18,7 +18,7 @@ interface Props {
 const { lang } = Astro.props;
 const d = t(lang);
 const vehicles = (await getVehicles()).filter((v) => v.data.available);
-const featured = vehicles.filter((v) => v.data.featured).slice(0, 6);
+const featured = vehicles.filter((v) => v.data.featured).slice(0, 8);
 const other: Lang = lang === 'es' ? 'en' : 'es';
 ---
 <Base
@@ -37,9 +37,9 @@ const other: Lang = lang === 'es' ? 'en' : 'es';
         <h2 id="featured-title">{d.featured.title}</h2>
         <a class="link" href={path(lang, 'catalog')}>{d.featured.all} ({vehicles.length})</a>
       </header>
-      <div class="cards">
-        {featured.map((v) => <VehicleCard vehicle={v} lang={lang} />)}
-      </div>
+    </div>
+    <div class="cards" tabindex="0" aria-label={d.featured.title}>
+      {featured.map((v) => <VehicleCard vehicle={v} lang={lang} />)}
     </div>
   </section>
 
@@ -53,19 +53,27 @@ const other: Lang = lang === 'es' ? 'en' : 'es';
   .row {
     display: flex;
     flex-wrap: wrap;
-    align-items: baseline;
+    align-items: end;
     justify-content: space-between;
     gap: 12px 32px;
-    margin-bottom: clamp(32px, 5vw, 56px);
+    margin-bottom: clamp(28px, 4vw, 48px);
   }
+  /* Horizontal scroller that snaps card by card. */
   .cards {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: clamp(28px, 4vw, 48px) clamp(16px, 2.5vw, 32px);
+    grid-auto-flow: column;
+    grid-auto-columns: clamp(250px, 28vw, 380px);
+    gap: clamp(14px, 2vw, 24px);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: var(--gutter);
+    padding-inline: var(--gutter);
+    padding-bottom: 18px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--signal) var(--panel);
   }
-  @media (max-width: 860px) {
-    .cards {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
+  .cards > :global(*) {
+    scroll-snap-align: start;
   }
 </style>

@@ -8,35 +8,21 @@ interface Props {
   intent?: Intent;
   label: string;
   block?: boolean;
+  /** primary = signal red; ghost = outlined; light = warm white (on red/photo backgrounds) */
+  variant?: 'primary' | 'ghost' | 'light';
   id?: string;
   class?: string;
 }
-const { lang, intent = { kind: 'general' }, label, block = false, id, class: cls } = Astro.props;
+const { lang, intent = { kind: 'general' }, label, block = false, variant = 'primary', id, class: cls } = Astro.props;
 ---
 <a
   id={id}
-  class:list={['btn btn-primary btn-wa', { 'btn-block': block }, cls]}
+  class:list={['btn', `btn-${variant}`, { 'btn-block': block }, cls]}
   href={waLink(intent, lang)}
   target="_blank"
   rel="noopener"
   data-wa
 >
-  <span class="wa-dot"><Icon name="whatsapp" size={18} /></span>
+  <Icon name="whatsapp" size={18} />
   <span data-wa-label>{label}</span>
 </a>
-
-<style>
-  .btn-wa {
-    padding-left: 0.6em;
-  }
-  .wa-dot {
-    display: inline-grid;
-    place-items: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: var(--wa);
-    color: #fff;
-    flex: none;
-  }
-</style>
