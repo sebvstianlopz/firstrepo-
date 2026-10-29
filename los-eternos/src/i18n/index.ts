@@ -136,6 +136,7 @@ const es = {
     whereTitle: 'Dónde estamos',
     openMap: 'Abrir en Google Maps',
   },
+  intro: { loading: 'Preparando tu viaje', go: '¡Vamos!' },
   notFound: { title: 'Esta página no existe', text: 'Puede que el enlace haya cambiado. Vuelve al catálogo para seguir explorando.', cta: 'Ir al catálogo' },
   footer: { tagline: 'Alquiler de vehículos en República Dominicana.', rights: 'Todos los derechos reservados.' },
   meta: {
@@ -267,6 +268,7 @@ const en: Dict = {
     whereTitle: 'Where we are',
     openMap: 'Open in Google Maps',
   },
+  intro: { loading: 'Getting your ride ready', go: 'Let’s go' },
   notFound: { title: 'This page doesn’t exist', text: 'The link may have changed. Head back to the catalog to keep exploring.', cta: 'Go to the catalog' },
   footer: { tagline: 'Car rentals in the Dominican Republic.', rights: 'All rights reserved.' },
   meta: {

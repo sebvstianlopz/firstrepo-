@@ -1,0 +1,166 @@
+---
+// Start-lights loading screen, shown once per visit. Five pods light up red one by
+// one; once the page has loaded, all lights go out ("¡Vamos!") and the screen wipes
+// away left to right, the way the hero car drives. Whether it shows is decided by a
+// tiny inline script in <head> (see Base.astro), so the page never flashes first.
+import { t } from '../i18n';
+import type { Lang } from '../config/site';
+
+interface Props {
+  lang: Lang;
+}
+const d = t(Astro.props.lang);
+---
+<div class="intro" aria-hidden="true" data-intro>
+  <div class="inner">
+    <p class="mark">Los Eternos</p>
+    <div class="gantry">
+      {Array.from({ length: 5 }, (_, i) => (
+        <div class="pod" style={`--i: ${i}`}>
+          <span class="lamp"></span>
+          <span class="lamp"></span>
+        </div>
+      ))}
+    </div>
+    <p class="status mono">
+      <span class="wait">{d.intro.loading}</span>
+      <span class="go">{d.intro.go}</span>
+    </p>
+  </div>
+</div>
+
+<script>
+  const intro = document.querySelector<HTMLElement>('[data-intro]');
+  const root = document.documentElement;
+
+  if (intro && root.classList.contains('intro')) {
+    // Last lamp comes on at 300ms + 4 × 250ms (see the CSS); hold a beat after it,
+    // with a little randomness, like a real start.
+    const lightsDone = 300 + 4 * 250 + 350 + Math.random() * 300;
+    const loaded = new Promise<void>((resolve) =>
+      document.readyState === 'complete' ? resolve() : addEventListener('load', () => resolve(), { once: true }),
+    );
+    const lit = new Promise<void>((resolve) => setTimeout(resolve, lightsDone));
+
+    let gone = false;
+    const lightsOut = (skip = false) => {
+      if (gone) return;
+      gone = true;
+      intro.classList.add('is-out');
+      setTimeout(() => {
+        intro.classList.add('is-leaving');
+        const finish = () => {
+          root.classList.remove('intro');
+          intro.remove();
+        };
+        intro.addEventListener('transitionend', finish, { once: true });
+        setTimeout(finish, 1200);
+      }, skip ? 0 : 350);
+    };
+
+    Promise.all([loaded, lit]).then(() => lightsOut());
+    setTimeout(() => lightsOut(), 5000); // never wait long on a slow image
+    // Any sign the visitor wants in skips straight to the wipe.
+    const skip = () => lightsOut(true);
+    for (const type of ['pointerdown', 'keydown', 'wheel', 'touchstart'] as const) {
+      addEventListener(type, skip, { once: true, passive: true });
+    }
+  }
+</script>
+
+<style>
+  .intro {
+    display: none;
+  }
+  :global(html.intro) .intro {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: grid;
+    place-items: center;
+    background:
+      radial-gradient(70% 45% at 50% 62%, rgb(224 48 30 / 0.14), transparent 70%),
+      var(--bg);
+    clip-path: inset(0 0 0 0);
+    transition: clip-path 0.65s cubic-bezier(0.7, 0, 0.2, 1);
+  }
+  :global(html.intro) .intro.is-leaving {
+    clip-path: inset(0 0 0 100%);
+  }
+  .inner {
+    display: grid;
+    justify-items: center;
+    gap: clamp(22px, 4vw, 36px);
+    animation: rise 0.5s 0.05s var(--ease) both;
+  }
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+  }
+  .mark {
+    font-size: clamp(0.95rem, 0.8rem + 0.6vw, 1.25rem);
+    font-weight: 600;
+    font-stretch: 125%;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .gantry {
+    display: flex;
+    gap: clamp(8px, 1.6vw, 16px);
+  }
+  /* Each pod uses the site's cut-corner shape. */
+  .pod {
+    --cut: 10px;
+    display: grid;
+    gap: clamp(8px, 1.4vw, 14px);
+    padding: clamp(10px, 1.8vw, 18px);
+    background: linear-gradient(180deg, #1c1f22, #111315);
+    box-shadow: inset 0 0 0 1px var(--line);
+    clip-path: polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, var(--cut) 100%, 0 calc(100% - var(--cut)));
+  }
+  .lamp {
+    width: clamp(28px, 6.5vw, 52px);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #34383c, #1a1c1e 70%);
+    box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.6);
+    animation: lamp-on 0.12s calc(300ms + var(--i) * 250ms) ease-out forwards;
+  }
+  @keyframes lamp-on {
+    to {
+      background: radial-gradient(circle at 38% 32%, #ff8a75, var(--signal) 55%, #9e1c10);
+      box-shadow:
+        0 0 18px 2px rgb(224 48 30 / 0.65),
+        0 0 42px 6px rgb(224 48 30 / 0.25);
+    }
+  }
+  /* Lights out: dropping the animation snaps every lamp back to off at once. */
+  .intro.is-out .lamp {
+    animation: none;
+  }
+
+  .status {
+    display: grid;
+    color: var(--muted);
+  }
+  .status span {
+    grid-area: 1 / 1;
+    text-align: center;
+    transition: opacity 0.1s linear;
+  }
+  /* Swap without overlap: the old line is gone before the new one appears. */
+  .status .go {
+    opacity: 0;
+    color: var(--text);
+    transition: opacity 0.2s 0.1s var(--ease);
+  }
+  .intro.is-out .wait {
+    opacity: 0;
+  }
+  .intro.is-out .go {
+    opacity: 1;
+  }
+</style>

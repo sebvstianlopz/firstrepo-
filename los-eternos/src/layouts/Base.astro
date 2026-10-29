@@ -6,6 +6,7 @@ import '../styles/tailwind.css';
 import '../styles/global.css';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import Intro from '../components/Intro.astro';
 import { getImage } from 'astro:assets';
 import ogImg from '../assets/hero.jpg';
 import { t, asset } from '../i18n';
@@ -59,8 +60,26 @@ const ogUrl = new URL(og.src, Astro.site);
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
     {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
+    <script is:inline>
+      // Start-lights intro: once per visit, never with reduced motion, decided before first paint.
+      (function () {
+        try {
+          if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+          if (sessionStorage.getItem('le:intro')) return;
+          sessionStorage.setItem('le:intro', '1');
+        } catch (e) {
+          return;
+        }
+        var root = document.documentElement;
+        root.classList.add('intro');
+        setTimeout(function () {
+          root.classList.remove('intro');
+        }, 8000);
+      })();
+    </script>
   </head>
   <body class={bodyClass}>
+    <Intro lang={lang} />
     <a class="skip" href="#main">{d.skip}</a>
     <Header lang={lang} alternate={alternate} />
     <main id="main">
