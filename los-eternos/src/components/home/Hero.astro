@@ -144,13 +144,15 @@ const airports = site.locations.map((l) => l.label.es.match(/\((\w{3})\)/)?.[1])
     pointer-events: none;
     background: no-repeat 0 0 / 100% 100%;
   }
-  /* Light trail: streaks start just under the body at taillight height, with light pulses
-     flowing back along them. It spans x = -1000…300 of the photo. */
+  /* Light trail: ribbons of light stream out of the taillight in an S-wave, with pulses
+     racing back along them. It spans x = -1400…300 and y = -100…767 of the photo, so it
+     is shifted down by its extra 100 units below the image (100 / 867 of its height). */
   .hero :global(.hero-car)::before {
     z-index: 0;
-    left: -50%;
-    width: 65%;
-    aspect-ratio: 1300 / 667;
+    left: -70%;
+    width: 85%;
+    aspect-ratio: 1700 / 867;
+    transform: translateY(11.534%);
     background-image: var(--trail-img);
     /* --p is the car's progress (0 → 1); the trail fades over the last quarter so it
        leaves the stage with the car instead of lingering at the right edge. */
