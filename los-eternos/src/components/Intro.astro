@@ -1,31 +1,17 @@
 ---
-// Start-lights loading screen, shown once per visit. Five pods light up red one by
-// one; once the page has loaded, all lights go out ("¡Vamos!") and the screen wipes
-// away left to right, the way the hero car drives. Whether it shows is decided by a
-// tiny inline script in <head> (see Base.astro), so the page never flashes first.
-import { t } from '../i18n';
-import type { Lang } from '../config/site';
-
-interface Props {
-  lang: Lang;
-}
-const d = t(Astro.props.lang);
+// Logo loading screen, shown once per visit. It builds the Eternos lockup from its own
+// pieces: a red headlight dot spreads into a row of road dashes, each dash stands up
+// into a letter of ETERNOS, the car is drawn like a brush stroke (the belt line first,
+// so the road becomes the car), and the tagline settles in. Once the page has loaded,
+// the screen wipes away left to right, the way the hero car drives. Whether it shows is
+// decided by a tiny inline script in <head> (see Base.astro), so the page never flashes.
+import '@fontsource/cinzel/latin-400.css';
+import logo from '../assets/logo-eternos.svg?raw';
 ---
 <div class="intro" aria-hidden="true" data-intro>
-  <div class="inner">
-    <p class="mark">Los Eternos</p>
-    <div class="gantry">
-      {Array.from({ length: 5 }, (_, i) => (
-        <div class="pod" style={`--i: ${i}`}>
-          <span class="lamp"></span>
-          <span class="lamp"></span>
-        </div>
-      ))}
-    </div>
-    <p class="status mono">
-      <span class="wait">{d.intro.loading}</span>
-      <span class="go">{d.intro.go}</span>
-    </p>
+  <div class="lockup">
+    <Fragment set:html={logo} />
+    <p class="tagline">Luxury Rental Cars</p>
   </div>
 </div>
 
@@ -34,36 +20,30 @@ const d = t(Astro.props.lang);
   const root = document.documentElement;
 
   if (intro && root.classList.contains('intro')) {
-    // Last lamp comes on at 300ms + 4 × 250ms (see the CSS); hold a beat after it,
-    // with a little randomness, like a real start.
-    const lightsDone = 300 + 4 * 250 + 350 + Math.random() * 300;
+    // The lockup is complete at about 2.7s (see the CSS timeline); hold a beat after it.
+    const built = new Promise<void>((resolve) => setTimeout(resolve, 2700 + 350));
     const loaded = new Promise<void>((resolve) =>
       document.readyState === 'complete' ? resolve() : addEventListener('load', () => resolve(), { once: true }),
     );
-    const lit = new Promise<void>((resolve) => setTimeout(resolve, lightsDone));
 
     let gone = false;
-    const lightsOut = (skip = false) => {
+    const leave = () => {
       if (gone) return;
       gone = true;
-      intro.classList.add('is-out');
-      setTimeout(() => {
-        intro.classList.add('is-leaving');
-        const finish = () => {
-          root.classList.remove('intro');
-          intro.remove();
-        };
-        intro.addEventListener('transitionend', finish, { once: true });
-        setTimeout(finish, 1200);
-      }, skip ? 0 : 350);
+      intro.classList.add('is-leaving');
+      const finish = () => {
+        root.classList.remove('intro');
+        intro.remove();
+      };
+      intro.addEventListener('transitionend', finish, { once: true });
+      setTimeout(finish, 1200);
     };
 
-    Promise.all([loaded, lit]).then(() => lightsOut());
-    setTimeout(() => lightsOut(), 5000); // never wait long on a slow image
+    Promise.all([built, loaded]).then(leave);
+    setTimeout(leave, 5500); // never wait long on a slow image
     // Any sign the visitor wants in skips straight to the wipe.
-    const skip = () => lightsOut(true);
     for (const type of ['pointerdown', 'keydown', 'wheel', 'touchstart'] as const) {
-      addEventListener(type, skip, { once: true, passive: true });
+      addEventListener(type, leave, { once: true, passive: true });
     }
   }
 </script>
@@ -79,7 +59,7 @@ const d = t(Astro.props.lang);
     display: grid;
     place-items: center;
     background:
-      radial-gradient(70% 45% at 50% 62%, rgb(224 48 30 / 0.14), transparent 70%),
+      radial-gradient(60% 40% at 50% 46%, rgb(224 48 30 / 0.12), transparent 70%),
       var(--bg);
     clip-path: inset(0 0 0 0);
     transition: clip-path 0.65s cubic-bezier(0.7, 0, 0.2, 1);
@@ -87,80 +67,93 @@ const d = t(Astro.props.lang);
   :global(html.intro) .intro.is-leaving {
     clip-path: inset(0 0 0 100%);
   }
-  .inner {
+
+  .lockup {
     display: grid;
     justify-items: center;
-    gap: clamp(22px, 4vw, 36px);
-    animation: rise 0.5s 0.05s var(--ease) both;
+    gap: clamp(10px, 1.6vw, 16px);
+    width: min(76vw, 440px);
   }
-  @keyframes rise {
+  .lockup :global(.logo) {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  /* 1 · Headlight → road: the dashes start stacked in the middle as one red dot,
+     then spread out to where each letter will stand. */
+  .lockup :global(.dash) {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation:
+      dash-in 0.8s 0.1s cubic-bezier(0.7, 0, 0.2, 1) both,
+      dash-out 0.25s calc(0.95s + var(--i) * 70ms) ease-in forwards;
+  }
+  @keyframes dash-in {
+    0% {
+      transform: translateX(calc(var(--dx) * 1px)) scale(0);
+    }
+    30% {
+      transform: translateX(calc(var(--dx) * 1px)) scale(0.55, 1.6);
+    }
+    100% {
+      transform: translateX(0) scale(1);
+    }
+  }
+  @keyframes dash-out {
+    to {
+      opacity: 0;
+      transform: scale(0.3, 1);
+    }
+  }
+
+  /* 2 · Road → name: each letter grows out of its dash. */
+  .lockup :global(.letter) {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: letter-in 0.6s calc(0.95s + var(--i) * 70ms) cubic-bezier(0.2, 0.9, 0.25, 1) both;
+  }
+  @keyframes letter-in {
+    0% {
+      opacity: 0;
+      transform: scaleY(0.04);
+    }
+    15% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 1;
+      transform: scaleY(1);
+    }
+  }
+
+  /* 3 · The car is drawn like a brush stroke, belt line first. */
+  .lockup :global(.stroke) {
+    stroke-dasharray: 1 1;
+    stroke-dashoffset: 1;
+    animation: draw 0.75s calc(1.3s + var(--o) * 0.17s) cubic-bezier(0.65, 0, 0.35, 1) forwards;
+  }
+  @keyframes draw {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  /* 4 · Tagline settles in. */
+  .tagline {
+    font-family: 'Cinzel', 'Trajan Pro', Georgia, serif;
+    font-size: clamp(0.7rem, 0.55rem + 0.7vw, 1rem);
+    letter-spacing: 0.3em;
+    margin-right: -0.3em; /* keep it optically centered despite the trailing letter-spacing */
+    text-transform: uppercase;
+    color: var(--text);
+    animation: tagline-in 0.7s 2.05s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+  }
+  @keyframes tagline-in {
     from {
       opacity: 0;
-      transform: translateY(10px);
+      letter-spacing: 0.75em;
     }
-  }
-  .mark {
-    font-size: clamp(0.95rem, 0.8rem + 0.6vw, 1.25rem);
-    font-weight: 600;
-    font-stretch: 125%;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-  }
-
-  .gantry {
-    display: flex;
-    gap: clamp(8px, 1.6vw, 16px);
-  }
-  /* Each pod uses the site's cut-corner shape. */
-  .pod {
-    --cut: 10px;
-    display: grid;
-    gap: clamp(8px, 1.4vw, 14px);
-    padding: clamp(10px, 1.8vw, 18px);
-    background: linear-gradient(180deg, #1c1f22, #111315);
-    box-shadow: inset 0 0 0 1px var(--line);
-    clip-path: polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, var(--cut) 100%, 0 calc(100% - var(--cut)));
-  }
-  .lamp {
-    width: clamp(28px, 6.5vw, 52px);
-    aspect-ratio: 1;
-    border-radius: 50%;
-    background: radial-gradient(circle at 35% 30%, #34383c, #1a1c1e 70%);
-    box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.6);
-    animation: lamp-on 0.12s calc(300ms + var(--i) * 250ms) ease-out forwards;
-  }
-  @keyframes lamp-on {
-    to {
-      background: radial-gradient(circle at 38% 32%, #ff8a75, var(--signal) 55%, #9e1c10);
-      box-shadow:
-        0 0 18px 2px rgb(224 48 30 / 0.65),
-        0 0 42px 6px rgb(224 48 30 / 0.25);
-    }
-  }
-  /* Lights out: dropping the animation snaps every lamp back to off at once. */
-  .intro.is-out .lamp {
-    animation: none;
-  }
-
-  .status {
-    display: grid;
-    color: var(--muted);
-  }
-  .status span {
-    grid-area: 1 / 1;
-    text-align: center;
-    transition: opacity 0.1s linear;
-  }
-  /* Swap without overlap: the old line is gone before the new one appears. */
-  .status .go {
-    opacity: 0;
-    color: var(--text);
-    transition: opacity 0.2s 0.1s var(--ease);
-  }
-  .intro.is-out .wait {
-    opacity: 0;
-  }
-  .intro.is-out .go {
-    opacity: 1;
   }
 </style>

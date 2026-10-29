@@ -61,7 +61,7 @@ const ogUrl = new URL(og.src, Astro.site);
     <meta name="twitter:card" content="summary_large_image" />
     {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
     <script is:inline>
-      // Start-lights intro: once per visit, never with reduced motion, decided before first paint.
+      // Logo intro: once per visit, never with reduced motion, decided before first paint.
       (function () {
         try {
           if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -79,7 +79,7 @@ const ogUrl = new URL(og.src, Astro.site);
     </script>
   </head>
   <body class={bodyClass}>
-    <Intro lang={lang} />
+    <Intro />
     <a class="skip" href="#main">{d.skip}</a>
     <Header lang={lang} alternate={alternate} />
     <main id="main">
