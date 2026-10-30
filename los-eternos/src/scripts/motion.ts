@@ -1,7 +1,7 @@
 // Shared scroll motion for the whole site. Two jobs:
 //   1. [data-reveal] elements get .is-in once, when they scroll into view.
 //   2. [data-progress] elements get a --p custom property (0 → 1) tied to scroll, plus a
-//      "progress" event so components can react (switch lights on, move a spotlight…).
+//      "scrollprogress" event so components can react (switch lights on, move a spotlight…).
 //      data-progress="pin": progress while a tall section scrolls past its sticky stage.
 //      data-progress="view": progress as the element's top travels from data-from to
 //      data-to (fractions of the viewport height; defaults 0.9 → 0.3).
@@ -45,7 +45,7 @@ if (root.classList.contains('motion')) {
       if (last.get(el) === p) continue;
       last.set(el, p);
       el.style.setProperty('--p', String(p));
-      el.dispatchEvent(new CustomEvent('progress', { detail: p }));
+      el.dispatchEvent(new CustomEvent('scrollprogress', { detail: p }));
     }
     const max = Math.max(1, root.scrollHeight - vh);
     root.style.setProperty('--page-p', String(Math.round(clamp(scrollY / max) * 10000) / 10000));

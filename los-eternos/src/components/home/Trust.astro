@@ -8,12 +8,12 @@ interface Props {
 }
 const d = t(Astro.props.lang);
 ---
-<section class="section trust" aria-labelledby="trust-title">
+<section class="section trust" aria-labelledby="trust-title" data-reveal>
   <div class="container grid">
-    <h2 id="trust-title">{d.trust.title}</h2>
+    <h2 id="trust-title" class="sweep" data-reveal>{d.trust.title}</h2>
     <ul>
-      {d.trust.items.map((item) => (
-        <li>
+      {d.trust.items.map((item, i) => (
+        <li style={`--i: ${i}`}>
           <span class="badge" aria-hidden="true"><Icon name={item.icon as 'shield'} size={18} /></span>
           <div>
             <h3>{item.t}</h3>
@@ -63,6 +63,75 @@ const d = t(Astro.props.lang);
   h3 {
     margin-bottom: 8px;
   }
+  /* Motion: a red light bar sweeps across the panel once, the grid lines grow out from
+     the center, then each icon draws itself and glows red in turn. */
+  .trust {
+    position: relative;
+    overflow: hidden;
+  }
+  .grid {
+    position: relative;
+    z-index: 1;
+  }
+  .trust::before {
+    content: '';
+    position: absolute;
+    inset: -30% auto -30% 0;
+    width: 45%;
+    pointer-events: none;
+    background: radial-gradient(closest-side, rgb(224 48 30 / 0.22), transparent);
+    opacity: 0;
+  }
+  :global(html.motion) .trust.is-in::before {
+    animation: light-bar 2.4s var(--ease-drive) 0.1s;
+  }
+  @keyframes light-bar {
+    0% {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+    15%,
+    80% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateX(330%);
+      opacity: 0;
+    }
+  }
+  :global(html.motion) .trust ul {
+    background: linear-gradient(var(--line), var(--line)) center / 0% 0% no-repeat;
+    border-color: transparent;
+    transition:
+      background-size 1.2s var(--ease-drive) 0.25s,
+      border-color 0.6s var(--ease) 1.1s;
+  }
+  :global(html.motion) .trust.is-in ul {
+    background-size: 100% 100%;
+    border-color: var(--line);
+  }
+  :global(html.motion) .badge :global(svg *) {
+    stroke-dasharray: 120;
+    stroke-dashoffset: 120;
+  }
+  :global(html.motion) .trust.is-in .badge :global(svg *) {
+    animation: draw-icon 1.3s var(--ease-settle) calc(0.7s + var(--i) * 0.16s) forwards;
+  }
+  :global(html.motion) .trust.is-in .badge {
+    animation: badge-glow 1.1s var(--ease) calc(1.2s + var(--i) * 0.16s);
+  }
+  @keyframes draw-icon {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+  @keyframes badge-glow {
+    40% {
+      border-color: var(--signal-text);
+      box-shadow: 0 0 22px rgb(224 48 30 / 0.55);
+    }
+  }
+
   @media (max-width: 900px) {
     .grid {
       grid-template-columns: 1fr;

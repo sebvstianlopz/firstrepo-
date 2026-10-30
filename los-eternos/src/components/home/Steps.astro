@@ -50,7 +50,7 @@ const d = t(Astro.props.lang);
       dispatchEvent(new Event('motion:refresh'));
     };
 
-    lanes.addEventListener('progress', (e) => {
+    lanes.addEventListener('scrollprogress', (e) => {
       const p = (e as CustomEvent<number>).detail;
       steps.forEach((li, i) => li.classList.toggle('is-in', p >= marks[i] - 0.001 && p > 0));
     });

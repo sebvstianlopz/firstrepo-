@@ -96,7 +96,7 @@ const count = String(featured.length).padStart(2, '0');
       requestAnimationFrame(spotlight);
     };
 
-    section.addEventListener('progress', () => {
+    section.addEventListener('scrollprogress', () => {
       if (section.classList.contains('is-pinned')) spotlight();
     });
     // Phones (and desktop before pinning): the road follows the swipe.

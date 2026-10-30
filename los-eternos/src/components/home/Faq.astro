@@ -9,10 +9,10 @@ const d = t(Astro.props.lang);
 ---
 <section class="section" aria-labelledby="faq-title">
   <div class="container grid">
-    <h2 id="faq-title">{d.faq.title}</h2>
+    <h2 id="faq-title" class="sweep" data-reveal>{d.faq.title}</h2>
     <div class="list">
       {d.faq.items.map((f) => (
-        <details>
+        <details name="faq">
           <summary>{f.q}</summary>
           <p class="muted">{f.a}</p>
         </details>
@@ -31,8 +31,45 @@ const d = t(Astro.props.lang);
   .list {
     border-top: 1px solid var(--line-strong);
   }
+  /* One question open at a time (name="faq"); the open one gets a red line on its left. */
   details {
+    position: relative;
     border-bottom: 1px solid var(--line);
+  }
+  details::before {
+    content: '';
+    position: absolute;
+    left: -14px;
+    top: 18px;
+    bottom: 18px;
+    width: 2px;
+    background: var(--signal);
+    transform: scaleY(0);
+    transform-origin: top;
+    transition: transform 0.45s var(--ease-drive);
+  }
+  details[open]::before {
+    transform: scaleY(1);
+  }
+  /* Smooth open and close where supported (interpolate-size is set in motion.css). */
+  :global(html.motion) details::details-content {
+    block-size: 0;
+    overflow: hidden;
+    transition:
+      block-size 0.45s var(--ease-drive),
+      content-visibility 0.45s allow-discrete;
+  }
+  :global(html.motion) details[open]::details-content {
+    block-size: auto;
+  }
+  :global(html.motion) details[open] p {
+    animation: answer-in 0.5s var(--ease-settle) 0.1s both;
+  }
+  @keyframes answer-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
   }
   summary {
     display: flex;

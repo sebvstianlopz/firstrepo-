@@ -13,6 +13,11 @@
   --t-reveal: 0.8s;
 }
 
+/* Lets height animate to and from "auto" (smooth FAQ answers) where supported. */
+html.motion {
+  interpolate-size: allow-keywords;
+}
+
 /* Headlight sweep: a beam passes across a heading left → right and the letters brighten
    from dim to full as it goes. */
 html.motion .sweep {

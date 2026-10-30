@@ -8,12 +8,16 @@ interface Props {
 }
 const { lang } = Astro.props;
 const d = t(lang);
+const words = d.closing.title.split(' ');
 ---
-<section class="closing" aria-labelledby="closing-title">
+<section class="closing" aria-labelledby="closing-title" data-progress="view" data-from="1" data-to="0">
   <div class="container inner">
-    <h2 id="closing-title">{d.closing.title}</h2>
-    <p>{d.closing.text}</p>
-    <WaButton lang={lang} label={d.wa.write} />
+    {/* Words start spread apart and slide together (positions only, so the line never rewraps). */}
+    <h2 id="closing-title" data-reveal>
+      {words.map((w, i) => <span class="word" style={`--w: ${i}; --n: ${words.length}`}>{w}</span>)}
+    </h2>
+    <p data-reveal>{d.closing.text}</p>
+    <span class="cta" data-reveal><WaButton lang={lang} label={d.wa.write} /></span>
   </div>
   <div class="mark" aria-hidden="true" data-text="Los Eternos"></div>
 </section>
@@ -39,9 +43,7 @@ const d = t(lang);
     line-height: 1.5;
     color: var(--muted);
   }
-  .inner :global(.btn) {
-    margin-top: 10px;
-  }
+
   /* The name, set huge and cropped by the footer: the last thing on the page. */
   .mark {
     margin: clamp(56px, 8vw, 112px) 0 -0.2em;
@@ -59,5 +61,87 @@ const d = t(lang);
   }
   .mark::before {
     content: attr(data-text);
+  }
+
+  /* ── Motion ─────────────────────────────────────────────── */
+  .word {
+    display: inline-block;
+    margin-right: 0.28em;
+  }
+  .word:last-child {
+    margin-right: 0;
+  }
+  :global(html.motion) .word {
+    opacity: 0;
+    transform: translateX(calc((var(--w) - (var(--n) - 1) / 2) * 0.9em));
+    transition:
+      transform 1.3s var(--ease-settle),
+      opacity 0.9s var(--ease);
+  }
+  :global(html.motion) h2.is-in .word {
+    opacity: 1;
+    transform: none;
+  }
+  :global(html.motion) .inner > p,
+  :global(html.motion) .cta {
+    opacity: 0;
+    transform: translateY(14px);
+    transition:
+      transform 0.9s var(--ease-settle) 0.35s,
+      opacity 0.9s var(--ease) 0.35s;
+  }
+  :global(html.motion) .cta {
+    transition-delay: 0.5s;
+  }
+  :global(html.motion) .inner > p.is-in,
+  :global(html.motion) .cta.is-in {
+    opacity: 1;
+    transform: none;
+  }
+  /* The final call to action: a soft red ring pulses out every few seconds, in the
+     button's cut-corner shape. */
+  .cta {
+    position: relative;
+    display: inline-block;
+    isolation: isolate;
+    margin-top: 10px;
+  }
+  .inner :global(.cta .btn) {
+    margin-top: 0;
+  }
+  :global(html.motion) .cta::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: var(--signal);
+    clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+    opacity: 0;
+  }
+  :global(html.motion) .cta.is-in::before {
+    animation: cta-pulse 3.4s ease-out 1.6s infinite;
+  }
+  @keyframes cta-pulse {
+    0% {
+      opacity: 0.5;
+      transform: scale(1);
+    }
+    55%,
+    100% {
+      opacity: 0;
+      transform: scale(1.12, 1.6);
+    }
+  }
+  /* The giant wordmark glides sideways with scroll, like passing a billboard, under a
+     faint light sweep. */
+  :global(html.motion) .mark {
+    transform: translateX(calc((0.55 - var(--p, 0.55)) * 16%));
+  }
+  :global(html.motion) .mark::before {
+    background: linear-gradient(100deg, var(--panel-2) 40%, #34383c 50%, var(--panel-2) 60%) 0 0 / 300% 100%;
+    background-position-x: calc((1 - var(--p, 0.5)) * 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
 </style>
