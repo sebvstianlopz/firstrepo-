@@ -6,7 +6,7 @@ import Steps from '../components/home/Steps.astro';
 import Trust from '../components/home/Trust.astro';
 import Faq from '../components/home/Faq.astro';
 import Closing from '../components/home/Closing.astro';
-import VehicleCard from '../components/VehicleCard.astro';
+import Featured from '../components/home/Featured.astro';
 import { t, path } from '../i18n';
 import type { Lang } from '../config/site';
 import { getVehicles } from '../lib/vehicles';
@@ -31,17 +31,7 @@ const other: Lang = lang === 'es' ? 'en' : 'es';
   <Hero lang={lang} vehicles={vehicles} />
   <Browse lang={lang} vehicles={vehicles} />
 
-  <section class="section" aria-labelledby="featured-title">
-    <div class="container">
-      <header class="row">
-        <h2 id="featured-title">{d.featured.title}</h2>
-        <a class="link" href={path(lang, 'catalog')}>{d.featured.all} ({vehicles.length})</a>
-      </header>
-    </div>
-    <div class="cards" tabindex="0" aria-label={d.featured.title}>
-      {featured.map((v) => <VehicleCard vehicle={v} lang={lang} />)}
-    </div>
-  </section>
+  <Featured lang={lang} featured={featured} total={vehicles.length} />
 
   <Steps lang={lang} />
   <Trust lang={lang} />
@@ -49,31 +39,3 @@ const other: Lang = lang === 'es' ? 'en' : 'es';
   <Closing lang={lang} />
 </Base>
 
-<style>
-  .row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: end;
-    justify-content: space-between;
-    gap: 12px 32px;
-    margin-bottom: clamp(28px, 4vw, 48px);
-  }
-  /* Horizontal scroller that snaps card by card. */
-  .cards {
-    display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: clamp(250px, 28vw, 380px);
-    gap: clamp(14px, 2vw, 24px);
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scroll-snap-type: x mandatory;
-    scroll-padding-inline: var(--gutter);
-    padding-inline: var(--gutter);
-    padding-bottom: 18px;
-    scrollbar-width: thin;
-    scrollbar-color: var(--signal) var(--panel);
-  }
-  .cards > :global(*) {
-    scroll-snap-align: start;
-  }
-</style>

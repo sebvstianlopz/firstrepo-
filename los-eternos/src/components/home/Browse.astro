@@ -21,13 +21,13 @@ const services = [
 <section class="section browse" aria-labelledby="browse-title">
   <div class="container">
     <header class="head">
-      <h2 id="browse-title">{d.browse.title}</h2>
+      <h2 id="browse-title" class="sweep" data-reveal>{d.browse.title}</h2>
       <p class="lede">{d.browse.text}</p>
     </header>
 
-    <ul class="bento">
+    <ul class="bento" data-reveal>
       {groups.map((g, i) => (
-        <li class:list={['tile', 'photo-tile', { big: i === 0 }]}>
+        <li class:list={['tile', 'photo-tile', { big: i === 0 }]} style={`--i: ${i}`}>
           <a href={`${path(lang, 'catalog')}?cat=${g.category}`}>
             {g.cover && (
               <Image
@@ -49,7 +49,7 @@ const services = [
           </a>
         </li>
       ))}
-      <li class="tile service all">
+      <li class="tile service all" style={`--i: ${groups.length}`}>
         <a href={path(lang, 'catalog')}>
           <span class="badge" aria-hidden="true"><Icon name="arrow-up-right" size={16} /></span>
           <span class="text">
@@ -58,8 +58,8 @@ const services = [
           </span>
         </a>
       </li>
-      {services.map((s) => (
-        <li class="tile service">
+      {services.map((s, i) => (
+        <li class="tile service" style={`--i: ${groups.length + 1 + i}`}>
           <a href={path(lang, 'services')}>
             <span class="badge" aria-hidden="true"><Icon name={s.icon} size={16} /></span>
             <span class="text">
@@ -182,6 +182,24 @@ const services = [
     font-size: 0.92rem;
     line-height: 1.5;
   }
+  /* Reveal (motion only): each tile unlocks diagonally from its cut corner, in order, and
+     its photo settles from a slight zoom. */
+  :global(html.motion) .tile a {
+    clip-path: polygon(0 0, 0 0, 0 0);
+    transition: clip-path 1s var(--ease-drive) calc(var(--i, 0) * 90ms);
+  }
+  :global(html.motion) .bento.is-in .tile a {
+    clip-path: polygon(0 0, 220% 0, 0 220%);
+  }
+  :global(html.motion) .bento.is-in .tile :global(.bg) {
+    animation: settle 1.6s var(--ease-settle) calc(var(--i, 0) * 90ms) backwards;
+  }
+  @keyframes settle {
+    from {
+      transform: scale(1.18);
+    }
+  }
+
   @media (max-width: 900px) {
     .bento {
       grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -1,0 +1,44 @@
+/* Shared motion language for the sections below the hero.
+   Everything travels left → right like the hero car, and things light up more than they
+   slide. Hidden start states only apply under html.motion (set in Base.astro's <head> when
+   the visitor hasn't asked for reduced motion), so without JavaScript or with reduced
+   motion every section is simply shown. */
+
+:root {
+  /* Fast start, soft stop: the car pulling away. */
+  --ease-drive: cubic-bezier(0.7, 0, 0.2, 1);
+  /* Lands gently, for things settling into place. */
+  --ease-settle: cubic-bezier(0.2, 0.9, 0.25, 1);
+  --t-quick: 0.25s;
+  --t-reveal: 0.8s;
+}
+
+/* Headlight sweep: a beam passes across a heading left → right and the letters brighten
+   from dim to full as it goes. */
+html.motion .sweep {
+  background: linear-gradient(100deg, var(--text) 0 38%, #fff 44%, rgb(242 240 236 / 0.16) 52% 100%);
+  background-size: 260% 100%;
+  background-position: 100% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  transition: background-position 1.5s var(--ease-drive);
+}
+html.motion .sweep.is-in {
+  background-position: 0 0;
+}
+
+/* Line mask: the content rises from behind an invisible edge. */
+html.motion .rise {
+  display: block;
+  overflow: hidden;
+}
+html.motion .rise > * {
+  display: block;
+  transform: translateY(105%);
+  transition: transform var(--t-reveal) var(--ease-settle);
+}
+html.motion .is-in .rise > *,
+html.motion .rise.is-in > * {
+  transform: none;
+}

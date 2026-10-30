@@ -4,6 +4,7 @@ import '@fontsource/jetbrains-mono/latin-400.css';
 import archivoLatin from '@fontsource-variable/archivo/files/archivo-latin-wdth-normal.woff2?url';
 import '../styles/tailwind.css';
 import '../styles/global.css';
+import '../styles/motion.css';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import Intro from '../components/Intro.astro';
@@ -61,10 +62,12 @@ const ogUrl = new URL(og.src, Astro.site);
     <meta name="twitter:card" content="summary_large_image" />
     {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
     <script is:inline>
-      // Logo intro: once per visit, never with reduced motion, decided before first paint.
+      // Motion flag, and the logo intro (once per visit). Both are decided before first paint
+      // and both stay off with reduced motion.
       (function () {
         try {
           if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+          document.documentElement.classList.add('motion');
           if (sessionStorage.getItem('le:intro')) return;
           sessionStorage.setItem('le:intro', '1');
         } catch (e) {
@@ -86,6 +89,9 @@ const ogUrl = new URL(og.src, Astro.site);
       <slot />
     </main>
     <Footer lang={lang} />
+    <script>
+      import '../scripts/motion';
+    </script>
   </body>
 </html>
 

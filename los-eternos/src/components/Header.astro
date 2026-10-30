@@ -62,8 +62,20 @@ const links = [
       btn?.focus();
     }
   });
-  // A hairline appears once the page scrolls under the header.
-  const onScroll = () => header?.classList.toggle('is-stuck', window.scrollY > 8);
+  // A hairline appears once the page scrolls under the header. Past the hero, the header
+  // slides away while scrolling down (more room for the photos) and returns on the way up.
+  const root = document.documentElement;
+  const hero = document.querySelector('.hero');
+  let lastY = scrollY;
+  const onScroll = () => {
+    const y = scrollY;
+    header?.classList.toggle('is-stuck', y > 8);
+    if (Math.abs(y - lastY) < 6) return;
+    const pastHero = y > (hero ? hero.getBoundingClientRect().bottom + y - 80 : 160);
+    const hide = y > lastY && pastHero && !header?.classList.contains('is-open');
+    root.classList.toggle('header-hidden', hide);
+    lastY = y;
+  };
   addEventListener('scroll', onScroll, { passive: true });
   onScroll();
 </script>
@@ -77,10 +89,29 @@ const links = [
     backdrop-filter: blur(16px) saturate(1.2);
     -webkit-backdrop-filter: blur(16px) saturate(1.2);
     border-bottom: 1px solid transparent;
-    transition: border-color 0.3s var(--ease);
   }
   .site-header.is-stuck {
     border-bottom-color: var(--line);
+  }
+  .site-header {
+    transition:
+      border-color 0.3s var(--ease),
+      transform 0.4s var(--ease-drive);
+  }
+  :global(html.header-hidden) .site-header:not(:focus-within) {
+    transform: translateY(-100%);
+  }
+  /* Rev line: a signal-red hairline that fills left → right with page progress. */
+  .site-header::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 1px;
+    background: var(--signal);
+    transform: scaleX(var(--page-p, 0));
+    transform-origin: left;
   }
   .bar {
     display: flex;

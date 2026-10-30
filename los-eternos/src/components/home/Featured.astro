@@ -1,0 +1,230 @@
+---
+// "Destacados": the featured cars. On desktop the section pins while vertical scrolling
+// drives the line-up sideways, like passing a showroom; on phones it stays a normal swipe.
+// Either way, the car nearest the center is in the spotlight and a red "road" line fills
+// with progress, with the spotlighted car's fleet number ticking along.
+import VehicleCard from '../VehicleCard.astro';
+import { t, path } from '../../i18n';
+import type { Lang } from '../../config/site';
+import { fleetNo, type Vehicle } from '../../lib/vehicles';
+
+interface Props {
+  lang: Lang;
+  featured: Vehicle[];
+  total: number;
+}
+const { lang, featured, total } = Astro.props;
+const d = t(lang);
+const count = String(featured.length).padStart(2, '0');
+---
+<section class="featured" aria-labelledby="featured-title" data-progress="pin" data-featured>
+  <div class="stage">
+    <div class="container">
+      <header class="row">
+        <h2 id="featured-title" class="sweep" data-reveal>{d.featured.title}</h2>
+        <a class="link" href={path(lang, 'catalog')}>{d.featured.all} ({total})</a>
+      </header>
+    </div>
+    <div class="cards" tabindex="0" aria-label={d.featured.title} data-cards>
+      {featured.map((v, i) => (
+        <div class="slot" style={`--i: ${i}`} data-fleet={fleetNo(v)}>
+          <VehicleCard vehicle={v} lang={lang} />
+        </div>
+      ))}
+    </div>
+    <div class="container road" aria-hidden="true">
+      <span class="ticker mono"><span class="fleet" data-ticker>{fleetNo(featured[0])}</span><span class="count"><span data-index>01</span> / {count}</span></span>
+      <span class="track"><span class="fill"></span></span>
+    </div>
+  </div>
+</section>
+
+<script>
+  const section = document.querySelector<HTMLElement>('[data-featured]');
+  const cards = section?.querySelector<HTMLElement>('[data-cards]');
+  const root = document.documentElement;
+
+  if (section && cards && root.classList.contains('motion')) {
+    const slots = [...cards.querySelectorAll<HTMLElement>('.slot')];
+    const ticker = section.querySelector<HTMLElement>('[data-ticker]');
+    const index = section.querySelector<HTMLElement>('[data-index]');
+    const desktop = matchMedia('(min-width: 900px)');
+    let current = -1;
+
+    // Spotlight: a focal point that travels left → right with progress, so the first car is
+    // lit at the start and the last at the end; brightness falls off with distance from it.
+    const progress = () =>
+      Number(
+        section.classList.contains('is-pinned')
+          ? section.style.getPropertyValue('--p') || 0
+          : section.style.getPropertyValue('--swipe') || 0,
+      );
+    const spotlight = () => {
+      const gutter = parseFloat(getComputedStyle(cards).paddingLeft) || 0;
+      const w = slots[0].offsetWidth;
+      const mid = gutter + w / 2 + progress() * (innerWidth - 2 * gutter - w);
+      let best = 0;
+      let bestDist = Infinity;
+      slots.forEach((slot, i) => {
+        const r = slot.getBoundingClientRect();
+        const dist = Math.abs(r.left + r.width / 2 - mid);
+        slot.style.setProperty('--focus', Math.max(0, 1 - dist / (r.width * 1.3)).toFixed(3));
+        if (dist < bestDist) {
+          bestDist = dist;
+          best = i;
+        }
+      });
+      if (best !== current) {
+        current = best;
+        if (ticker) ticker.textContent = slots[best].dataset.fleet ?? '';
+        if (index) index.textContent = String(best + 1).padStart(2, '0');
+      }
+    };
+
+    // Desktop: pin the section and turn its scroll into sideways travel.
+    const layout = () => {
+      section.classList.remove('is-pinned');
+      section.style.removeProperty('--travel');
+      if (desktop.matches) {
+        const travel = cards.scrollWidth - cards.clientWidth;
+        if (travel > 40) {
+          section.style.setProperty('--travel', `${travel}px`);
+          section.classList.add('is-pinned');
+        }
+      }
+      dispatchEvent(new Event('motion:refresh'));
+      requestAnimationFrame(spotlight);
+    };
+
+    section.addEventListener('progress', () => {
+      if (section.classList.contains('is-pinned')) spotlight();
+    });
+    // Phones (and desktop before pinning): the road follows the swipe.
+    cards.addEventListener(
+      'scroll',
+      () => {
+        if (section.classList.contains('is-pinned')) return;
+        const max = cards.scrollWidth - cards.clientWidth;
+        section.style.setProperty('--swipe', max > 0 ? (cards.scrollLeft / max).toFixed(4) : '0');
+        spotlight();
+      },
+      { passive: true },
+    );
+    desktop.addEventListener('change', layout);
+    addEventListener('resize', () => requestAnimationFrame(layout));
+    addEventListener('load', layout, { once: true });
+    layout();
+  }
+</script>
+
+<style>
+  .featured {
+    padding-block: var(--section);
+  }
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    justify-content: space-between;
+    gap: 12px 32px;
+    margin-bottom: clamp(28px, 4vw, 48px);
+  }
+  /* Horizontal scroller that snaps card by card. */
+  .cards {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: clamp(250px, 28vw, 380px);
+    gap: clamp(14px, 2vw, 24px);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: var(--gutter);
+    padding-inline: var(--gutter);
+    padding-bottom: 18px;
+    scrollbar-width: none;
+  }
+  .cards::-webkit-scrollbar {
+    display: none;
+  }
+  .slot {
+    position: relative;
+    scroll-snap-align: start;
+  }
+
+  /* Road: a fleet-number ticker and a hairline that fills red with progress. */
+  .road {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-top: 18px;
+  }
+  .ticker {
+    display: flex;
+    gap: 14px;
+    flex: none;
+    min-width: 11ch;
+  }
+  .fleet {
+    color: var(--signal-text);
+  }
+  .count {
+    color: var(--muted);
+  }
+  .track {
+    position: relative;
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+  }
+  .fill {
+    position: absolute;
+    inset: 0;
+    background: var(--signal);
+    transform: scaleX(var(--swipe, 0));
+    transform-origin: left;
+  }
+
+  /* Spotlight (motion only): the centered car is brighter and a touch larger. */
+  :global(html.motion) .slot {
+    --focus: 1;
+    transform: scale(calc(0.94 + var(--focus) * 0.06));
+    transform-origin: 50% 60%;
+    transition: transform 0.35s var(--ease-settle);
+  }
+  :global(html.motion) .slot::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    z-index: 2;
+    pointer-events: none;
+    background: var(--bg);
+    opacity: calc((1 - var(--focus)) * 0.55);
+    transition: opacity 0.35s var(--ease-settle);
+  }
+
+  /* Desktop pin: the section is as tall as the sideways travel; its stage sticks to the
+     viewport and the line-up slides with scroll. */
+  .featured.is-pinned {
+    height: calc(100svh + var(--travel));
+    padding-block: 0;
+  }
+  .is-pinned .stage {
+    position: sticky;
+    top: 0;
+    height: 100svh;
+    display: grid;
+    /* Keep the column at screen width: the line-up inside is much wider. */
+    grid-template-columns: minmax(0, 1fr);
+    align-content: center;
+    overflow: hidden;
+  }
+  .is-pinned .cards {
+    overflow: visible;
+    scroll-snap-type: none;
+    transform: translateX(calc(var(--p, 0) * var(--travel) * -1));
+    will-change: transform;
+  }
+  .is-pinned .fill {
+    transform: scaleX(var(--p, 0));
+  }
+</style>

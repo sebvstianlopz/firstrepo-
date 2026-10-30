@@ -198,6 +198,10 @@ const specs = [
   .gallery {
     position: sticky;
     top: 100px;
+    transition: top 0.4s var(--ease-drive);
+  }
+  :global(html.header-hidden) .gallery {
+    top: 24px;
   }
   .viewer {
     position: relative;

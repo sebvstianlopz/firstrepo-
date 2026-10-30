@@ -1,4 +1,8 @@
 ---
+// "Reservar toma tres pasos": a dashed lane line draws itself across the steps with scroll
+// while a red headlight dot travels along it. Each step number switches on, like a
+// dashboard indicator, when the dot reaches it, and its text rises into view.
+// On phones the road runs down the left side instead.
 import { t } from '../../i18n';
 import type { Lang } from '../../config/site';
 
@@ -9,25 +13,63 @@ const d = t(Astro.props.lang);
 ---
 <section class="section" aria-labelledby="steps-title">
   <div class="container">
-    <h2 id="steps-title">{d.steps.title}</h2>
-    <ol class="steps">
-      {d.steps.items.map((s, i) => (
-        <li>
-          <span class="n" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
-          <h3>{s.t}</h3>
-          <p class="muted">{s.d}</p>
-        </li>
-      ))}
-    </ol>
+    <h2 id="steps-title" class="sweep" data-reveal>{d.steps.title}</h2>
+    <div class="lanes" data-progress="view" data-from="0.85" data-to="0.4" data-steps>
+      <div class="road" aria-hidden="true">
+        <span class="lane"></span>
+        <span class="lane lit"></span>
+        <span class="dot"></span>
+      </div>
+      <ol class="steps">
+        {d.steps.items.map((s, i) => (
+          <li>
+            {/* Decorative number, drawn from CSS so its dim "off" state isn't read as text. */}
+            <span class="n" aria-hidden="true" data-n={String(i + 1).padStart(2, '0')}></span>
+            <h3><span class="rise"><span>{s.t}</span></span></h3>
+            <p class="muted"><span class="rise"><span>{s.d}</span></span></p>
+          </li>
+        ))}
+      </ol>
+    </div>
   </div>
 </section>
 
+<script>
+  const lanes = document.querySelector<HTMLElement>('[data-steps]');
+  if (lanes && document.documentElement.classList.contains('motion')) {
+    const road = lanes.querySelector<HTMLElement>('.road')!;
+    const steps = [...lanes.querySelectorAll<HTMLElement>('li')];
+    let marks: number[] = [];
+
+    // Where each step starts along the road (0 → 1), so its light switches on as the dot arrives.
+    const measure = () => {
+      const vertical = road.offsetHeight > road.offsetWidth;
+      marks = steps.map((li) => (vertical ? li.offsetTop / road.offsetHeight : li.offsetLeft / road.offsetWidth));
+      // A tall vertical road needs a longer scroll to cross it.
+      lanes.dataset.to = vertical ? String(0.85 - (lanes.offsetHeight / innerHeight) * 0.8) : '0.4';
+      dispatchEvent(new Event('motion:refresh'));
+    };
+
+    lanes.addEventListener('progress', (e) => {
+      const p = (e as CustomEvent<number>).detail;
+      steps.forEach((li, i) => li.classList.toggle('is-in', p >= marks[i] - 0.001 && p > 0));
+    });
+    addEventListener('resize', measure);
+    measure();
+  }
+</script>
+
 <style>
+  .lanes {
+    --dash: 18px;
+    position: relative;
+    margin-top: clamp(32px, 5vw, 56px);
+  }
   .steps {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: clamp(24px, 4vw, 56px);
-    margin: clamp(32px, 5vw, 56px) 0 0;
+    margin: 0;
     padding: 0;
     list-style: none;
   }
@@ -35,8 +77,10 @@ const d = t(Astro.props.lang);
     display: grid;
     gap: 14px;
     align-content: start;
-    padding-top: 22px;
-    border-top: 1px solid var(--line-strong);
+    padding-top: 26px;
+  }
+  .n::before {
+    content: attr(data-n);
   }
   .n {
     font-size: var(--step-3);
@@ -48,9 +92,94 @@ const d = t(Astro.props.lang);
   p {
     max-width: 30em;
   }
+
+  /* The road: a dim dashed lane, a lit copy revealed up to the dot, and the dot itself. */
+  .road {
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 2px;
+  }
+  .lane {
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(90deg, var(--line-strong) 0 var(--dash), transparent var(--dash) calc(var(--dash) * 1.7));
+  }
+  .lane.lit {
+    background: repeating-linear-gradient(90deg, var(--signal-text) 0 var(--dash), transparent var(--dash) calc(var(--dash) * 1.7));
+    clip-path: inset(0 calc((1 - var(--p, 1)) * 100%) 0 0);
+  }
+  .dot {
+    position: absolute;
+    top: 50%;
+    left: calc(var(--p, 1) * 100%);
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow:
+      0 0 0 3px var(--signal),
+      0 0 22px 6px rgb(224 48 30 / 0.55);
+    transform: translate(-50%, -50%);
+    opacity: 0;
+  }
+  :global(html.motion) .dot {
+    opacity: 1;
+  }
+
+  /* Dashboard indicators (motion only): numbers start as dim outlines and switch on. */
+  :global(html.motion) .n {
+    color: transparent;
+    -webkit-text-stroke: 1px var(--line-strong);
+    transition:
+      color 0.3s var(--ease),
+      -webkit-text-stroke-color 0.3s var(--ease);
+  }
+  :global(html.motion) li.is-in .n {
+    color: var(--signal-text);
+    -webkit-text-stroke-color: transparent;
+    animation: ignite 0.9s var(--ease-settle);
+  }
+  @keyframes ignite {
+    0% {
+      text-shadow: 0 0 0 rgb(224 48 30 / 0);
+    }
+    30% {
+      text-shadow: 0 0 26px rgb(255 90 69 / 0.9);
+    }
+    100% {
+      text-shadow: 0 0 0 rgb(224 48 30 / 0);
+    }
+  }
+  :global(html.motion) li .rise:last-child > * {
+    transition-delay: 0.08s;
+  }
+  :global(html.motion) p .rise > * {
+    transition-delay: 0.12s;
+  }
+
   @media (max-width: 760px) {
     .steps {
       grid-template-columns: 1fr;
+      padding-left: 30px;
+    }
+    li {
+      padding-top: 0;
+    }
+    .road {
+      inset: 0 auto 0 4px;
+      width: 2px;
+      height: auto;
+    }
+    .lane {
+      background: repeating-linear-gradient(180deg, var(--line-strong) 0 var(--dash), transparent var(--dash) calc(var(--dash) * 1.7));
+    }
+    .lane.lit {
+      background: repeating-linear-gradient(180deg, var(--signal-text) 0 var(--dash), transparent var(--dash) calc(var(--dash) * 1.7));
+      clip-path: inset(0 0 calc((1 - var(--p, 1)) * 100%) 0);
+    }
+    .dot {
+      top: calc(var(--p, 1) * 100%);
+      left: 50%;
     }
   }
 </style>
