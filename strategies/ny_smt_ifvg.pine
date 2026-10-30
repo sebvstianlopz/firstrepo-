@@ -1,0 +1,227 @@
+//@version=6
+// NY SMT + 1m FVG inversion strategy.
+// Follows docs/rules.md: NY 09:00-11:59 only, high volume area touch -> SMT -> 1m FVG inversion.
+// Risk values (stop, target, size) are placeholders until the owner approves them.
+strategy("NY SMT + IFVG", shorttitle = "NY SMT IFVG", overlay = true,
+     initial_capital = 50000, default_qty_type = strategy.fixed, default_qty_value = 1,
+     commission_type = strategy.commission.cash_per_contract, commission_value = 2.5,
+     slippage = 1, max_boxes_count = 500, max_labels_count = 500)
+
+const string TZ = "America/New_York"
+
+// ─── Inputs ──────────────────────────────────────────────────────────────────
+grpS = "1. Session"
+entryWindow = input.session("0900-1200", "Entry window (NY time)", group = grpS)
+flatWindow  = input.session("1555-1600", "Close any open trade during (NY time)", group = grpS)
+
+grpH = "2. High volume areas"
+useHtfFvg = input.bool(true, "Use higher-timeframe FVGs", group = grpH)
+htf       = input.timeframe("15", "Higher timeframe for FVGs", group = grpH)
+useBos    = input.bool(true, "Use break-of-structure levels", group = grpH)
+bosLen    = input.int(10, "Structure swing size (bars each side)", minval = 2, group = grpH)
+zoneLife  = input.int(1440, "Forget an area after (bars)", minval = 10, group = grpH)
+maxZones  = input.int(40, "Max areas kept", minval = 1, maxval = 200, group = grpH)
+
+grpM = "3. SMT"
+compSym  = input.symbol("CME_MINI:ES1!", "Compare against", group = grpM)
+swingLen = input.int(2, "Swing confirmation (bars each side)", minval = 1, group = grpM)
+smtLook  = input.int(30, "Look back for previous swing (bars)", minval = 5, group = grpM)
+
+grpF = "4. 1m FVG inversion"
+fvgLife = input.int(60, "Forget a 1m FVG after (bars)", minval = 5, group = grpF)
+maxGap  = input.int(30, "Max bars between steps", minval = 1, group = grpF)
+
+grpR = "5. Risk (placeholders - owner must approve)"
+rr        = input.float(2.0, "Target (multiple of risk)", minval = 0.5, step = 0.5, group = grpR)
+stopTicks = input.int(0, "Extra stop buffer (ticks)", minval = 0, group = grpR)
+
+// ─── 1. Session ──────────────────────────────────────────────────────────────
+inWindow  = not na(time(timeframe.period, entryWindow, TZ))
+inFlatten = not na(time(timeframe.period, flatWindow, TZ))
+
+// ─── 2. High volume areas ────────────────────────────────────────────────────
+var array<float> zTop  = array.new<float>()
+var array<float> zBot  = array.new<float>()
+var array<int>   zBorn = array.new<int>()
+var array<box>   zBox  = array.new<box>()
+
+// New areas found on this bar are collected here, then stored below.
+newTops = array.new<float>()
+newBots = array.new<float>()
+newCols = array.new<color>()
+
+// Higher-timeframe FVGs, using only finished HTF candles (no repainting).
+[hHigh3, hLow3, hHigh1, hLow1, hTime1] = request.security(syminfo.tickerid, htf,
+     [high[3], low[3], high[1], low[1], time[1]], lookahead = barmerge.lookahead_on)
+newHtfBar = hTime1 != hTime1[1]
+if useHtfFvg and newHtfBar
+    if hLow1 > hHigh3
+        array.push(newTops, hLow1)
+        array.push(newBots, hHigh3)
+        array.push(newCols, color.teal)
+    if hHigh1 < hLow3
+        array.push(newTops, hLow3)
+        array.push(newBots, hHigh1)
+        array.push(newCols, color.maroon)
+
+// Break of structure: a swing high/low that price closes through becomes an area.
+ph = ta.pivothigh(high, bosLen, bosLen)
+pl = ta.pivotlow(low, bosLen, bosLen)
+var float swingHigh = na
+var float swingLow  = na
+if not na(ph)
+    swingHigh := ph
+if not na(pl)
+    swingLow := pl
+if not na(swingHigh) and close > swingHigh
+    if useBos
+        array.push(newTops, swingHigh)
+        array.push(newBots, swingHigh)
+        array.push(newCols, color.orange)
+    swingHigh := na
+if not na(swingLow) and close < swingLow
+    if useBos
+        array.push(newTops, swingLow)
+        array.push(newBots, swingLow)
+        array.push(newCols, color.orange)
+    swingLow := na
+
+// Store the new areas, dropping the oldest when the list is full.
+for [j, t] in newTops
+    if array.size(zTop) >= maxZones
+        array.remove(zTop, 0)
+        array.remove(zBot, 0)
+        array.remove(zBorn, 0)
+        box.delete(array.remove(zBox, 0))
+    b = array.get(newBots, j)
+    col = array.get(newCols, j)
+    array.push(zTop, t)
+    array.push(zBot, b)
+    array.push(zBorn, bar_index)
+    array.push(zBox, box.new(bar_index, t, bar_index, b, border_color = col, bgcolor = color.new(col, 85)))
+
+// Did this candle touch any area? Also age out old areas.
+bool touched = false
+if array.size(zTop) > 0
+    for i = array.size(zTop) - 1 to 0
+        born = array.get(zBorn, i)
+        if bar_index - born > zoneLife
+            array.remove(zTop, i)
+            array.remove(zBot, i)
+            array.remove(zBorn, i)
+            box.delete(array.remove(zBox, i))
+        else
+            box.set_right(array.get(zBox, i), bar_index)
+            if born < bar_index and high >= array.get(zBot, i) and low <= array.get(zTop, i)
+                touched := true
+
+var int lastTouchBar = na
+if touched and inWindow
+    lastTouchBar := bar_index
+
+// ─── 3. SMT ──────────────────────────────────────────────────────────────────
+[cHigh, cLow] = request.security(compSym, timeframe.period, [high, low])
+
+win = 2 * swingLen + 1
+chartSwingLow  = ta.lowest(low, win)
+compSwingLow   = ta.lowest(cLow, win)
+chartSwingHigh = ta.highest(high, win)
+compSwingHigh  = ta.highest(cHigh, win)
+chartPriorLow  = ta.lowest(low, smtLook)[win]
+compPriorLow   = ta.lowest(cLow, smtLook)[win]
+chartPriorHigh = ta.highest(high, smtLook)[win]
+compPriorHigh  = ta.highest(cHigh, smtLook)[win]
+
+// Pivots are computed on every bar (v6 would skip the right side of an `or`).
+chartPL = ta.pivotlow(low, swingLen, swingLen)
+compPL  = ta.pivotlow(cLow, swingLen, swingLen)
+chartPH = ta.pivothigh(high, swingLen, swingLen)
+compPH  = ta.pivothigh(cHigh, swingLen, swingLen)
+newSwingLow  = not na(chartPL) or not na(compPL)
+newSwingHigh = not na(chartPH) or not na(compPH)
+
+// One market makes a new extreme, the other does not.
+bullSmt = inWindow and newSwingLow and ((chartSwingLow < chartPriorLow) != (compSwingLow < compPriorLow))
+bearSmt = inWindow and newSwingHigh and ((chartSwingHigh > chartPriorHigh) != (compSwingHigh > compPriorHigh))
+
+touchRecent = not na(lastTouchBar) and bar_index - lastTouchBar <= maxGap
+
+var int   bullSmtBar  = na
+var float bullSmtLow  = na
+var int   bearSmtBar  = na
+var float bearSmtHigh = na
+if bullSmt and touchRecent
+    bullSmtBar := bar_index
+    bullSmtLow := chartSwingLow
+if bearSmt and touchRecent
+    bearSmtBar  := bar_index
+    bearSmtHigh := chartSwingHigh
+
+// ─── 4. 1m FVG inversion ─────────────────────────────────────────────────────
+var array<float> fTop  = array.new<float>()
+var array<float> fBot  = array.new<float>()
+var array<int>   fDir  = array.new<int>()
+var array<int>   fBorn = array.new<int>()
+
+bool bullIfvg = false
+bool bearIfvg = false
+if array.size(fTop) > 0
+    for i = array.size(fTop) - 1 to 0
+        dir      = array.get(fDir, i)
+        flipUp   = dir == -1 and close > array.get(fTop, i)
+        flipDown = dir == 1 and close < array.get(fBot, i)
+        if flipUp
+            bullIfvg := true
+        if flipDown
+            bearIfvg := true
+        if flipUp or flipDown or bar_index - array.get(fBorn, i) > fvgLife
+            array.remove(fTop, i)
+            array.remove(fBot, i)
+            array.remove(fDir, i)
+            array.remove(fBorn, i)
+
+if low > high[2]
+    array.push(fTop, low)
+    array.push(fBot, high[2])
+    array.push(fDir, 1)
+    array.push(fBorn, bar_index)
+if high < low[2]
+    array.push(fTop, low[2])
+    array.push(fBot, high)
+    array.push(fDir, -1)
+    array.push(fBorn, bar_index)
+
+// ─── 5. Entries and exits ────────────────────────────────────────────────────
+bullSignal = inWindow and bullIfvg and not na(bullSmtBar) and bar_index - bullSmtBar <= maxGap
+bearSignal = inWindow and bearIfvg and not na(bearSmtBar) and bar_index - bearSmtBar <= maxGap
+
+if strategy.position_size == 0
+    if bullSignal
+        stopPx = bullSmtLow - stopTicks * syminfo.mintick
+        risk   = close - stopPx
+        if risk > 0
+            strategy.entry("Long", strategy.long, alert_message = "BUY {{ticker}}")
+            strategy.exit("Long exit", "Long", stop = stopPx, limit = close + rr * risk, alert_message = "EXIT LONG {{ticker}}")
+        bullSmtBar := na
+    else if bearSignal
+        stopPx = bearSmtHigh + stopTicks * syminfo.mintick
+        risk   = stopPx - close
+        if risk > 0
+            strategy.entry("Short", strategy.short, alert_message = "SELL {{ticker}}")
+            strategy.exit("Short exit", "Short", stop = stopPx, limit = close - rr * risk, alert_message = "EXIT SHORT {{ticker}}")
+        bearSmtBar := na
+
+if inFlatten
+    strategy.close_all(comment = "End of day", alert_message = "FLATTEN {{ticker}}")
+
+// ─── Visuals ─────────────────────────────────────────────────────────────────
+bgcolor(inWindow ? color.new(color.blue, 94) : na, title = "NY entry window")
+plotshape(touched and inWindow, "Area touch", shape.diamond, location.abovebar, color.new(color.gray, 30), size = size.tiny)
+plotshape(bullSmtBar == bar_index, "Bullish SMT", shape.triangleup, location.belowbar, color.green, offset = -swingLen, text = "SMT", size = size.small)
+plotshape(bearSmtBar == bar_index, "Bearish SMT", shape.triangledown, location.abovebar, color.red, offset = -swingLen, text = "SMT", size = size.small)
+plotshape(bullSignal, "Long signal", shape.labelup, location.belowbar, color.green, text = "IFVG BUY", textcolor = color.white)
+plotshape(bearSignal, "Short signal", shape.labeldown, location.abovebar, color.red, text = "IFVG SELL", textcolor = color.white)
+
+var table warn = table.new(position.bottom_right, 1, 1)
+if barstate.islast and timeframe.period != "1"
+    table.cell(warn, 0, 0, "Built for the 1-minute chart", text_color = color.white, bgcolor = color.red)
