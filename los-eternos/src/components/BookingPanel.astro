@@ -38,7 +38,7 @@ const salePrice = v.data.priceSale ? formatPrice(v.data.priceSale, lang, site.cu
   {rent && (
     <div id="bk-rent" class="pane" role={rent && sale ? 'tabpanel' : undefined} aria-labelledby={rent && sale ? 'tab-rent' : undefined} data-pane="rent">
       <p class="headline">
-        <span class="price big">{formatPrice(v.data.priceDay!, lang, site.currency)}</span>
+        <span class="price big" data-odo>{formatPrice(v.data.priceDay!, lang, site.currency)}</span>
         <span class="mono muted">{d.perDay}</span>
       </p>
       <div class="dates">
@@ -86,6 +86,7 @@ const salePrice = v.data.priceSale ? formatPrice(v.data.priceSale, lang, site.cu
 
 <script>
   import { waLink, type Intent } from '../lib/whatsapp';
+  import { roll } from '../scripts/odometer';
 
   const panel = document.querySelector<HTMLElement>('[data-booking]');
   if (panel) {
@@ -125,6 +126,8 @@ const salePrice = v.data.priceSale ? formatPrice(v.data.priceSale, lang, site.cu
     const estimate =
       lang === 'es' ? 'Precio estimado. Te confirmamos el total por WhatsApp.' : 'Estimated price. We confirm the total on WhatsApp.';
 
+    let sumEl: HTMLElement | null = null;
+    let lineLabel: HTMLElement | null = null;
     function update() {
       let intent: Intent;
       if (active === 'rent') {
@@ -138,19 +141,28 @@ const salePrice = v.data.priceSale ? formatPrice(v.data.priceSale, lang, site.cu
             : 0;
         if (total) {
           if (days > 0) {
-            total.innerHTML = '';
-            const line = document.createElement('span');
-            line.className = 'total-line';
-            line.textContent = `${daysLabel(days)} × ${money(day)} = `;
-            const sum = document.createElement('strong');
-            sum.className = 'price';
-            sum.textContent = money(days * day);
-            line.append(sum);
-            const note = document.createElement('span');
-            note.className = 'muted small';
-            note.textContent = estimate;
-            total.append(line, note);
-          } else total.textContent = hint;
+            // Built once, then updated in place so the total rolls from its last value.
+            if (!sumEl || !lineLabel) {
+              total.innerHTML = '';
+              const line = document.createElement('span');
+              line.className = 'total-line';
+              lineLabel = document.createElement('span');
+              sumEl = document.createElement('strong');
+              sumEl.className = 'price';
+              line.append(lineLabel, sumEl);
+              const note = document.createElement('span');
+              note.className = 'muted small';
+              note.textContent = estimate;
+              total.append(line, note);
+            }
+            lineLabel.textContent = `${daysLabel(days)} × ${money(day)} = `;
+            roll(sumEl, money(days * day));
+            // Ready to book: a light sweeps across the button once, the first time.
+            panel!.querySelector('[data-pane="rent"] [data-wa]')?.classList.add('is-ready');
+          } else {
+            total.textContent = hint;
+            sumEl = lineLabel = null;
+          }
         }
         intent = {
           kind: 'rent',
@@ -279,6 +291,27 @@ const salePrice = v.data.priceSale ? formatPrice(v.data.priceSale, lang, site.cu
   .total :global(.price) {
     color: var(--text);
     font-size: 1.05rem;
+  }
+  /* Ready to book: one light sweep across the button. */
+  .pane :global(.bk-btn) {
+    position: relative;
+  }
+  .pane :global(.bk-btn.is-ready)::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(100deg, transparent 30%, rgb(255 255 255 / 0.45) 50%, transparent 70%) no-repeat;
+    background-size: 60% 100%;
+    animation: ready-sweep 1s var(--ease-drive) 0.15s both;
+  }
+  @keyframes ready-sweep {
+    from {
+      background-position: -80% 0;
+    }
+    to {
+      background-position: 220% 0;
+    }
   }
   .total :global(.small) {
     font-size: var(--step--1);

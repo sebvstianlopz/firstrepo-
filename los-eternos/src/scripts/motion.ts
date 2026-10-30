@@ -8,6 +8,9 @@
 // It also writes --page-p on <html> for the header's progress line.
 // Only runs under html.motion (no reduced motion); otherwise everything stays static.
 
+import './odometer';
+import './pointer';
+
 const root = document.documentElement;
 const clamp = (n: number) => Math.min(1, Math.max(0, n));
 

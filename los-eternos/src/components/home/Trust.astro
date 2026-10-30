@@ -13,7 +13,7 @@ const d = t(Astro.props.lang);
     <h2 id="trust-title" class="sweep" data-reveal>{d.trust.title}</h2>
     <ul>
       {d.trust.items.map((item, i) => (
-        <li style={`--i: ${i}`}>
+        <li style={`--i: ${i}`} data-spot>
           <span class="badge" aria-hidden="true"><Icon name={item.icon as 'shield'} size={18} /></span>
           <div>
             <h3>{item.t}</h3>

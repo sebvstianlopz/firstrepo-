@@ -17,7 +17,7 @@ const words = d.closing.title.split(' ');
       {words.map((w, i) => <span class="word" style={`--w: ${i}; --n: ${words.length}`}>{w}</span>)}
     </h2>
     <p data-reveal>{d.closing.text}</p>
-    <span class="cta" data-reveal><WaButton lang={lang} label={d.wa.write} /></span>
+    <span class="cta" data-reveal><span class="magnet" data-magnet><WaButton lang={lang} label={d.wa.write} /></span></span>
   </div>
   <div class="mark" aria-hidden="true" data-text="Los Eternos"></div>
 </section>
@@ -105,6 +105,9 @@ const words = d.closing.title.split(' ');
     display: inline-block;
     isolation: isolate;
     margin-top: 10px;
+  }
+  .magnet {
+    display: inline-block;
   }
   .inner :global(.cta .btn) {
     margin-top: 0;

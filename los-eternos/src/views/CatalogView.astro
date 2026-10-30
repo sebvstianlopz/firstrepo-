@@ -98,6 +98,7 @@ const other: Lang = lang === 'es' ? 'en' : 'es';
 </Base>
 
 <script>
+  import { roll } from '../scripts/odometer';
   const form = document.querySelector<HTMLFormElement>('[data-filters]')!;
   const grid = document.querySelector<HTMLUListElement>('[data-grid]')!;
   const items = [...grid.querySelectorAll<HTMLLIElement>(':scope > li')];
@@ -154,7 +155,7 @@ const other: Lang = lang === 'es' ? 'en' : 'es';
     );
     grid.append(...sorted);
 
-    countEl.textContent = countLabel(shown);
+    roll(countEl, countLabel(shown));
     empty.hidden = shown > 0;
 
     const next = new URLSearchParams();
@@ -193,6 +194,7 @@ const other: Lang = lang === 'es' ? 'en' : 'es';
     }
     const before = new Map(items.filter((li) => !li.hidden).map((li) => [li, li.getBoundingClientRect()]));
     apply();
+    items.forEach((li) => !li.hidden && li.classList.add('is-in'));
     let arriving = 0;
     for (const li of items) {
       if (li.hidden) continue;
@@ -213,6 +215,27 @@ const other: Lang = lang === 'es' ? 'en' : 'es';
         });
       }
     }
+  }
+
+  // Cards further down enter in a quick diagonal wave as they scroll into view (each column
+  // a beat after the one to its left). Cards already on screen at load are left alone.
+  if (motion) {
+    items.filter((li) => li.getBoundingClientRect().top < innerHeight).forEach((li) => li.classList.add('is-in'));
+    grid.classList.add('wave');
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          const li = entry.target as HTMLLIElement;
+          const col = Math.round(li.offsetLeft / Math.max(1, li.offsetWidth));
+          li.style.setProperty('--wave', `${col * 70}ms`);
+          li.classList.add('is-in');
+          io.unobserve(li);
+        }
+      },
+      { rootMargin: '0px 0px -8% 0px' },
+    );
+    items.filter((li) => !li.classList.contains('is-in')).forEach((li) => io.observe(li));
   }
 
   form.addEventListener('change', update);
@@ -335,6 +358,15 @@ const other: Lang = lang === 'es' ? 'en' : 'es';
   }
   .grid > li[hidden] {
     display: none;
+  }
+  :global(html.motion) .grid.wave > li {
+    transition:
+      opacity 0.6s var(--ease) var(--wave, 0ms),
+      transform 0.8s var(--ease-settle) var(--wave, 0ms);
+  }
+  :global(html.motion) .grid.wave > li:not(.is-in) {
+    opacity: 0;
+    transform: translate(-16px, 22px);
   }
   .empty {
     display: grid;
