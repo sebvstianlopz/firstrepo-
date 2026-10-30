@@ -1,0 +1,156 @@
+---
+import Base from '../../layouts/Base.astro';
+import PieceCard from '../../components/PieceCard.astro';
+import { categories, site } from '../../config/site';
+import { getPieces } from '../../utils/pieces';
+
+const pieces = await getPieces();
+---
+<Base title="The collection" description={`Every piece of the ${site.season} collection: women, men, leather goods and accessories.`}>
+  <section class="wrap pt-10 sm:pt-16">
+    <div class="flex flex-wrap items-end justify-between gap-6" data-reveal>
+      <h1 class="head collection-title" data-collection-title>The collection</h1>
+      <p class="muted"><span data-count>{pieces.length}</span> pieces</p>
+    </div>
+  </section>
+
+  <div class="filters wrap no-scrollbar" role="toolbar" aria-label="Filter and sort">
+    <div class="flex gap-2">
+      <button type="button" class="chip" data-filter="all" aria-pressed="true">All</button>
+      {Object.entries(categories).map(([id, label]) => (
+        <button type="button" class="chip" data-filter={id} aria-pressed="false">{label}</button>
+      ))}
+    </div>
+    <label class="flex items-center gap-2 shrink-0 text-[16px]">
+      <span class="muted">Sort</span>
+      <select class="sort" data-sort>
+        <option value="order">Featured</option>
+        <option value="price-asc">Price, low to high</option>
+        <option value="price-desc">Price, high to low</option>
+      </select>
+    </label>
+  </div>
+
+  <div class="grid-pieces wrap" data-grid>
+    {pieces.map((piece, i) => <PieceCard piece={piece} eager={i < 4} />)}
+  </div>
+</Base>
+
+<style>
+  .collection-title {
+    font-size: clamp(56px, 7vw, 112px);
+    line-height: 0.95;
+  }
+  .filters {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    margin-top: 32px;
+    padding-block: 12px;
+    background: var(--color-bg);
+    overflow-x: auto;
+  }
+  .chip {
+    min-height: 40px;
+    padding: 0 16px;
+    background: var(--color-surface);
+    font-size: 14px;
+    white-space: nowrap;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
+  }
+  .chip:hover {
+    background: var(--color-surface-2);
+  }
+  .chip[aria-pressed='true'] {
+    background: var(--color-ink);
+    color: var(--color-paper);
+  }
+  .sort {
+    appearance: none;
+    padding: 8px 18px 8px 0;
+    background: transparent
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%231a1714' stroke-width='1.4'/%3E%3C/svg%3E")
+      no-repeat right center;
+    color: var(--color-ink);
+    cursor: pointer;
+  }
+  .grid-pieces {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 40px 12px;
+    padding-top: 24px;
+  }
+  @media (min-width: 900px) {
+    .grid-pieces {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 64px 20px;
+    }
+  }
+  .grid-pieces :global(.piece-card) {
+    animation: card-in 0.6s var(--ease-out) both;
+  }
+  .grid-pieces :global(.piece-card[hidden]) {
+    display: none;
+  }
+  @keyframes card-in {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+  }
+</style>
+
+<script>
+  import { categories } from '../../config/site';
+
+  const grid = document.querySelector<HTMLElement>('[data-grid]')!;
+  const cards = [...grid.querySelectorAll<HTMLElement>('.piece-card')];
+  const chips = [...document.querySelectorAll<HTMLButtonElement>('[data-filter]')];
+  const sort = document.querySelector<HTMLSelectElement>('[data-sort]')!;
+  const title = document.querySelector<HTMLElement>('[data-collection-title]')!;
+  const count = document.querySelector<HTMLElement>('[data-count]')!;
+
+  function apply(filter: string, order: string) {
+    chips.forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.filter === filter)));
+    const key = (el: HTMLElement) => Number(order === 'order' ? el.dataset.order : el.dataset.price);
+    const sorted = [...cards].sort((a, b) => (order === 'price-desc' ? key(b) - key(a) : key(a) - key(b)));
+    let shown = 0;
+    sorted.forEach((card) => {
+      const visible = filter === 'all' || card.dataset.category === filter;
+      card.hidden = !visible;
+      if (visible) {
+        // Restart the entrance so a change of filter reads as a change.
+        card.style.animation = 'none';
+        void card.offsetWidth;
+        card.style.animation = '';
+        shown++;
+      }
+      grid.append(card);
+    });
+    title.textContent = filter === 'all' ? 'The collection' : categories[filter as keyof typeof categories];
+    count.textContent = String(shown);
+    const params = new URLSearchParams(location.search);
+    filter === 'all' ? params.delete('c') : params.set('c', filter);
+    history.replaceState(null, '', params.size ? `?${params}` : location.pathname);
+  }
+
+  const state = { filter: new URLSearchParams(location.search).get('c') ?? 'all', order: 'order' };
+  if (!chips.some((c) => c.dataset.filter === state.filter)) state.filter = 'all';
+  chips.forEach((c) =>
+    c.addEventListener('click', () => {
+      state.filter = c.dataset.filter!;
+      apply(state.filter, state.order);
+    }),
+  );
+  sort.addEventListener('change', () => {
+    state.order = sort.value;
+    apply(state.filter, state.order);
+  });
+  apply(state.filter, state.order);
+</script>

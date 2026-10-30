@@ -1,0 +1,343 @@
+---
+import { Image, getImage } from 'astro:assets';
+import Base from '../../layouts/Base.astro';
+import PieceCard from '../../components/PieceCard.astro';
+import Price from '../../components/Price.astro';
+import { categories, defaultCity, site, url } from '../../config/site';
+import { getPieces, type Piece } from '../../utils/pieces';
+
+export async function getStaticPaths() {
+  const pieces = await getPieces();
+  return pieces.map((piece) => ({ params: { slug: piece.id }, props: { piece, pieces } }));
+}
+
+interface Props {
+  piece: Piece;
+  pieces: Piece[];
+}
+const { piece, pieces } = Astro.props;
+const d = piece.data;
+const thumb = await getImage({ src: d.photos[0], width: 192, height: 240, fit: 'cover', format: 'webp' });
+
+// Complete the look: the rest of its category first, then the other categories.
+const others = pieces.filter((p) => p.id !== piece.id);
+const look = [...others.filter((p) => p.data.category === d.category), ...others.filter((p) => p.data.category !== d.category && p.data.featured)].slice(0, 4);
+const advisor = `mailto:${site.advisorEmail}?subject=${encodeURIComponent(`About the ${d.name}`)}`;
+---
+<Base title={d.name} description={d.description} image={d.photos[0]}>
+  <article class="piece wrap">
+    <div class="gallery no-scrollbar" aria-label="Pictures">
+      {d.photos.map((photo, i) => (
+        <div class="frame aspect-[4/5]">
+          <Image
+            src={photo}
+            alt={i === 0 ? d.name : `${d.name}, detail`}
+            widths={[600, 1000, 1400]}
+            sizes="(min-width: 900px) 55vw, 100vw"
+            loading={i === 0 ? 'eager' : 'lazy'}
+          />
+        </div>
+      ))}
+    </div>
+
+    <div class="info">
+      <form id="add-form" class="info-inner" data-piece-form data-reveal
+        data-slug={piece.id} data-name={d.name} data-price={d.price} data-image={thumb.src}>
+        <h1 class="piece-name">{d.name}</h1>
+        <Price usd={d.price} class="text-[20px]" />
+
+        <p class="mt-2">{d.description}</p>
+
+        <fieldset class="mt-4">
+          <legend class="small mb-3">Colour: <span data-colour-name>{d.colors[0].name}</span></legend>
+          <div class="flex gap-3">
+            {d.colors.map((c, i) => (
+              <label class="swatch" style={`--c:${c.hex}`}>
+                <input type="radio" name="color" value={c.name} checked={i === 0} class="sr-only" />
+                <span class="sr-only">{c.name}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        {d.sizes.length > 0 && (
+          <fieldset class="mt-2">
+            <legend class="small mb-3 flex justify-between w-full">Size</legend>
+            <div class="sizes">
+              {d.sizes.map((s) => (
+                <label class="size">
+                  <input type="radio" name="size" value={s} class="sr-only" />
+                  <span>{s}</span>
+                </label>
+              ))}
+            </div>
+            <p class="hint small" data-size-hint role="alert" hidden>Choose a size to add this piece to your bag.</p>
+          </fieldset>
+        )}
+
+        <button class="btn w-full mt-4" data-add>Add to bag</button>
+        <a href={advisor} class="btn btn-quiet w-full">Ask a client advisor</a>
+
+        <p class="small mt-1">
+          Complimentary delivery to <span data-city-name>{defaultCity.name}</span>, arriving <span data-city-days>in {defaultCity.days} days</span>.
+          Free returns within {site.returnsDays} days.
+        </p>
+
+        <div class="mt-6 grid gap-[6px]">
+          <details class="acc" open>
+            <summary>Details</summary>
+            <ul class="list-none grid gap-1">{d.details.map((x) => <li>{x}</li>)}</ul>
+          </details>
+          {d.care && (
+            <details class="acc">
+              <summary>Care</summary>
+              <p>{d.care}</p>
+            </details>
+          )}
+          <details class="acc">
+            <summary>Delivery and returns</summary>
+            <p>Every order is wrapped by hand in the house’s box and delivered complimentary, with a signature on arrival. Returns are collected from your door within {site.returnsDays} days.</p>
+          </details>
+        </div>
+      </form>
+    </div>
+  </article>
+
+  <section class="wrap look" aria-labelledby="look-title">
+    <div class="flex flex-wrap items-baseline justify-between gap-4 mb-10">
+      <h2 id="look-title" class="head">Complete the look</h2>
+      <a href={url(`collection/?c=${d.category}`)} class="link font-medium">All {categories[d.category].toLowerCase()}</a>
+    </div>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-x-3 lg:gap-x-5 gap-y-10" data-reveal>
+      {look.map((p) => <PieceCard piece={p} />)}
+    </div>
+  </section>
+
+  <div class="mobile-bar" aria-hidden="true">
+    <div class="grid leading-tight">
+      <span class="small truncate">{d.name}</span>
+      <Price usd={d.price} class="font-medium" />
+    </div>
+    <button form="add-form" class="btn" tabindex="-1">Add to bag</button>
+  </div>
+</Base>
+
+<style>
+  .piece {
+    display: grid;
+    gap: 32px;
+    padding-top: 16px;
+  }
+  .gallery {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    margin-inline: calc(var(--m) * -1);
+  }
+  .gallery .frame {
+    flex: 0 0 100%;
+    scroll-snap-align: start;
+  }
+  .piece-name {
+    font-family: var(--font-serif);
+    font-size: clamp(36px, 3.4vw, 52px);
+    line-height: 1;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+  }
+  .info-inner {
+    display: grid;
+    gap: 12px;
+    max-width: 60ch;
+  }
+  fieldset {
+    border: 0;
+    padding: 0;
+    margin-inline: 0;
+  }
+  .swatch {
+    width: 40px;
+    height: 40px;
+    background: var(--c);
+    cursor: pointer;
+    outline: 2px solid transparent;
+    outline-offset: 3px;
+    transition:
+      outline-color 0.2s ease,
+      transform 0.2s var(--ease-out);
+  }
+  .swatch:hover {
+    transform: scale(1.06);
+  }
+  .swatch:has(:checked) {
+    outline-color: var(--color-ink);
+  }
+  .swatch:has(:focus-visible) {
+    outline-color: var(--color-accent);
+  }
+  .sizes {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+    gap: 6px;
+  }
+  .size span {
+    display: grid;
+    place-items: center;
+    min-height: 48px;
+    background: var(--color-surface);
+    cursor: pointer;
+    font-variant-numeric: tabular-nums;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
+  }
+  .size span:hover {
+    background: var(--color-surface-2);
+  }
+  .size :checked + span {
+    background: var(--color-ink);
+    color: var(--color-paper);
+  }
+  .size :focus-visible + span {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+  }
+  .hint {
+    margin-top: 10px;
+    color: #8a2b1d;
+  }
+  .shake {
+    animation: shake 0.4s ease;
+  }
+  @keyframes shake {
+    25% {
+      transform: translateX(-6px);
+    }
+    75% {
+      transform: translateX(6px);
+    }
+  }
+  .acc {
+    background: var(--color-surface);
+  }
+  .acc summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 54px;
+    padding: 0 18px;
+    font-weight: 500;
+    cursor: pointer;
+    list-style: none;
+  }
+  .acc summary::-webkit-details-marker {
+    display: none;
+  }
+  .acc summary::after {
+    content: '+';
+    font-weight: 400;
+    font-size: 20px;
+    transition: transform 0.3s var(--ease-out);
+  }
+  .acc[open] summary::after {
+    transform: rotate(45deg);
+  }
+  .acc > :not(summary) {
+    padding: 0 18px 20px;
+  }
+  .look {
+    margin-top: var(--section-gap);
+  }
+  .mobile-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 16px;
+    padding: 10px var(--m) calc(10px + env(safe-area-inset-bottom));
+    background: var(--color-bg);
+    transform: translateY(100%);
+    transition: transform 0.4s var(--ease-out);
+  }
+  .mobile-bar.is-on {
+    transform: none;
+  }
+  @media (min-width: 900px) {
+    .piece {
+      grid-template-columns: 7fr 5fr;
+      gap: clamp(32px, 4vw, 80px);
+    }
+    .gallery {
+      display: grid;
+      gap: 8px;
+      overflow: visible;
+      margin-inline: 0;
+    }
+    .info {
+      position: relative;
+    }
+    .info-inner {
+      position: sticky;
+      top: 88px;
+      max-width: 460px;
+      padding-bottom: 40px;
+    }
+    .mobile-bar {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+  import { addToBag } from '../../scripts/bag';
+
+  const form = document.querySelector<HTMLFormElement>('[data-piece-form]')!;
+  const hint = form.querySelector<HTMLElement>('[data-size-hint]');
+  const colourName = form.querySelector<HTMLElement>('[data-colour-name]')!;
+
+  form.addEventListener('change', (e) => {
+    const t = e.target as HTMLInputElement;
+    if (t.name === 'color') colourName.textContent = t.value;
+    if (t.name === 'size' && hint) hint.hidden = true;
+  });
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const data = new FormData(form);
+    const needsSize = Boolean(hint);
+    const size = String(data.get('size') ?? '');
+    if (needsSize && !size) {
+      hint!.hidden = false;
+      const sizes = form.querySelector<HTMLElement>('.sizes')!;
+      sizes.classList.remove('shake');
+      void sizes.offsetWidth;
+      sizes.classList.add('shake');
+      sizes.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    const d = form.dataset;
+    addToBag({ slug: d.slug!, name: d.name!, price: Number(d.price), image: d.image!, color: String(data.get('color')), size });
+    document.dispatchEvent(new Event('bag:open'));
+  });
+
+  // The phone bar appears once the main button has scrolled out of view,
+  // and steps aside again when the footer arrives.
+  const bar = document.querySelector<HTMLElement>('.mobile-bar')!;
+  const main = form.querySelector('[data-add]')!;
+  const footer = document.querySelector('.site-footer')!;
+  const seen = { passed: false, footer: false };
+  const io = new IntersectionObserver((entries) => {
+    for (const e of entries) {
+      if (e.target === main) seen.passed = !e.isIntersecting && e.boundingClientRect.top < 0;
+      else seen.footer = e.isIntersecting;
+    }
+    bar.classList.toggle('is-on', seen.passed && !seen.footer);
+  });
+  io.observe(main);
+  io.observe(footer);
+</script>

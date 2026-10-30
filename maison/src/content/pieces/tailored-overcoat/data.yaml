@@ -1,0 +1,20 @@
+name: Tailored Wool Overcoat
+category: men
+price: 5900
+colors:
+  - { name: Slate, hex: '#3A3F45' }
+  - { name: Camel, hex: '#B88A5E' }
+sizes: ['46', '48', '50', '52', '54', '56']
+description: >-
+  A single-breasted overcoat with a notch lapel and a long, straight body. Built on a
+  canvassed front so it holds its shape through every winter you give it.
+details:
+  - Virgin wool melton
+  - Half-canvassed construction
+  - Horn buttons
+  - Flap pockets and an inner travel pocket
+care: Dry clean only. Brush after wear.
+photoPending: true
+photos: [./1.jpg, ./2.jpg]
+featured: true
+order: 4

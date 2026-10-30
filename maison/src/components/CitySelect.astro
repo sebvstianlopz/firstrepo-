@@ -1,0 +1,42 @@
+---
+// "Deliver to" picker. Every copy on the page stays in sync through city.ts.
+import { cities, defaultCity } from '../config/site';
+
+interface Props {
+  id: string;
+  /** A small inline version for the header bar. */
+  compact?: boolean;
+}
+const { id, compact = false } = Astro.props;
+---
+{compact ? (
+  <label class="city-compact text-[16px]">
+    <span class="sr-only">Deliver to</span>
+    <select id={id} data-city-select class="city-compact-select">
+      {cities.map((c) => (
+        <option value={c.id} selected={c.id === defaultCity.id}>{c.name} · {c.currency}</option>
+      ))}
+    </select>
+  </label>
+) : (
+  <div class="field">
+    <label for={id}>Deliver to</label>
+    <select id={id} data-city-select class="input">
+      {cities.map((c) => (
+        <option value={c.id} selected={c.id === defaultCity.id}>{c.name}, {c.country} · {c.currency}</option>
+      ))}
+    </select>
+  </div>
+)}
+
+<style>
+  .city-compact-select {
+    appearance: none;
+    background: transparent;
+    color: var(--color-ink);
+    padding: 6px 18px 6px 0;
+    cursor: pointer;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%231a1714' stroke-width='1.4'/%3E%3C/svg%3E")
+      no-repeat right center;
+  }
+</style>

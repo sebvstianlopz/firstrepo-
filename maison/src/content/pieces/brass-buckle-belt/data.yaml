@@ -1,0 +1,18 @@
+name: Brass Buckle Belt 35 mm
+category: accessories
+price: 780
+colors:
+  - { name: Dark Brown, hex: '#3B2A20' }
+  - { name: Black, hex: '#1C1A19' }
+sizes: ['80', '85', '90', '95', '100']
+description: >-
+  A 35 mm belt in smooth calf leather with a solid brass buckle that warms in colour with
+  age. Edges painted by hand in five coats.
+details:
+  - Smooth calf leather
+  - Solid brass buckle
+  - Hand-painted edges
+care: Wipe with a soft dry cloth.
+photoPending: true
+photos: [./1.jpg, ./2.jpg]
+order: 12

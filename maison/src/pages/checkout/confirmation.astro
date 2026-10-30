@@ -1,0 +1,81 @@
+---
+import Base from '../../layouts/Base.astro';
+import { url } from '../../config/site';
+---
+<Base title="Thank you" description="Your order is confirmed." noindex>
+  <section class="wrap confirm pt-10 sm:pt-16" data-reveal>
+    <h1 class="head" data-greeting>Thank you for your order.</h1>
+    <p class="statement" data-message>
+      A client advisor will be in touch to arrange delivery.
+    </p>
+    <div class="order" data-order hidden>
+      <p class="flex justify-between gap-4"><span class="muted">Order</span><span class="font-medium tabular-nums" data-number></span></p>
+      <ul class="grid gap-4 mt-6" data-items></ul>
+      <p class="flex justify-between gap-4 mt-6 text-[20px] font-medium"><span>Total</span><span data-total></span></p>
+    </div>
+    <a href={url('collection/')} class="btn w-fit">Continue with the collection</a>
+  </section>
+</Base>
+
+<style>
+  .confirm {
+    display: grid;
+    gap: 32px;
+    max-width: 760px;
+  }
+  .order {
+    padding: 28px;
+    background: var(--color-surface);
+  }
+  .order :global(li) {
+    display: grid;
+    grid-template-columns: 72px 1fr auto;
+    gap: 14px;
+  }
+  .order :global(img) {
+    width: 72px;
+    aspect-ratio: 4 / 5;
+    object-fit: cover;
+  }
+</style>
+
+<script>
+  interface Order {
+    number: string;
+    name: string;
+    city: string;
+    days: number;
+    total: string;
+    items: { name: string; detail: string; image: string; cost: string }[];
+  }
+
+  let order: Order | null = null;
+  try {
+    order = JSON.parse(sessionStorage.getItem('maison-order') ?? 'null');
+  } catch {
+    order = null;
+  }
+
+  if (order) {
+    document.querySelector('[data-greeting]')!.textContent = `Thank you, ${order.name}.`;
+    document.querySelector('[data-message]')!.textContent =
+      `Your order is confirmed and will arrive in ${order.city} ${order.days === 1 ? 'tomorrow' : `in ${order.days} days`}. A client advisor will be in touch to arrange the delivery time.`;
+    document.querySelector('[data-number]')!.textContent = order.number;
+    document.querySelector('[data-total]')!.textContent = order.total;
+    document.querySelector('[data-items]')!.replaceChildren(
+      ...order.items.map((i) => {
+        const li = document.createElement('li');
+        const img = Object.assign(new Image(72, 90), { src: i.image, alt: '' });
+        const text = document.createElement('div');
+        text.innerHTML = '<p class="font-medium"></p><p class="small muted"></p>';
+        text.children[0].textContent = i.name;
+        text.children[1].textContent = i.detail;
+        const cost = document.createElement('span');
+        cost.textContent = i.cost;
+        li.append(img, text, cost);
+        return li;
+      }),
+    );
+    document.querySelector<HTMLElement>('[data-order]')!.hidden = false;
+  }
+</script>

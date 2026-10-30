@@ -1,0 +1,197 @@
+---
+import { url } from '../config/site';
+---
+<dialog class="drawer" data-bag aria-labelledby="bag-title">
+  <div class="drawer-panel">
+    <div class="flex items-center justify-between px-6 h-[68px] shrink-0">
+      <h2 id="bag-title" class="text-[20px] font-medium">Your bag</h2>
+      <button type="button" class="text-[16px] link" data-close>Close</button>
+    </div>
+
+    <div class="drawer-empty px-6 pt-10" data-bag-empty>
+      <p class="statement">Your bag is empty.</p>
+      <a href={url('collection/')} class="btn mt-8">Discover the collection</a>
+    </div>
+
+    <ul class="drawer-list" data-bag-list></ul>
+
+    <div class="drawer-foot px-6 py-6" data-bag-foot>
+      <div class="flex justify-between text-[20px] font-medium">
+        <span>Subtotal</span>
+        <span data-bag-total></span>
+      </div>
+      <p class="small muted mt-2">
+        Complimentary delivery to <span data-city-name>New York</span>, arriving <span data-city-days>in 2 days</span>.
+        Returns within 30 days.
+      </p>
+      <a href={url('checkout/')} class="btn w-full mt-6">Proceed to checkout</a>
+    </div>
+  </div>
+</dialog>
+
+<template data-bag-line>
+  <li class="line">
+    <span class="frame aspect-[4/5]" data-thumb></span>
+    <div class="grid content-start gap-1">
+      <a class="font-medium link" data-name></a>
+      <span class="small muted" data-meta></span>
+      <div class="qty mt-3">
+        <button type="button" data-dec aria-label="One fewer">−</button>
+        <span data-qty></span>
+        <button type="button" data-inc aria-label="One more">+</button>
+      </div>
+    </div>
+    <div class="grid justify-items-end content-between">
+      <span data-price class="tabular-nums"></span>
+      <button type="button" class="small muted link" data-remove>Remove</button>
+    </div>
+  </li>
+</template>
+
+<style>
+  .drawer {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    margin: 0;
+    background: transparent;
+    overflow: hidden;
+  }
+  .drawer::backdrop {
+    background: rgb(26 23 20 / 0.35);
+    animation: fade 0.4s ease;
+  }
+  .drawer-panel {
+    position: absolute;
+    inset: 0 0 0 auto;
+    width: min(440px, 100%);
+    display: flex;
+    flex-direction: column;
+    background: var(--color-bg);
+    color: var(--color-ink);
+    animation: slide 0.4s var(--ease-out);
+  }
+  .drawer.closing .drawer-panel {
+    animation: slide 0.3s var(--ease-out) reverse forwards;
+  }
+  .drawer.closing::backdrop {
+    animation: fade 0.3s ease reverse forwards;
+  }
+  .drawer-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 24px;
+    display: grid;
+    align-content: start;
+    gap: 12px;
+  }
+  .drawer-foot {
+    background: var(--color-surface);
+  }
+  .drawer :global(.line) {
+    display: grid;
+    grid-template-columns: 96px 1fr auto;
+    gap: 16px;
+    padding: 12px;
+    background: var(--color-surface);
+  }
+  .drawer :global(.qty) {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .drawer :global(.qty button) {
+    width: 36px;
+    height: 36px;
+    background: var(--color-bg);
+    transition: background-color 0.2s ease;
+  }
+  .drawer :global(.qty button:hover) {
+    background: var(--color-surface-2);
+  }
+  .drawer :global(.qty span) {
+    min-width: 24px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  @keyframes slide {
+    from {
+      transform: translateX(100%);
+    }
+  }
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
+  }
+</style>
+
+<script>
+  import { readBag, setQty, bagCount, bagTotal } from '../scripts/bag';
+  import { price } from '../scripts/city';
+  import { url } from '../config/site';
+
+  const dialog = document.querySelector<HTMLDialogElement>('[data-bag]')!;
+  const list = dialog.querySelector<HTMLUListElement>('[data-bag-list]')!;
+  const tpl = document.querySelector<HTMLTemplateElement>('[data-bag-line]')!;
+
+  function render() {
+    const items = readBag();
+    const count = bagCount(items);
+    document.querySelectorAll<HTMLElement>('[data-bag-count]').forEach((el) => {
+      el.textContent = String(count);
+      el.classList.add('bump');
+      setTimeout(() => el.classList.remove('bump'), 300);
+    });
+    dialog.querySelector<HTMLElement>('[data-bag-empty]')!.hidden = items.length > 0;
+    dialog.querySelector<HTMLElement>('[data-bag-foot]')!.hidden = items.length === 0;
+    dialog.querySelector('[data-bag-total]')!.textContent = price(bagTotal(items));
+    list.replaceChildren(
+      ...items.map((item, i) => {
+        const li = tpl.content.firstElementChild!.cloneNode(true) as HTMLLIElement;
+        const img = Object.assign(new Image(96, 120), { src: item.image, alt: '' });
+        li.querySelector('[data-thumb]')!.append(img);
+        const name = li.querySelector<HTMLAnchorElement>('[data-name]')!;
+        name.textContent = item.name;
+        name.href = url(`collection/${item.slug}/`);
+        li.querySelector('[data-meta]')!.textContent = [item.color, item.size && `Size ${item.size}`].filter(Boolean).join(' · ');
+        li.querySelector('[data-qty]')!.textContent = String(item.qty);
+        li.querySelector('[data-price]')!.textContent = price(item.price * item.qty);
+        li.querySelector('[data-dec]')!.addEventListener('click', () => setQty(i, item.qty - 1));
+        li.querySelector('[data-inc]')!.addEventListener('click', () => setQty(i, item.qty + 1));
+        li.querySelector('[data-remove]')!.addEventListener('click', () => setQty(i, 0));
+        return li;
+      }),
+    );
+  }
+
+  function close() {
+    dialog.classList.add('closing');
+    setTimeout(() => {
+      dialog.classList.remove('closing');
+      dialog.close();
+    }, 280);
+  }
+
+  function openBag() {
+    if (!dialog.open) dialog.showModal();
+  }
+
+  document.addEventListener('click', (e) => {
+    if ((e.target as HTMLElement).closest('[data-open-bag]')) openBag();
+  });
+  document.addEventListener('bag:open', openBag);
+  dialog.querySelector('[data-close]')!.addEventListener('click', close);
+  dialog.addEventListener('click', (e) => {
+    if (e.target === dialog) close();
+  });
+  dialog.addEventListener('cancel', (e) => {
+    e.preventDefault();
+    close();
+  });
+  document.addEventListener('bag:change', render);
+  document.addEventListener('city:change', render);
+  addEventListener('storage', render);
+  render();
+</script>

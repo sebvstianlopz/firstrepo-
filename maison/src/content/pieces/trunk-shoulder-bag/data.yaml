@@ -1,0 +1,19 @@
+name: Trunk Shoulder Bag
+category: leather-goods
+price: 5600
+colors:
+  - { name: Cognac, hex: '#6E4A2E' }
+  - { name: Black, hex: '#1F1D1B' }
+description: >-
+  The proportions of a travel trunk, reduced to fit in a hand. Rigid sides, brass corners,
+  leather bands and a working lock, with a strap that detaches for the evening.
+details:
+  - Calf leather on a rigid frame
+  - Brass corners and lock
+  - Detachable leather strap
+  - 20 × 20 × 8 cm
+care: Keep in its dust bag, away from light and damp.
+photoPending: true
+photos: [./1.jpg, ./2.jpg]
+featured: true
+order: 8

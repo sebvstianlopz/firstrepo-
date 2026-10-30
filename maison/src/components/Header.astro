@@ -1,0 +1,120 @@
+---
+import CitySelect from './CitySelect.astro';
+import { categories, site, url } from '../config/site';
+---
+<header class="site-header wrap">
+  <a href={url()} class="wordmark text-[16px] sm:text-[20px]" aria-label={`${site.name}, home`}>{site.name}</a>
+
+  <nav aria-label="Collection" class="hidden lg:flex gap-7 text-[16px]">
+    {Object.entries(categories).map(([id, label]) => (
+      <a class="link" href={url(`collection/?c=${id}`)}>{label}</a>
+    ))}
+  </nav>
+
+  <div class="flex items-center gap-5 justify-self-end">
+    <div class="hidden md:block">
+      <CitySelect id="city-header" compact />
+    </div>
+    <button type="button" class="bag-button text-[16px]" data-open-bag aria-haspopup="dialog">
+      Bag <span class="bag-count" data-bag-count>0</span>
+    </button>
+    <button type="button" class="text-[16px] lg:hidden" data-open-menu aria-haspopup="dialog">Menu</button>
+  </div>
+</header>
+
+<dialog class="menu-sheet" data-menu aria-label="Menu">
+  <div class="wrap flex items-center justify-between h-[68px]">
+    <span class="wordmark text-[16px]">{site.name}</span>
+    <button type="button" class="text-[16px]" data-close>Close</button>
+  </div>
+  <nav aria-label="Collection" class="wrap grid gap-2 pt-8">
+    {Object.entries(categories).map(([id, label]) => (
+      <a class="head" href={url(`collection/?c=${id}`)}>{label}</a>
+    ))}
+    <a class="head" href={url('collection/')}>All pieces</a>
+  </nav>
+  <div class="wrap pt-12 max-w-sm">
+    <CitySelect id="city-menu" />
+  </div>
+</dialog>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 32px;
+    height: 68px;
+    background: var(--color-bg);
+    transition: transform 0.4s var(--ease-out);
+  }
+  .site-header nav {
+    justify-self: center;
+  }
+  .site-header[data-hidden] {
+    transform: translateY(-100%);
+  }
+  .bag-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .bag-count {
+    display: inline-grid;
+    place-items: center;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 6px;
+    background: var(--color-ink);
+    color: var(--color-paper);
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+    transition: transform 0.3s var(--ease-out);
+  }
+  .bag-count.bump {
+    transform: scale(1.25);
+  }
+  .menu-sheet {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    margin: 0;
+    background: var(--color-bg);
+    color: var(--color-ink);
+  }
+  .menu-sheet[open] {
+    animation: sheet-in 0.45s var(--ease-out);
+  }
+  @keyframes sheet-in {
+    from {
+      opacity: 0;
+      transform: translateY(-16px);
+    }
+  }
+</style>
+
+<script>
+  const menu = document.querySelector<HTMLDialogElement>('[data-menu]')!;
+  document.querySelector('[data-open-menu]')?.addEventListener('click', () => menu.showModal());
+  menu.querySelector('[data-close]')?.addEventListener('click', () => menu.close());
+  menu.addEventListener('click', (e) => {
+    if ((e.target as HTMLElement).closest('a')) menu.close();
+  });
+
+  // The bar steps out of the way while reading down, and returns on the way up.
+  const header = document.querySelector<HTMLElement>('.site-header')!;
+  let last = scrollY;
+  addEventListener(
+    'scroll',
+    () => {
+      const y = scrollY;
+      header.toggleAttribute('data-hidden', y > last && y > 400);
+      last = y;
+    },
+    { passive: true },
+  );
+</script>

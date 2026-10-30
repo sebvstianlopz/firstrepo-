@@ -1,0 +1,19 @@
+name: Voyage Weekender 45
+category: leather-goods
+price: 3350
+colors:
+  - { name: Tan, hex: '#8A6A47' }
+  - { name: Ink, hex: '#22232A' }
+description: >-
+  A soft travel bag sized for three days away and the overhead locker. Coated canvas
+  with leather ends, rolled handles and a padlock that travels with it.
+details:
+  - Coated canvas, calf leather trim
+  - Brass zip with padlock and keys
+  - Fits most cabin lockers
+  - 45 × 27 × 20 cm
+care: Wipe with a soft dry cloth.
+photoPending: true
+photos: [./1.jpg, ./2.jpg]
+isNew: true
+order: 9

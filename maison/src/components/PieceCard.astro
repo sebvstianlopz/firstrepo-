@@ -1,0 +1,31 @@
+---
+import { Image } from 'astro:assets';
+import type { CollectionEntry } from 'astro:content';
+import Price from './Price.astro';
+import { url } from '../config/site';
+
+interface Props {
+  piece: CollectionEntry<'pieces'>;
+  sizes?: string;
+  eager?: boolean;
+}
+const { piece, sizes = '(min-width: 1024px) 25vw, 50vw', eager = false } = Astro.props;
+const { name, price, photos, colors } = piece.data;
+---
+<a
+  href={url(`collection/${piece.id}/`)}
+  class="piece-card group grid gap-3"
+  data-category={piece.data.category}
+  data-price={price}
+  data-order={piece.data.order}
+>
+  <div class="frame aspect-[4/5]">
+    <Image src={photos[0]} alt={name} widths={[400, 700, 1000]} sizes={sizes} loading={eager ? 'eager' : 'lazy'} />
+    {photos[1] && <Image src={photos[1]} alt="" class="alt-view" widths={[400, 700, 1000]} sizes={sizes} />}
+  </div>
+  <div class="flex items-baseline justify-between gap-3">
+    <span class="font-medium leading-snug">{name}</span>
+    <Price usd={price} class="shrink-0" />
+  </div>
+  <span class="muted -mt-2">{colors.length > 1 ? `${colors.length} colours` : colors[0].name}</span>
+</a>

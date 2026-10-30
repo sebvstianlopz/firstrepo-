@@ -1,0 +1,11 @@
+---
+// Rendered in USD; city.ts converts it to the visitor's currency.
+import { formatPrice } from '../config/site';
+
+interface Props {
+  usd: number;
+  class?: string;
+}
+const { usd, class: className } = Astro.props;
+---
+<span class:list={['tabular-nums', className]} data-usd={usd}>{formatPrice(usd)}</span>

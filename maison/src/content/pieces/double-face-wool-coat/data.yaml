@@ -1,0 +1,20 @@
+name: Double-Face Wool Coat
+category: women
+price: 5400
+colors:
+  - { name: Camel, hex: '#B88A5E' }
+  - { name: Ink, hex: '#22232A' }
+sizes: ['34', '36', '38', '40', '42', '44']
+description: >-
+  Cut from a single double-face wool, the coat has no lining and no seam it does not need.
+  A long, easy line that closes with a belt and a brass buckle.
+details:
+  - Double-face virgin wool and cashmere
+  - Hand-finished edges, no lining
+  - Self belt with brass-tone buckle
+  - Two welt pockets
+care: Dry clean only. Hang on a wide-shouldered hanger.
+photoPending: true
+photos: [./1.jpg, ./2.jpg]
+featured: true
+order: 1

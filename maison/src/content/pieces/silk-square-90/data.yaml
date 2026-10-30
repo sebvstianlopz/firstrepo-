@@ -1,0 +1,18 @@
+name: Compass Silk Square 90
+category: accessories
+price: 560
+colors:
+  - { name: Bordeaux, hex: '#7A2E2A' }
+  - { name: Navy, hex: '#262C3A' }
+description: >-
+  A silk twill square printed with a compass rose, the hems rolled and stitched by hand.
+  Knot it at the neck, tie it to a handle, or frame it.
+details:
+  - Silk twill
+  - Hand-rolled hems
+  - 90 × 90 cm
+care: Dry clean only.
+photoPending: true
+photos: [./1.jpg, ./2.jpg]
+isNew: true
+order: 11

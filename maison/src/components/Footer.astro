@@ -1,0 +1,141 @@
+---
+import { categories, site, url } from '../config/site';
+const year = new Date().getFullYear();
+---
+<footer class="site-footer">
+  <div class="wrap footer-top">
+    <div class="grid gap-8 content-start" data-reveal>
+      <p class="invite">Speak with a client advisor</p>
+      <a class="btn btn-paper w-fit" href={`mailto:${site.advisorEmail}?subject=${encodeURIComponent('A question for a client advisor')}`}>
+        Write to an advisor
+      </a>
+    </div>
+
+    <div class="grid gap-10 content-start">
+      <nav aria-label="Footer" class="grid gap-2 text-[16px]">
+        {Object.entries(categories).map(([id, label]) => (
+          <a class="link w-fit" href={url(`collection/?c=${id}`)}>{label}</a>
+        ))}
+        <a class="link w-fit" href={url('collection/')}>All pieces</a>
+      </nav>
+
+      <form class="grid gap-3 max-w-sm" data-newsletter>
+        <label for="newsletter" class="text-[16px]">News from the house, four times a year</label>
+        <div class="flex">
+          <input id="newsletter" type="email" required autocomplete="email" placeholder="Email address" class="news-input" />
+          <button class="btn btn-paper shrink-0">Subscribe</button>
+        </div>
+        <p class="small" data-thanks hidden role="status">Thank you. The next letter will reach you with the new season.</p>
+      </form>
+    </div>
+  </div>
+
+  <div class="wrap legal small">
+    <p>{site.disclaimer}</p>
+    <p>© {year} Concept storefront</p>
+  </div>
+
+  <p class="footer-name wordmark" aria-hidden="true">{site.name}</p>
+</footer>
+
+<style>
+  .site-footer {
+    position: relative;
+    overflow: hidden;
+    margin-top: var(--section-gap);
+    background: var(--color-ink);
+    color: var(--color-paper);
+    min-height: 100svh;
+    display: grid;
+    grid-template-rows: 1fr auto auto;
+  }
+  .site-footer :global(:focus-visible) {
+    outline-color: var(--color-paper);
+  }
+  .footer-top {
+    display: grid;
+    gap: 64px;
+    padding-top: clamp(72px, 9vw, 140px);
+  }
+  @media (min-width: 900px) {
+    .footer-top {
+      grid-template-columns: 7fr 5fr;
+    }
+  }
+  .invite {
+    font-family: var(--font-serif);
+    font-size: clamp(44px, 5.4vw, 88px);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    max-width: 11ch;
+  }
+  .news-input {
+    flex: 1;
+    min-width: 0;
+    min-height: 52px;
+    padding: 0 16px;
+    background: transparent;
+    border: 1px solid rgb(244 243 240 / 0.45);
+    border-right: 0;
+    color: var(--color-paper);
+    font-size: 16px;
+  }
+  .news-input::placeholder {
+    color: rgb(244 243 240 / 0.6);
+  }
+  .news-input:focus {
+    outline: none;
+    border-color: var(--color-paper);
+  }
+  .legal {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 8px 32px;
+    padding-top: 64px;
+    color: rgb(244 243 240 / 0.72);
+  }
+  .footer-name {
+    font-size: clamp(64px, 12.6vw, 220px);
+    letter-spacing: 0.02em;
+    line-height: 0.8;
+    padding-inline: var(--m);
+    transform: translateY(18%);
+    margin-top: 16px;
+  }
+  @supports (animation-timeline: view()) {
+    .footer-name {
+      animation: settle linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 100%;
+    }
+    @keyframes settle {
+      from {
+        transform: translateY(18%) scale(0.94);
+        transform-origin: left bottom;
+      }
+      to {
+        transform: translateY(18%) scale(1);
+        transform-origin: left bottom;
+      }
+    }
+  }
+  @media (max-width: 640px) {
+    .footer-name {
+      font-size: 17vw;
+      white-space: normal;
+      line-height: 0.82;
+      transform: translateY(12%);
+    }
+  }
+</style>
+
+<script>
+  document.querySelectorAll<HTMLFormElement>('[data-newsletter]').forEach((form) =>
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      form.querySelector<HTMLElement>('[data-thanks]')!.hidden = false;
+      form.reset();
+    }),
+  );
+</script>

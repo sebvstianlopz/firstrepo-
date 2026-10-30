@@ -1,0 +1,21 @@
+name: Lambskin Blouson
+category: men
+price: 6800
+colors:
+  - { name: Tobacco, hex: '#4A2F22' }
+  - { name: Black, hex: '#1C1A19' }
+sizes: ['46', '48', '50', '52', '54']
+description: >-
+  Supple lambskin cut short at the waist, with a ribbed hem and a brass zip that
+  runs the full length. It softens and darkens with every year of wear.
+details:
+  - Lambskin leather, silk-blend lining
+  - Brass two-way zip
+  - Ribbed hem and cuffs
+  - Two slanted pockets
+care: Specialist leather clean only.
+photoPending: true
+photos: [./1.jpg, ./2.jpg]
+featured: true
+isNew: true
+order: 5

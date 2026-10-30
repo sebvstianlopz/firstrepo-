@@ -1,0 +1,19 @@
+name: Atelier Tote
+category: leather-goods
+price: 3100
+colors:
+  - { name: Black, hex: '#1F1D1B' }
+  - { name: Cognac, hex: '#6E4A2E' }
+description: >-
+  An open tote in grained leather, wide enough for a laptop and a scarf, with brass rivets
+  holding the handles. Unlined, so the leather is the same inside and out.
+details:
+  - Grained calf leather, unlined
+  - Brass rivets
+  - Inner zip pocket
+  - 38 × 30 × 14 cm
+care: Keep in its dust bag, away from light and damp.
+photoPending: true
+photos: [./1.jpg, ./2.jpg]
+featured: true
+order: 10

@@ -1,0 +1,115 @@
+---
+// A band of four unequal panels: the season's lead pieces, side by side.
+import { Image } from 'astro:assets';
+import Price from '../Price.astro';
+import { url } from '../../config/site';
+import type { Piece } from '../../utils/pieces';
+
+interface Props {
+  pieces: Piece[];
+}
+const panels = Astro.props.pieces.slice(0, 4);
+const grow = [5, 2, 3, 2];
+---
+<section class="showcase" aria-labelledby="showcase-title">
+  <div class="wrap showcase-head" data-reveal>
+    <h2 id="showcase-title" class="head">The season’s pieces</h2>
+  </div>
+
+  <div class="band" data-reveal>
+    {panels.map((p, i) => (
+      <a href={url(`collection/${p.id}/`)} class="panel" style={`--g:${grow[i]}`}>
+        <Image src={p.data.photos[0]} alt={p.data.name} widths={[500, 900, 1300]} sizes="(min-width: 640px) 42vw, 64vw" />
+        <span class="panel-label">
+          <span>{p.data.name}</span>
+          <Price usd={p.data.price} />
+        </span>
+      </a>
+    ))}
+  </div>
+
+  <p class="wrap mt-5 flex flex-wrap gap-x-6 gap-y-1">
+    <span>Complimentary delivery and returns on every piece, worldwide.</span>
+    <a class="link font-medium" href={url('collection/')}>See all pieces</a>
+  </p>
+</section>
+
+<style>
+  .showcase {
+    margin-top: var(--section-gap);
+  }
+  .showcase-head {
+    padding-left: calc(var(--m) + 16.66vw);
+    margin-bottom: 64px;
+  }
+  .band {
+    display: flex;
+    height: 68svh;
+    min-height: 460px;
+  }
+  .panel {
+    position: relative;
+    flex: var(--g) 1 0;
+    min-width: 0;
+    overflow: hidden;
+    background: var(--color-surface);
+    transition: flex-grow 0.5s var(--ease-out);
+  }
+  .panel :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 1.2s var(--ease-out);
+  }
+  @media (hover: hover) {
+    .band:hover .panel {
+      flex-grow: 2;
+    }
+    .band .panel:hover {
+      flex-grow: 6;
+    }
+    .panel:hover :global(img) {
+      transform: scale(1.03);
+    }
+  }
+  .panel-label {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 2px 12px;
+    padding: 14px 16px;
+    background: rgb(244 243 240 / 0.92);
+    font-size: 14px;
+    white-space: nowrap;
+  }
+  .panel-label > span:first-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  @media (max-width: 640px) {
+    .showcase-head {
+      padding-left: var(--m);
+      margin-bottom: 32px;
+    }
+    /* Two rows that stay unequal: 64/36 above, 36/64 below. */
+    .band {
+      display: grid;
+      grid-template-columns: 36fr 28fr 36fr;
+      height: 84svh;
+    }
+    .panel:nth-child(1) {
+      grid-column: 1 / 3;
+    }
+    .panel:nth-child(4) {
+      grid-column: 2 / 4;
+    }
+    .panel-label {
+      font-size: 14px;
+      padding: 10px 12px;
+    }
+  }
+</style>

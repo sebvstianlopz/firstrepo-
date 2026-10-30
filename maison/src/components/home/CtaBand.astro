@@ -1,0 +1,80 @@
+---
+// The whole band is one link: the verb is the button.
+import { site, url } from '../../config/site';
+---
+<a href={url('collection/')} class="cta" aria-label="Discover the collection">
+  <span class="cta-note">Every piece of the {site.season} collection, with complimentary delivery to your city.</span>
+  <svg class="cta-arrow" viewBox="0 0 48 48" aria-hidden="true">
+    <path d="M12 36L36 12M16 12h20v20" fill="none" stroke="currentColor" stroke-width="2.5" />
+  </svg>
+  <span class="cta-word" aria-hidden="true">Discover</span>
+</a>
+
+<style>
+  .cta {
+    position: relative;
+    display: block;
+    margin-top: var(--section-gap);
+    height: 60svh;
+    min-height: 380px;
+    overflow: hidden;
+    background: var(--color-accent);
+    color: var(--color-paper);
+  }
+  .cta:hover,
+  .cta:focus-visible {
+    background: var(--color-paper);
+    color: var(--color-accent);
+  }
+  .cta:focus-visible {
+    outline-offset: -6px;
+    outline-color: var(--color-accent);
+  }
+  .cta-note {
+    position: absolute;
+    top: var(--m);
+    left: var(--m);
+    max-width: 30ch;
+    font-size: 20px;
+    line-height: 1.35;
+  }
+  .cta-arrow {
+    position: absolute;
+    top: var(--m);
+    right: var(--m);
+    width: 48px;
+    height: 48px;
+    transition: transform 0.4s var(--ease-out);
+  }
+  .cta:hover .cta-arrow {
+    transform: translate(6px, -6px);
+  }
+  .cta-word {
+    position: absolute;
+    left: var(--m);
+    right: var(--m);
+    bottom: 24px;
+    font-size: clamp(88px, 18.5vw, 360px);
+    font-weight: 500;
+    line-height: 0.78;
+    letter-spacing: -0.05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  @media (max-width: 640px) {
+    .cta {
+      height: 46svh;
+    }
+    .cta-note {
+      font-size: 16px;
+      max-width: 22ch;
+    }
+    .cta-arrow {
+      width: 32px;
+      height: 32px;
+    }
+    .cta-word {
+      font-size: 19.5vw;
+    }
+  }
+</style>

@@ -1,0 +1,21 @@
+name: Pleated Silk Midi Dress
+category: women
+price: 4200
+colors:
+  - { name: Midnight, hex: '#2B2A33' }
+  - { name: Ivory, hex: '#EDE6DA' }
+sizes: ['34', '36', '38', '40', '42']
+description: >-
+  Sunray pleats fall from a fitted bodice and move with every step. A dress for dinners
+  that run late, in a silk crêpe that packs flat and arrives without a crease.
+details:
+  - Silk crêpe de Chine
+  - Permanent sunray pleating
+  - Concealed side zip
+  - Midi length, 112 cm from shoulder
+care: Dry clean only.
+photoPending: true
+photos: [./1.jpg, ./2.jpg]
+featured: true
+isNew: true
+order: 2

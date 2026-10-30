@@ -1,0 +1,19 @@
+name: Cashmere Rib Knit
+category: women
+price: 2150
+colors:
+  - { name: Oat, hex: '#D9CBB4' }
+  - { name: Chestnut, hex: '#6A4630' }
+sizes: [XS, S, M, L]
+description: >-
+  A relaxed crew neck in a deep rib, knitted from twelve-gauge cashmere. Heavy enough
+  to wear alone in November, soft enough to wear against the skin.
+details:
+  - 100% cashmere
+  - Twelve-gauge rib knit
+  - Dropped shoulder, relaxed fit
+care: Hand wash cold and dry flat.
+photoPending: true
+photos: [./1.jpg, ./2.jpg]
+isNew: true
+order: 3

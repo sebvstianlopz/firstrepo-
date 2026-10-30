@@ -1,0 +1,19 @@
+name: Pleated Wool Trousers
+category: men
+price: 1450
+colors:
+  - { name: Flannel Grey, hex: '#6B6258' }
+  - { name: Navy, hex: '#262C3A' }
+sizes: ['44', '46', '48', '50', '52', '54']
+description: >-
+  Double pleats and a high rise give these flannel trousers their fall. Wide through
+  the leg, finished with a clean hem that breaks just once on the shoe.
+details:
+  - Wool flannel
+  - Double forward pleats
+  - Side adjusters, belt loops
+care: Dry clean only.
+photoPending: true
+photos: [./1.jpg, ./2.jpg]
+isNew: true
+order: 6
