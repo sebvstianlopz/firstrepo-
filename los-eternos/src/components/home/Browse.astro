@@ -21,14 +21,14 @@ const services = [
 <section class="section browse" aria-labelledby="browse-title">
   <div class="container">
     <header class="head">
-      <h2 id="browse-title">{d.browse.title}</h2>
+      <h2 id="browse-title" class="sweep" data-reveal>{d.browse.title}</h2>
       <p class="lede">{d.browse.text}</p>
     </header>
 
-    <ul class="bento">
+    <ul class="bento" data-reveal>
       {groups.map((g, i) => (
-        <li class:list={['tile', 'photo-tile', { big: i === 0 }]}>
-          <a href={`${path(lang, 'catalog')}?cat=${g.category}`}>
+        <li class:list={['tile', 'photo-tile', { big: i === 0 }]} style={`--i: ${i}`}>
+          <a href={`${path(lang, 'catalog')}?cat=${g.category}`} data-lean>
             {g.cover && (
               <Image
                 class="bg"
@@ -41,7 +41,7 @@ const services = [
             <span class="badge" aria-hidden="true"><Icon name="arrow-up-right" size={16} /></span>
             <span class="text">
               <span class="name">{d.category[g.category]}</span>
-              <span class="mono meta">
+              <span class="mono meta" data-odo>
                 {d.browse.count(g.count)}
                 {g.from && ` · ${d.from} ${formatPrice(g.from, lang, site.currency)}${d.perDay}`}
               </span>
@@ -49,7 +49,7 @@ const services = [
           </a>
         </li>
       ))}
-      <li class="tile service all">
+      <li class="tile service all" style={`--i: ${groups.length}`}>
         <a href={path(lang, 'catalog')}>
           <span class="badge" aria-hidden="true"><Icon name="arrow-up-right" size={16} /></span>
           <span class="text">
@@ -58,8 +58,8 @@ const services = [
           </span>
         </a>
       </li>
-      {services.map((s) => (
-        <li class="tile service">
+      {services.map((s, i) => (
+        <li class="tile service" style={`--i: ${groups.length + 1 + i}`}>
           <a href={path(lang, 'services')}>
             <span class="badge" aria-hidden="true"><Icon name={s.icon} size={16} /></span>
             <span class="text">
@@ -124,9 +124,26 @@ const services = [
     z-index: -1;
     background: linear-gradient(0deg, rgb(11 12 13 / 0.9) 0%, rgb(11 12 13 / 0.2) 55%, transparent 80%);
   }
+  /* Hover: the photo leans away from the cursor a few pixels while it zooms. */
   .tile a:hover :global(.bg) {
-    transform: scale(1.04);
+    transform: scale(1.06) translate(calc(var(--lx, 0) * -6px), calc(var(--ly, 0) * -5px));
     filter: saturate(1) brightness(0.9);
+  }
+  /* Hover glint: a diagonal light slides across the photo, like a showroom light over paint. */
+  .photo-tile a::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 0.14) 48%, rgb(255 255 255 / 0.04) 54%, transparent 62%) no-repeat;
+    background-size: 250% 100%;
+    background-position: 130% 0;
+    transition: background-position 0s;
+  }
+  .photo-tile a:hover::after {
+    background-position: -30% 0;
+    transition: background-position 1s var(--ease-drive);
   }
   .badge {
     position: absolute;
@@ -182,6 +199,24 @@ const services = [
     font-size: 0.92rem;
     line-height: 1.5;
   }
+  /* Reveal (motion only): each tile unlocks diagonally from its cut corner, in order, and
+     its photo settles from a slight zoom. */
+  :global(html.motion) .tile a {
+    clip-path: polygon(0 0, 0 0, 0 0);
+    transition: clip-path 1s var(--ease-drive) calc(var(--i, 0) * 90ms);
+  }
+  :global(html.motion) .bento.is-in .tile a {
+    clip-path: polygon(0 0, 220% 0, 0 220%);
+  }
+  :global(html.motion) .bento.is-in .tile :global(.bg) {
+    animation: settle 1.6s var(--ease-settle) calc(var(--i, 0) * 90ms) backwards;
+  }
+  @keyframes settle {
+    from {
+      transform: scale(1.18);
+    }
+  }
+
   @media (max-width: 900px) {
     .bento {
       grid-template-columns: repeat(2, minmax(0, 1fr));

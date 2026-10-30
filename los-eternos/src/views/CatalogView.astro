@@ -98,6 +98,7 @@ const other: Lang = lang === 'es' ? 'en' : 'es';
 </Base>
 
 <script>
+  import { roll } from '../scripts/odometer';
   const form = document.querySelector<HTMLFormElement>('[data-filters]')!;
   const grid = document.querySelector<HTMLUListElement>('[data-grid]')!;
   const items = [...grid.querySelectorAll<HTMLLIElement>(':scope > li')];
@@ -123,19 +124,24 @@ const other: Lang = lang === 'es' ? 'en' : 'es';
     } catch {}
   }
 
-  function apply() {
-    const data = new FormData(form);
+  const matches = (li: HTMLLIElement, data: FormData) => {
     const mode = String(data.get('mode') ?? '');
     const cat = String(data.get('cat') ?? '');
     const seats = Number(data.get('seats') || 0);
+    return (
+      (!cat || li.dataset.cat === cat) &&
+      (!seats || Number(li.dataset.seats) >= seats) &&
+      (!mode || li.dataset.mode === mode || li.dataset.mode === 'both')
+    );
+  };
+
+  function apply() {
+    const data = new FormData(form);
     const sort = String(data.get('sort') ?? '');
 
     let shown = 0;
     for (const li of items) {
-      const ok =
-        (!cat || li.dataset.cat === cat) &&
-        (!seats || Number(li.dataset.seats) >= seats) &&
-        (!mode || li.dataset.mode === mode || li.dataset.mode === 'both');
+      const ok = matches(li, data);
       li.hidden = !ok;
       if (ok) shown++;
     }
@@ -149,7 +155,7 @@ const other: Lang = lang === 'es' ? 'en' : 'es';
     );
     grid.append(...sorted);
 
-    countEl.textContent = countLabel(shown);
+    roll(countEl, countLabel(shown));
     empty.hidden = shown > 0;
 
     const next = new URLSearchParams();
@@ -161,11 +167,82 @@ const other: Lang = lang === 'es' ? 'en' : 'es';
     history.replaceState(null, '', qs ? `?${qs}` : location.pathname);
   }
 
-  form.addEventListener('change', apply);
+  // Filtering glides (motion only): cards that drop out fade first, the ones that stay
+  // slide to their new places, and new arrivals fade in.
+  const motion = document.documentElement.classList.contains('motion');
+  const ease = 'cubic-bezier(0.2, 0.9, 0.25, 1)';
+  let run = 0;
+  async function update() {
+    if (!motion) return apply();
+    const id = ++run;
+    items.forEach((li) => li.getAnimations().forEach((a) => a.cancel()));
+    const data = new FormData(form);
+    const leaving = items.filter((li) => !li.hidden && !matches(li, data));
+    if (leaving.length) {
+      await Promise.all(
+        leaving.map(
+          (li) =>
+            li.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'scale(0.96)' }], {
+              duration: 160,
+              easing: 'ease-in',
+              fill: 'forwards',
+            }).finished.catch(() => {}),
+        ),
+      );
+      if (id !== run) return; // a newer change took over
+      leaving.forEach((li) => li.getAnimations().forEach((a) => a.cancel()));
+    }
+    const before = new Map(items.filter((li) => !li.hidden).map((li) => [li, li.getBoundingClientRect()]));
+    apply();
+    items.forEach((li) => !li.hidden && li.classList.add('is-in'));
+    let arriving = 0;
+    for (const li of items) {
+      if (li.hidden) continue;
+      const was = before.get(li);
+      const now = li.getBoundingClientRect();
+      if (was) {
+        const dx = was.left - now.left;
+        const dy = was.top - now.top;
+        if (dx || dy) {
+          li.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: 520, easing: ease });
+        }
+      } else if (now.top < innerHeight * 1.5) {
+        li.animate([{ opacity: 0, transform: 'translateY(14px) scale(0.98)' }, { opacity: 1, transform: 'none' }], {
+          duration: 480,
+          delay: Math.min(arriving++, 10) * 35,
+          easing: ease,
+          fill: 'backwards',
+        });
+      }
+    }
+  }
+
+  // Cards further down enter in a quick diagonal wave as they scroll into view (each column
+  // a beat after the one to its left). Cards already on screen at load are left alone.
+  if (motion) {
+    items.filter((li) => li.getBoundingClientRect().top < innerHeight).forEach((li) => li.classList.add('is-in'));
+    grid.classList.add('wave');
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          const li = entry.target as HTMLLIElement;
+          const col = Math.round(li.offsetLeft / Math.max(1, li.offsetWidth));
+          li.style.setProperty('--wave', `${col * 70}ms`);
+          li.classList.add('is-in');
+          io.unobserve(li);
+        }
+      },
+      { rootMargin: '0px 0px -8% 0px' },
+    );
+    items.filter((li) => !li.classList.contains('is-in')).forEach((li) => io.observe(li));
+  }
+
+  form.addEventListener('change', update);
   form.addEventListener('submit', (e) => e.preventDefault());
   document.querySelector('[data-clear]')?.addEventListener('click', () => {
     form.reset();
-    apply();
+    update();
   });
   apply();
 </script>
@@ -182,6 +259,7 @@ const other: Lang = lang === 'es' ? 'en' : 'es';
   .filters {
     position: sticky;
     top: 76px;
+    transition: top 0.4s var(--ease-drive);
     z-index: 10;
     display: grid;
     gap: 12px;
@@ -191,6 +269,9 @@ const other: Lang = lang === 'es' ? 'en' : 'es';
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
     border-block: 1px solid var(--line);
+  }
+  :global(html.header-hidden) .filters {
+    top: 0;
   }
   fieldset {
     margin: 0;
@@ -277,6 +358,15 @@ const other: Lang = lang === 'es' ? 'en' : 'es';
   }
   .grid > li[hidden] {
     display: none;
+  }
+  :global(html.motion) .grid.wave > li {
+    transition:
+      opacity 0.6s var(--ease) var(--wave, 0ms),
+      transform 0.8s var(--ease-settle) var(--wave, 0ms);
+  }
+  :global(html.motion) .grid.wave > li:not(.is-in) {
+    opacity: 0;
+    transform: translate(-16px, 22px);
   }
   .empty {
     display: grid;
