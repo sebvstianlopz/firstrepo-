@@ -18,8 +18,8 @@ export const site = {
   address: 'Santo Domingo, República Dominicana',
   mapsUrl: 'https://maps.google.com/?q=Santo+Domingo,+Rep%C3%BAblica+Dominicana',
   hours: {
-    es: 'Todos los días, de 7:00 a. m. a 9:00 p. m.',
-    en: 'Every day, 7:00 am to 9:00 pm',
+    es: 'Todos los días, de 7:00 a. m. a 10:00 p. m.',
+    en: 'Every day, 7:00 am to 10:00 pm',
   },
   social: {
     instagram: 'https://instagram.com/',
