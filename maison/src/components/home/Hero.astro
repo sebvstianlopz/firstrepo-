@@ -1,6 +1,5 @@
 ---
-// The season on a clothing rail: brush along it, lift a piece to turn it,
-// with the story on the left and the red season scribble on the right.
+// The season on a clothing rail, in a dark band: brush along it, lift a piece to turn it.
 import HeroRail, { type RailPiece } from './HeroRail';
 import { cities, defaultCity, site } from '../../config/site';
 import type { Piece } from '../../utils/pieces';
@@ -15,7 +14,7 @@ const railPieces: RailPiece[] = Astro.props.pieces.flatMap((p) => {
     id: p.id,
     name: p.data.name,
     kind: rail.kind,
-    color: p.data.colors[0].hex,
+    colors: p.data.colors,
     // The first sentence is enough under the rail; the piece page has the rest.
     description: p.data.description.split(/(?<=\.)\s/)[0],
     details: p.data.details.slice(0, 3),
@@ -25,16 +24,19 @@ const railPieces: RailPiece[] = Astro.props.pieces.flatMap((p) => {
     sideImage: rail.side?.src,
   }];
 });
+
+// Photographed pieces hang once; drawn ones hang once per colour (see HeroRail).
+const hangers = railPieces.reduce((n, p) => n + (p.image ? 1 : p.colors.length), 0);
+const words = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve'];
+const count = words[hangers] ?? String(hangers);
 ---
 <section class="hero" aria-label={`${site.season}: ${site.collection.name}`}>
-  <p class="hero-intro wrap" data-reveal><span>{site.collection.intro}</span></p>
-  <p class="scribble" aria-hidden="true">{site.collection.scribble}</p>
-
-  <div class="rail-box">
+  <div class="rail-band dark">
     <HeroRail
       client:only="react"
       pieces={railPieces}
-      heading={`‘${site.collection.name}’`}
+      eyebrow={`${site.collection.scribble} · ${count} pieces on the rail`}
+      heading="The new season, hung and ready to handle."
       caption="Brush along the rail, or lift a piece to see the back."
     />
   </div>
@@ -52,41 +54,16 @@ const railPieces: RailPiece[] = Astro.props.pieces.flatMap((p) => {
 
 <style>
   .hero {
-    position: relative;
-    overflow-x: clip;
     padding-top: clamp(16px, 2vw, 32px);
   }
-  /* Reserve the rail's height so nothing jumps when it loads. */
-  .rail-box {
-    min-height: 640px;
+  /* A full-width dark band; its height is reserved so nothing jumps when the rail loads. */
+  .rail-band {
+    min-height: 680px;
+    background: var(--color-background);
   }
-  /* The rail's own heading takes the site's display type. */
-  .rail-box :global([data-slot='clothing-rail-hero'] header h2) {
-    font-stretch: 125%;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: -0.02em;
-    line-height: 1;
-    font-size: clamp(28px, 3.4vw, 52px);
-  }
-  .hero-intro {
-    max-width: 360px;
-    font-size: 15px;
-    line-height: 1.5;
-  }
-  .scribble {
-    position: absolute;
-    right: var(--m);
-    top: 0;
-    z-index: 2;
-    font-family: var(--font-script);
-    font-size: clamp(64px, 9vw, 150px);
-    line-height: 0.8;
-    color: var(--color-accent);
-    transform: rotate(-7deg);
-    transform-origin: right top;
-    pointer-events: none;
-    white-space: nowrap;
+  .rail-band :global([data-slot='clothing-rail-hero'] header h2) {
+    font-size: clamp(26px, 2.5vw, 44px);
+    letter-spacing: -0.025em;
   }
   .deliver {
     display: flex;
@@ -94,6 +71,7 @@ const railPieces: RailPiece[] = Astro.props.pieces.flatMap((p) => {
     justify-content: center;
     align-items: baseline;
     gap: 4px 8px;
+    padding-top: 20px;
     text-align: center;
   }
   .deliver-select {
@@ -109,29 +87,9 @@ const railPieces: RailPiece[] = Astro.props.pieces.flatMap((p) => {
     text-transform: inherit;
     cursor: pointer;
   }
-  @media (min-width: 900px) {
-    /* Story top-left, scribble top-right; the rail hangs between them. */
-    .hero-intro {
-      position: absolute;
-      top: clamp(16px, 2vw, 32px);
-      left: 0;
-      z-index: 2;
-    }
-    .scribble {
-      top: 40px;
-    }
-  }
   @media (max-width: 899px) {
-    .rail-box {
-      min-height: 560px;
-    }
-    .scribble {
-      position: relative;
-      right: auto;
-      display: block;
-      text-align: right;
-      padding-right: var(--m);
-      margin-top: 8px;
+    .rail-band {
+      min-height: 600px;
     }
   }
 </style>

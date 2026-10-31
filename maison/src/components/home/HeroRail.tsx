@@ -7,7 +7,7 @@ export interface RailPiece {
   id: string;
   name: string;
   kind: GarmentKind;
-  color: string;
+  colors: { name: string; hex: string }[];
   description: string;
   details: string[];
   /** In US dollars; shown on the hang tag in the visitor's currency. */
@@ -19,8 +19,16 @@ export interface RailPiece {
 
 interface Props {
   pieces: RailPiece[];
+  eyebrow: string;
   heading: string;
   caption: string;
+}
+
+/** One hanger on the rail, and the piece it sells. */
+interface Hanger {
+  key: string;
+  piece: RailPiece;
+  colour: { name: string; hex: string };
 }
 
 /** The delivery city chosen elsewhere on the page (scripts/city.ts keeps it in localStorage). */
@@ -40,54 +48,73 @@ function useCity(): City {
   return city;
 }
 
-export default function HeroRail({ pieces, heading, caption }: Props) {
+/**
+ * A piece with its own photographs hangs once. A drawn piece hangs once per
+ * colourway, first colours first, so the rail reads like a full rack.
+ */
+function hang(pieces: RailPiece[]): Hanger[] {
+  const rounds = Math.max(...pieces.map((p) => (p.image ? 1 : p.colors.length)));
+  const out: Hanger[] = [];
+  for (let round = 0; round < rounds; round++) {
+    for (const piece of pieces) {
+      const colour = piece.colors[round];
+      if (!colour || (piece.image && round > 0)) continue;
+      out.push({ key: `${piece.id}-${round}`, piece, colour });
+    }
+  }
+  return out;
+}
+
+export default function HeroRail({ pieces, eyebrow, heading, caption }: Props) {
   const city = useCity();
   const [open, setOpen] = React.useState(null as number | null);
+  const hangers = React.useMemo(() => hang(pieces), [pieces]);
 
   const items = React.useMemo<RailGarment[]>(
     () =>
-      pieces.map((p) => ({
-        id: p.id,
-        name: p.name,
-        kind: p.kind,
-        color: p.color,
-        description: p.description,
-        details: p.details,
-        tag: formatPrice(p.price, city.currency),
-        image: p.image,
-        backImage: p.backImage,
-        sideImage: p.sideImage,
+      hangers.map(({ key, piece, colour }) => ({
+        id: key,
+        name: `${piece.name} · ${colour.name}`,
+        kind: piece.kind,
+        color: colour.hex,
+        description: piece.description,
+        details: piece.details,
+        tag: formatPrice(piece.price, city.currency),
+        image: piece.image,
+        backImage: piece.backImage,
+        sideImage: piece.sideImage,
       })),
-    [pieces, city],
+    [hangers, city],
   );
 
-  const piece = open === null ? null : pieces[open];
+  const lifted = open === null ? null : hangers[open];
 
   return (
     <>
       <ClothingRailHero
         items={items}
+        eyebrow={eyebrow}
         heading={heading}
         caption={caption}
-        hanger="matte"
+        hanger="wood"
         autoplay
         onOpenChange={setOpen}
         action={
           // Links are resolved in the browser so they also work in the portable build.
-          <a href={url("collection/")} className="btn">
+          <a href={url("collection/")} className="btn btn-paper">
             Shop the collection
           </a>
         }
       />
       {/* While a piece is lifted off the rail, the way to buy it sits above the close-up. */}
-      {piece &&
+      {lifted &&
         createPortal(
           <a
-            key={piece.id}
-            href={url(`collection/${piece.id}/`)}
-            className="btn fixed bottom-[calc(24px+env(safe-area-inset-bottom,0px))] left-1/2 z-[60] -translate-x-1/2 animate-in fade-in slide-in-from-bottom-2 duration-200 ease-out motion-reduce:slide-in-from-bottom-0"
+            key={lifted.key}
+            href={url(`collection/${lifted.piece.id}/`)}
+            className="btn btn-paper fixed bottom-[calc(24px+env(safe-area-inset-bottom,0px))] left-1/2 z-[60] -translate-x-1/2 animate-in fade-in slide-in-from-bottom-2 duration-200 ease-out motion-reduce:slide-in-from-bottom-0"
           >
-            Shop this piece · {formatPrice(piece.price, city.currency)}
+            Shop this piece · {formatPrice(lifted.piece.price, city.currency)}
           </a>,
           document.body,
         )}

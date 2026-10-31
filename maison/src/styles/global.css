@@ -159,6 +159,10 @@ summary,
 .btn:active {
   transform: scale(0.97);
 }
+.btn-paper {
+  background: #ffffff;
+  color: var(--color-ink);
+}
 .btn-outline {
   background: var(--color-bg);
   color: var(--color-ink);
@@ -171,6 +175,27 @@ summary,
   .btn-outline:hover {
     background: var(--color-surface);
   }
+  .btn-paper:hover {
+    background: #e5e5e5;
+  }
+}
+
+/* The dark band around the hero rail, and the rail's close-up view (rendered at the end of
+   <body>), redefine the shadcn colours so the component draws itself light-on-dark. */
+.dark,
+body > [role='dialog'][aria-modal='true'] {
+  --color-background: #0a0a0a;
+  --color-foreground: #fafafa;
+  --color-muted-foreground: #a3a3a3;
+  --color-card: #1a1a1a;
+  --color-card-foreground: #fafafa;
+  --color-border: #2e2e2e;
+  --color-ring: #fafafa;
+  color: var(--color-foreground);
+}
+.dark :focus-visible,
+body > [role='dialog'][aria-modal='true'] :focus-visible {
+  outline-color: #fafafa;
 }
 
 /* Pills: the one rounded shape. Name, then a red price. */
