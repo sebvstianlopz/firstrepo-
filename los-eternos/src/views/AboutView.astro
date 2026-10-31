@@ -2,11 +2,9 @@
 import Base from '../layouts/Base.astro';
 import Closing from '../components/home/Closing.astro';
 import Icon from '../components/Icon.astro';
-import { Image } from 'astro:assets';
 import { t, path } from '../i18n';
 import { site, type Lang } from '../config/site';
 import { waLink } from '../lib/whatsapp';
-import { getVehicles } from '../lib/vehicles';
 
 interface Props {
   lang: Lang;
@@ -14,7 +12,6 @@ interface Props {
 const { lang } = Astro.props;
 const d = t(lang);
 const other: Lang = lang === 'es' ? 'en' : 'es';
-const photo = (await getVehicles()).find((v) => v.data.featured && !v.data.photoPending);
 ---
 <Base lang={lang} title={`${d.about.title} | Los Eternos`} description={d.meta.aboutDesc} alternate={path(other, 'about')}>
   <div class="container page">
@@ -24,11 +21,7 @@ const photo = (await getVehicles()).find((v) => v.data.featured && !v.data.photo
         <p class="lead">{d.about.lead}</p>
         <p class="muted body">{d.about.body}</p>
       </div>
-      {photo && (
-        <div class="photo chamfer">
-          <Image src={photo.data.photos[0]} alt="" widths={[320]} sizes="320px" />
-        </div>
-      )}
+      <p class="promise chamfer">{d.about.promise}</p>
     </div>
 
     <div class="facts">
@@ -75,17 +68,15 @@ const photo = (await getVehicles()).find((v) => v.data.featured && !v.data.photo
     font-size: var(--step-1);
     line-height: 1.55;
   }
-  .photo {
+  /* Our promise: a graphite panel with a red edge, beside the intro. */
+  .promise {
     --cut: 18px;
-    max-width: 320px;
-    aspect-ratio: 3 / 4;
-    overflow: hidden;
-    border-radius: var(--r-img);
-  }
-  .photo :global(img) {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+    max-width: 30em;
+    padding: clamp(24px, 3vw, 36px);
+    border-left: 2px solid var(--signal);
+    background: var(--panel);
+    font-size: var(--step-1);
+    line-height: 1.6;
   }
   .facts {
     display: grid;
