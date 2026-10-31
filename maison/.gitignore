@@ -3,3 +3,7 @@ dist/
 .astro/
 .taste-skill/
 dist-portable/
+
+# Reference photos used only on this machine to preview the rail; not ours to publish.
+src/assets/rail/cotton-poplin-shirt/
+src/assets/rail/lambskin-blouson/

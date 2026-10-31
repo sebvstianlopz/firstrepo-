@@ -49,11 +49,18 @@ To use `.jpg` for a piece instead, change its `photos:` line in `data.yaml` to m
 ### The home page rail
 
 The hero is a clothing rail (`src/components/ui/product-rail-gallery.tsx`, a React component). A piece hangs on it
-when its `data.yaml` has a `rail:` line, e.g. `rail: { kind: coat }`. Until it has cut-outs, the rail draws it as
-that `kind` (`tee`, `knit`, `hoodie`, `shirt`, `jacket` or `coat`) in its first colour. For photos, save transparent
-PNG cut-outs in the piece's folder, all on the same 200 × 310 portrait canvas and scale (for example 1000 × 1550), and
-list them: `rail: { kind: coat, image: ./rail-front.png, back: ./rail-back.png, side: ./rail-side.png }`. `npm run placeholders` only fills
-slots that are empty, so it never touches a real picture.
+when its `data.yaml` has a `rail:` line, e.g. `rail: { kind: coat }`. Until it has photos, the rail draws it as that
+`kind` (`tee`, `knit`, `hoodie`, `shirt`, `jacket` or `coat`), once per colour.
+
+To hang a photo instead, take a picture of the garment on a plain, light background and run:
+
+```bash
+npm run rail-photo -- <piece-folder-name> front path/to/front.jpg
+npm run rail-photo -- <piece-folder-name> back  path/to/back.jpg    # optional
+npm run rail-photo -- <piece-folder-name> side  path/to/side.jpg    # optional
+```
+
+It removes the background, scales the garment and saves it to `src/assets/rail/<piece>/`, where the rail picks it up.
 
 ## Everyday changes
 

@@ -23,16 +23,9 @@ const pieces = defineCollection({
       /** True while the pictures are drawn stand-ins. */
       photoPending: z.boolean().default(false),
       photos: z.array(image()).min(1),
-      /** Hang this piece on the home page rail, drawn as `kind` until cut-outs exist. */
-      rail: z
-        .object({
-          kind: z.enum(['tee', 'knit', 'hoodie', 'shirt', 'jacket', 'coat']),
-          /** Cut-outs on a shared 200 × 310 portrait canvas, transparent background. */
-          image: image().optional(),
-          back: image().optional(),
-          side: image().optional(),
-        })
-        .optional(),
+      /** Hang this piece on the home page rail. It is drawn as `kind` until
+       *  src/assets/rail/<slug>/front.png exists (see `npm run rail-photo`). */
+      rail: z.object({ kind: z.enum(['tee', 'knit', 'hoodie', 'shirt', 'jacket', 'coat']) }).optional(),
       featured: z.boolean().default(false),
       isNew: z.boolean().default(false),
       order: z.number().default(100),

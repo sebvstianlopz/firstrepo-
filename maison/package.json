@@ -9,7 +9,8 @@
     "preview": "astro preview",
     "check": "astro check",
     "placeholders": "node scripts/make-placeholders.mjs",
-    "build:portable": "astro build && node scripts/portable.mjs"
+    "build:portable": "astro build && node scripts/portable.mjs",
+    "rail-photo": "node scripts/rail-photo.mjs"
   },
   "dependencies": {
     "@astrojs/react": "^4.4.2",

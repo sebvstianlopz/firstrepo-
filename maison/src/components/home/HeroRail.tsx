@@ -74,7 +74,8 @@ export default function HeroRail({ pieces, eyebrow, heading, caption }: Props) {
     () =>
       hangers.map(({ key, piece, colour }) => ({
         id: key,
-        name: `${piece.name} · ${colour.name}`,
+        // A photo shows its own colour, so only drawn hangers name theirs.
+        name: piece.image ? piece.name : `${piece.name} · ${colour.name}`,
         kind: piece.kind,
         color: colour.hex,
         description: piece.description,

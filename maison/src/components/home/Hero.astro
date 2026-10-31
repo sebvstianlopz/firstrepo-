@@ -7,6 +7,11 @@ import type { Piece } from '../../utils/pieces';
 interface Props {
   pieces: Piece[];
 }
+
+// Rail cut-outs made with `npm run rail-photo`: src/assets/rail/<slug>/<front|back|side>.png
+const photos = import.meta.glob<{ default: ImageMetadata }>('../../assets/rail/*/*.png', { eager: true });
+const photo = (slug: string, face: string) => photos[`../../assets/rail/${slug}/${face}.png`]?.default.src;
+
 const railPieces: RailPiece[] = Astro.props.pieces.flatMap((p) => {
   const rail = p.data.rail;
   if (!rail) return [];
@@ -19,9 +24,9 @@ const railPieces: RailPiece[] = Astro.props.pieces.flatMap((p) => {
     description: p.data.description.split(/(?<=\.)\s/)[0],
     details: p.data.details.slice(0, 3),
     price: p.data.price,
-    image: rail.image?.src,
-    backImage: rail.back?.src,
-    sideImage: rail.side?.src,
+    image: photo(p.id, 'front'),
+    backImage: photo(p.id, 'back'),
+    sideImage: photo(p.id, 'side'),
   }];
 });
 
