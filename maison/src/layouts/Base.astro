@@ -14,13 +14,15 @@ interface Props {
   description: string;
   image?: ImageMetadata;
   noindex?: boolean;
+  /** Light text on black, for the whole page. */
+  dark?: boolean;
 }
-const { title, description, image = ogDefault, noindex = false } = Astro.props;
+const { title, description, image = ogDefault, noindex = false, dark = false } = Astro.props;
 const og = await getImage({ src: image, width: 1200, height: 630, fit: 'cover', format: 'jpg' });
 const fullTitle = title === site.name ? site.name : `${title} · ${site.name}`;
 ---
 <!doctype html>
-<html lang="en">
+<html lang="en" class:list={[dark && 'dark theme-dark']}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
@@ -28,8 +30,8 @@ const fullTitle = title === site.name ? site.name : `${title} · ${site.name}`;
     <meta name="description" content={description} />
     {noindex && <meta name="robots" content="noindex" />}
     <link rel="icon" href={url('favicon.svg')} type="image/svg+xml" />
-    <meta name="theme-color" content="#ffffff" />
-    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content={dark ? '#0a0a0a' : '#ffffff'} />
+    <meta name="color-scheme" content={dark ? 'dark' : 'light'} />
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={new URL(og.src, Astro.site)} />

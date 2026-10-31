@@ -19,7 +19,7 @@ interface Props {
 }
 const { piece, pieces } = Astro.props;
 const d = piece.data;
-const thumb = await getImage({ src: d.photos[0], width: 240, height: 240, fit: 'contain', background: '#ffffff', format: 'webp' });
+const thumb = await getImage({ src: d.photos[0], width: 240, height: 240, fit: 'cover', format: 'webp' });
 
 // Complete the look: the rest of its category first, then featured pieces from the others.
 const others = pieces.filter((p) => p.id !== piece.id);

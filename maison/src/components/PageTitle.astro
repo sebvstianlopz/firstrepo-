@@ -27,7 +27,7 @@ const { text, as: Tag = 'h1', ghost = false, id } = Astro.props;
     font-size: calc(100cqi / (var(--chars) * 0.78));
   }
   .fit-ghost .fit-text {
-    color: #e3e3e3;
+    color: color-mix(in srgb, var(--color-ink) 11%, var(--color-bg));
   }
 </style>
 

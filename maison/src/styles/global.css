@@ -144,7 +144,7 @@ summary,
   min-height: 48px;
   padding: 0 28px;
   background: var(--color-ink);
-  color: #fff;
+  color: var(--color-bg);
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.05em;
@@ -161,7 +161,7 @@ summary,
 }
 .btn-paper {
   background: #ffffff;
-  color: var(--color-ink);
+  color: #000000;
 }
 .btn-outline {
   background: var(--color-bg);
@@ -170,7 +170,7 @@ summary,
 }
 @media (hover: hover) and (pointer: fine) {
   .btn:hover {
-    background: #262626;
+    background: color-mix(in srgb, var(--color-ink) 84%, var(--color-bg));
   }
   .btn-outline:hover {
     background: var(--color-surface);
@@ -178,6 +178,21 @@ summary,
   .btn-paper:hover {
     background: #e5e5e5;
   }
+}
+
+/* A dark page (the home page): the site's own tokens, inverted. */
+.theme-dark {
+  --color-bg: #0a0a0a;
+  --color-surface: #161616;
+  --color-ink: #fafafa;
+  --color-muted: #a3a3a3;
+  --color-line: #2a2a2a;
+  color-scheme: dark;
+}
+/* Arrows drawn as images can't follow currentColor, so dark pages swap them for light ones. */
+:root.theme-dark select.input,
+:root.theme-dark .city-compact-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23fafafa' stroke-width='1.4'/%3E%3C/svg%3E");
 }
 
 /* The dark band around the hero rail, and the rail's close-up view (rendered at the end of
@@ -260,7 +275,7 @@ body > [role='dialog'][aria-modal='true'] :focus-visible {
   min-height: 48px;
   padding: 0 14px;
   background: var(--color-bg);
-  border: 1px solid #cfcfcf;
+  border: 1px solid color-mix(in srgb, var(--color-ink) 20%, var(--color-bg));
   border-radius: 0;
   color: var(--color-ink);
   font-size: 16px;

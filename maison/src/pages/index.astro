@@ -15,7 +15,7 @@ const bento = [featured[0], featured.find((p) => p.data.category === 'leather-go
   (p): p is (typeof pieces)[number] => Boolean(p),
 );
 ---
-<Base title={site.name} description={`The ${site.season} collection: ready-to-wear and leather goods, delivered complimentary worldwide.`}>
+<Base dark title={site.name} description={`The ${site.season} collection: ready-to-wear and leather goods, delivered complimentary worldwide.`}>
   <PageTitle text={site.name} />
   <Hero pieces={pieces} />
   <Bento pieces={bento} />
