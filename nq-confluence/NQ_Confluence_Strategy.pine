@@ -27,7 +27,7 @@ reqVol        = input.bool(false, "Require 1 · volume reaction", group = G_SCOR
 reqFvg        = input.bool(false, "Require 2 · FVG / IFVG respect", group = G_SCORE)
 reqSmt        = input.bool(false, "Require 3 · SMT divergence", group = G_SCORE)
 reqSweep      = input.bool(false, "Require 4 · liquidity sweep", group = G_SCORE)
-reqTrend      = input.bool(false, "Require 5 · trend alignment", group = G_SCORE)
+reqTrend      = input.bool(true, "Require 5 · trend alignment", group = G_SCORE)
 cooldownBars  = input.int(10, "Cooldown between signals (bars)", minval = 0, group = G_SCORE)
 maxSignalsDay = input.int(6, "Max signals per day", minval = 1, group = G_SCORE)
 
@@ -55,8 +55,9 @@ maxZones    = input.int(12, "Max active zones", minval = 4, maxval = 200, group 
 fvgValid    = input.int(3, "Stays valid for (bars)", minval = 0, group = G_FVG)
 
 string G_SMT = "3 · SMT divergence"
-smtLen   = input.int(5, "Swing pivot length", minval = 2, group = G_SMT)
-smtValid = input.int(20, "Stays valid for (bars)", minval = 1, group = G_SMT)
+smtLen    = input.int(3, "Swing pivot length", minval = 2, group = G_SMT)
+smtMaxGap = input.int(60, "Max bars between the two swings", minval = 5, group = G_SMT)
+smtValid  = input.int(20, "Stays valid for (bars)", minval = 1, group = G_SMT)
 
 string G_SWP = "4 · Liquidity sweep"
 usePD          = input.bool(true, "Previous day high / low", group = G_SWP)
@@ -75,6 +76,12 @@ trendLen = input.int(3, "Swing pivot length (trend TF)", minval = 1, group = G_T
 useEma   = input.bool(false, "Also require close beyond trend-TF EMA", group = G_TRD)
 emaLen   = input.int(50, "EMA length", minval = 2, group = G_TRD)
 
+string G_MSS = "Entry trigger"
+reqMss   = input.bool(true, "Require 1m structure shift (MSS)", group = G_MSS)
+mssLen   = input.int(3, "Swing pivot length", minval = 1, group = G_MSS)
+mssValid = input.int(3, "Signal within (bars) of the shift", minval = 0, group = G_MSS)
+showMss  = input.bool(true, "Show MSS labels", group = G_MSS)
+
 string G_RISK = "Stops & targets"
 stopMode     = input.string("Sweep extreme", "Stop placement", options = ["Sweep extreme", "FVG far side"], group = G_RISK)
 stopBufTicks = input.int(4, "Stop buffer (ticks)", minval = 0, group = G_RISK)
@@ -88,6 +95,7 @@ showSweeps  = input.bool(true, "Sweep markers", group = G_VIS)
 showSmt     = input.bool(true, "SMT lines", group = G_VIS)
 showSignals = input.bool(true, "Signal labels", group = G_VIS)
 showTable   = input.bool(true, "Confirmation table", group = G_VIS)
+showStats   = input.bool(true, "Track signal results (win rate)", group = G_VIS)
 bullCol     = input.color(#26a69a, "Bullish", group = G_VIS)
 bearCol     = input.color(#ef5350, "Bearish", group = G_VIS)
 lvlCol      = input.color(#b2b5be, "Liquidity levels", group = G_VIS)
@@ -108,6 +116,13 @@ type Level
     float  price
     string name
     line   ln
+
+type Trade
+    int    dir
+    float  sl
+    float  tp
+    string txt
+    label  lb
 
 tfName(string tf) =>
     int s = timeframe.in_seconds(tf)
@@ -187,10 +202,8 @@ float nqPL   = ta.pivotlow(low, smtLen, smtLen)
 float nqPH   = ta.pivothigh(high, smtLen, smtLen)
 float esWinL = ta.lowest(esL, 2 * smtLen + 1)
 float esWinH = ta.highest(esH, 2 * smtLen + 1)
-float nqAftL = ta.lowest(low, smtLen)
-float nqAftH = ta.highest(high, smtLen)
-float esAftL = ta.lowest(esL, smtLen)
-float esAftH = ta.highest(esH, smtLen)
+float mssPH  = ta.pivothigh(high, mssLen, mssLen)
+float mssPL  = ta.pivotlow(low, mssLen, mssLen)
 float cPH    = ta.pivothigh(high, chartSwingLen, chartSwingLen)
 float cPL    = ta.pivotlow(low, chartSwingLen, chartSwingLen)
 float low10  = ta.lowest(low, 10)
@@ -205,6 +218,8 @@ var array<Level> sellSide = array.new<Level>()   // resting below lows
 
 var int   lastVolBull = na
 var int   lastVolBear = na
+var float volBullLow  = na
+var float volBearHigh = na
 var int   lastFvgBull = na
 var int   lastFvgBear = na
 var float fvgBullBot  = na
@@ -225,20 +240,30 @@ var float  sweepBearExt  = na
 var string sweepBullName = ""
 var string sweepBearName = ""
 
-var float aLowNq       = na
-var float aLowEs       = na
-var int   aLowT        = na
-var float nqMinL       = na
-var float esMinL       = na
-var int   smtBullStart = na
-var float aHighNq      = na
-var float aHighEs      = na
-var int   aHighT       = na
-var float nqMaxH       = na
-var float esMaxH       = na
-var int   smtBearStart = na
-var bool  smtBull      = false
-var bool  smtBear      = false
+var float pLowNq      = na
+var float pLowEs      = na
+var int   pLowBar     = na
+var int   pLowT       = na
+var float pHighNq     = na
+var float pHighEs     = na
+var int   pHighBar    = na
+var int   pHighT      = na
+var int   smtBullBar  = na
+var int   smtBearBar  = na
+var float smtBullLow  = na
+var float smtBearHigh = na
+
+var float mssSH       = na
+var float mssSL       = na
+var int   lastMssBull = na
+var int   lastMssBear = na
+var array<label> mssLabels = array.new<label>()
+
+var array<Trade> openTrades = array.new<Trade>()
+var int winsL   = 0
+var int lossesL = 0
+var int winsS   = 0
+var int lossesS = 0
 
 var float asiaH    = na
 var float asiaL    = na
@@ -251,6 +276,12 @@ var int   prevDayT = na
 
 var int lastSigBar = na
 var int sigToday   = 0
+
+// Keeps only the newest MSS labels so they don't crowd signal labels off the chart.
+addMssLabel(int x, float y, bool bull) =>
+    mssLabels.push(label.new(x, y, "MSS", style = bull ? label.style_label_down : label.style_label_up, color = color.new(bull ? bullCol : bearCol, 100), textcolor = bull ? bullCol : bearCol, size = size.tiny))
+    if mssLabels.size() > 30
+        label.delete(mssLabels.shift())
 
 // Filled or expired zones are removed from the chart so only live zones show.
 dropBox(box b) =>
@@ -361,8 +392,10 @@ if barstate.isconfirmed
     // 1 · Volume reaction
     if volHigh and bullReact
         lastVolBull := bar_index
+        volBullLow  := low
     if volHigh and bearReact
         lastVolBear := bar_index
+        volBearHigh := high
     if useTod
         todAvg.put(todKey, na(todRef) ? volume : todRef + (volume - todRef) / todLen)
 
@@ -399,42 +432,32 @@ if barstate.isconfirmed
                     lastFvgBear := bar_index
                     fvgBearTop  := z.top
 
-    // 3 · SMT divergence vs ES (anchored on NQ swings)
+    // 3 · SMT divergence vs ES: compare two confirmed NQ swings with ES at the same
+    // swings. Waiting for confirmed pivots stops ordinary breakdowns, where NQ breaks a
+    // bar before ES, from reading as divergence.
     if not na(nqPL)
-        aLowNq       := nqPL
-        aLowEs       := esWinL
-        aLowT        := time[smtLen]
-        nqMinL       := nqAftL
-        esMinL       := esAftL
-        smtBullStart := na
-    else if not na(aLowNq)
-        nqMinL := math.min(nqMinL, low)
-        esMinL := math.min(esMinL, esL)
-    bool divBull = (not na(aLowNq) and nqMinL < aLowNq) != (not na(aLowEs) and esMinL < aLowEs)
-    if divBull and na(smtBullStart)
-        smtBullStart := bar_index
-        if showSmt
-            line.new(aLowT, aLowNq, time, nqMinL, xloc = xloc.bar_time, color = bullCol, width = 2)
-            label.new(bar_index, nqMinL, "SMT", style = label.style_label_up, color = color.new(bullCol, 100), textcolor = bullCol, size = size.tiny)
-    smtBull := divBull and recent(smtBullStart, smtValid)
+        if not na(pLowNq) and bar_index - pLowBar <= smtMaxGap and (nqPL < pLowNq) != (esWinL < pLowEs)
+            smtBullBar := bar_index
+            smtBullLow := nqPL
+            if showSmt
+                line.new(pLowT, pLowNq, time[smtLen], nqPL, xloc = xloc.bar_time, color = bullCol, width = 2)
+                label.new(bar_index - smtLen, nqPL, "SMT", style = label.style_label_up, color = color.new(bullCol, 100), textcolor = bullCol, size = size.tiny)
+        pLowNq  := nqPL
+        pLowEs  := esWinL
+        pLowBar := bar_index
+        pLowT   := time[smtLen]
 
     if not na(nqPH)
-        aHighNq      := nqPH
-        aHighEs      := esWinH
-        aHighT       := time[smtLen]
-        nqMaxH       := nqAftH
-        esMaxH       := esAftH
-        smtBearStart := na
-    else if not na(aHighNq)
-        nqMaxH := math.max(nqMaxH, high)
-        esMaxH := math.max(esMaxH, esH)
-    bool divBear = (not na(aHighNq) and nqMaxH > aHighNq) != (not na(aHighEs) and esMaxH > aHighEs)
-    if divBear and na(smtBearStart)
-        smtBearStart := bar_index
-        if showSmt
-            line.new(aHighT, aHighNq, time, nqMaxH, xloc = xloc.bar_time, color = bearCol, width = 2)
-            label.new(bar_index, nqMaxH, "SMT", style = label.style_label_down, color = color.new(bearCol, 100), textcolor = bearCol, size = size.tiny)
-    smtBear := divBear and recent(smtBearStart, smtValid)
+        if not na(pHighNq) and bar_index - pHighBar <= smtMaxGap and (nqPH > pHighNq) != (esWinH > pHighEs)
+            smtBearBar  := bar_index
+            smtBearHigh := nqPH
+            if showSmt
+                line.new(pHighT, pHighNq, time[smtLen], nqPH, xloc = xloc.bar_time, color = bearCol, width = 2)
+                label.new(bar_index - smtLen, nqPH, "SMT", style = label.style_label_down, color = color.new(bearCol, 100), textcolor = bearCol, size = size.tiny)
+        pHighNq  := nqPH
+        pHighEs  := esWinH
+        pHighBar := bar_index
+        pHighT   := time[smtLen]
 
     // 4 · Liquidity sweeps: trade through a level, then close back inside
     [tkL, tkLName] = takeLevels(false)
@@ -477,6 +500,48 @@ if barstate.isconfirmed
             pendBearLvl := na
             pendBearExt := na
 
+    // Entry trigger: close through the latest 1m swing (each swing triggers once)
+    if not na(mssPH)
+        mssSH := mssPH
+    if not na(mssPL)
+        mssSL := mssPL
+    if not na(mssSH) and close > mssSH
+        lastMssBull := bar_index
+        if showMss
+            addMssLabel(bar_index, mssSH, true)
+        mssSH := na
+    if not na(mssSL) and close < mssSL
+        lastMssBear := bar_index
+        if showMss
+            addMssLabel(bar_index, mssSL, false)
+        mssSL := na
+
+    // A confirmation is cancelled once price closes back through the level it defended
+    if not na(volBullLow) and close < volBullLow
+        lastVolBull := na
+        volBullLow  := na
+    if not na(volBearHigh) and close > volBearHigh
+        lastVolBear := na
+        volBearHigh := na
+    if not na(fvgBullBot) and close < fvgBullBot
+        lastFvgBull := na
+        fvgBullBot  := na
+    if not na(fvgBearTop) and close > fvgBearTop
+        lastFvgBear := na
+        fvgBearTop  := na
+    if not na(smtBullLow) and close < smtBullLow
+        smtBullBar := na
+        smtBullLow := na
+    if not na(smtBearHigh) and close > smtBearHigh
+        smtBearBar  := na
+        smtBearHigh := na
+    if not na(sweepBullExt) and close < sweepBullExt
+        lastSweepBull := na
+        sweepBullExt  := na
+    if not na(sweepBearExt) and close > sweepBearExt
+        lastSweepBear := na
+        sweepBearExt  := na
+
 // ---------------------------------------------------------------------
 // Confirmations & score
 // ---------------------------------------------------------------------
@@ -484,8 +549,10 @@ bool cVolL = recent(lastVolBull, volValid)
 bool cVolS = recent(lastVolBear, volValid)
 bool cFvgL = recent(lastFvgBull, fvgValid)
 bool cFvgS = recent(lastFvgBear, fvgValid)
-bool cSmtL = smtBull
-bool cSmtS = smtBear
+bool cSmtL = recent(smtBullBar, smtValid)
+bool cSmtS = recent(smtBearBar, smtValid)
+bool cMssL = recent(lastMssBull, mssValid)
+bool cMssS = recent(lastMssBear, mssValid)
 bool cSwpL = recent(lastSweepBull, sweepValid)
 bool cSwpS = recent(lastSweepBear, sweepValid)
 bool cTrdL = tBias == 1 and (not useEma or tClose > tEma)
@@ -509,8 +576,8 @@ bool riskOkL = riskL > 0 and (maxRiskPts == 0 or riskL <= maxRiskPts)
 bool riskOkS = riskS > 0 and (maxRiskPts == 0 or riskS <= maxRiskPts)
 
 bool canSignal = barstate.isconfirmed and inKz and (na(lastSigBar) or bar_index - lastSigBar > cooldownBars) and sigToday < maxSignalsDay
-bool rawL = canSignal and scoreL >= minScore and reqOkL and riskOkL
-bool rawS = canSignal and scoreS >= minScore and reqOkS and riskOkS
+bool rawL = canSignal and scoreL >= minScore and reqOkL and riskOkL and (not reqMss or cMssL)
+bool rawS = canSignal and scoreS >= minScore and reqOkS and riskOkS and (not reqMss or cMssS)
 bool longSig  = rawL and not rawS
 bool shortSig = rawS and not rawL
 
@@ -521,10 +588,38 @@ if longSig or shortSig
 sigTip(bool v, bool f, bool m, bool s, bool t, float sl, float tp) =>
     "Volume " + mark(v) + "\nFVG/IFVG " + mark(f) + "\nSMT " + mark(m) + "\nSweep " + mark(s) + "\nTrend " + mark(t) + "\nSL " + str.tostring(sl, format.mintick) + "  TP " + str.tostring(tp, format.mintick)
 
+// Results: follow each earlier signal until it hits its stop or target. The stop is
+// checked first, so a bar that touches both counts as a loss.
+if barstate.isconfirmed and openTrades.size() > 0
+    for i = openTrades.size() - 1 to 0
+        Trade tr = openTrades.get(i)
+        bool hitSl = tr.dir == 1 ? low <= tr.sl : high >= tr.sl
+        bool hitTp = tr.dir == 1 ? high >= tr.tp : low <= tr.tp
+        if hitSl or hitTp
+            if tr.dir == 1
+                winsL   += hitSl ? 0 : 1
+                lossesL += hitSl ? 1 : 0
+            else
+                winsS   += hitSl ? 0 : 1
+                lossesS += hitSl ? 1 : 0
+            if not na(tr.lb)
+                label.set_text(tr.lb, tr.txt + (hitSl ? " ✗" : " ✓"))
+            openTrades.remove(i)
+
+string txtL = "BUY\n" + str.tostring(scoreL) + "/5"
+string txtS = "SELL\n" + str.tostring(scoreS) + "/5"
+label lbL = na
+label lbS = na
 if showSignals and longSig
-    label.new(bar_index, low, "BUY\n" + str.tostring(scoreL) + "/5", yloc = yloc.belowbar, style = label.style_label_up, color = bullCol, textcolor = color.white, size = size.normal, tooltip = sigTip(cVolL, cFvgL, cSmtL, cSwpL, cTrdL, slL, tpL))
+    lbL := label.new(bar_index, low, txtL, yloc = yloc.belowbar, style = label.style_label_up, color = bullCol, textcolor = color.white, size = size.normal, tooltip = sigTip(cVolL, cFvgL, cSmtL, cSwpL, cTrdL, slL, tpL))
 if showSignals and shortSig
-    label.new(bar_index, high, "SELL\n" + str.tostring(scoreS) + "/5", yloc = yloc.abovebar, style = label.style_label_down, color = bearCol, textcolor = color.white, size = size.normal, tooltip = sigTip(cVolS, cFvgS, cSmtS, cSwpS, cTrdS, slS, tpS))
+    lbS := label.new(bar_index, high, txtS, yloc = yloc.abovebar, style = label.style_label_down, color = bearCol, textcolor = color.white, size = size.normal, tooltip = sigTip(cVolS, cFvgS, cSmtS, cSwpS, cTrdS, slS, tpS))
+if showStats and longSig
+    openTrades.push(Trade.new(1, slL, tpL, txtL, lbL))
+if showStats and shortSig
+    openTrades.push(Trade.new(-1, slS, tpS, txtS, lbS))
+if openTrades.size() > 20
+    openTrades.shift()
 
 plot(scoreL, "Long score", color = bullCol, display = display.data_window)
 plot(scoreS, "Short score", color = bearCol, display = display.data_window)
@@ -532,7 +627,7 @@ plot(scoreS, "Short score", color = bearCol, display = display.data_window)
 // ---------------------------------------------------------------------
 // Confirmation table (state as of the last closed bar)
 // ---------------------------------------------------------------------
-var table dash = table.new(position.top_right, 3, 8, bgcolor = color.new(#131722, 10), frame_color = color.new(#787b86, 60), frame_width = 1, border_color = color.new(#787b86, 80), border_width = 1)
+var table dash = table.new(position.top_right, 3, 10, bgcolor = color.new(#131722, 10), frame_color = color.new(#787b86, 60), frame_width = 1, border_color = color.new(#787b86, 80), border_width = 1)
 
 dashRow(int r, string name, bool l, bool s) =>
     table.cell(dash, 0, r, name, text_color = #d1d4dc, text_size = size.small, text_halign = text.align_left)
@@ -548,15 +643,21 @@ if showTable and barstate.islast
     dashRow(3, "3 · SMT vs ES", cSmtL, cSmtS)
     dashRow(4, "4 · Liquidity sweep", cSwpL, cSwpS)
     dashRow(5, "5 · Trend (" + tfName(trendTf) + ")", cTrdL, cTrdS)
-    table.cell(dash, 0, 6, "Score", text_color = #d1d4dc, text_size = size.small, text_halign = text.align_left)
-    table.cell(dash, 1, 6, str.tostring(scoreL) + "/5", text_color = scoreL >= minScore ? bullCol : #d1d4dc, text_size = size.small)
-    table.cell(dash, 2, 6, str.tostring(scoreS) + "/5", text_color = scoreS >= minScore ? bearCol : #d1d4dc, text_size = size.small)
+    dashRow(6, "Trigger · 1m MSS", cMssL, cMssS)
+    table.cell(dash, 0, 7, "Score", text_color = #d1d4dc, text_size = size.small, text_halign = text.align_left)
+    table.cell(dash, 1, 7, str.tostring(scoreL) + "/5", text_color = scoreL >= minScore ? bullCol : #d1d4dc, text_size = size.small)
+    table.cell(dash, 2, 7, str.tostring(scoreS) + "/5", text_color = scoreS >= minScore ? bearCol : #d1d4dc, text_size = size.small)
+    int   tot    = winsL + lossesL + winsS + lossesS
+    float winPct = tot > 0 ? float(winsL + winsS) / tot * 100 : na
+    table.cell(dash, 0, 8, showStats ? "Results " + (tot > 0 ? str.tostring(winPct, "#") + "% win" : "n/a") : "Results off", text_color = #d1d4dc, text_size = size.small, text_halign = text.align_left)
+    table.cell(dash, 1, 8, str.tostring(winsL) + "W " + str.tostring(lossesL) + "L", text_color = #d1d4dc, text_size = size.small)
+    table.cell(dash, 2, 8, str.tostring(winsS) + "W " + str.tostring(lossesS) + "L", text_color = #d1d4dc, text_size = size.small)
     string biasTxt = tBias == 1 ? "Bull" : tBias == -1 ? "Bear" : "Neutral"
     string kzTxt   = not useKz ? "KZ n/a" : inKz ? "KZ on" : "KZ off"
     bool   tfOk    = timeframe.in_seconds() <= timeframe.in_seconds(fvgTf)
-    table.cell(dash, 0, 7, tfOk ? "Bias " + biasTxt : "Use a 1m chart", text_color = tfOk ? #787b86 : bearCol, text_size = size.tiny, text_halign = text.align_left)
-    table.cell(dash, 1, 7, kzTxt, text_color = #787b86, text_size = size.tiny)
-    table.cell(dash, 2, 7, str.tostring(sigToday) + "/" + str.tostring(maxSignalsDay) + " today", text_color = #787b86, text_size = size.tiny)
+    table.cell(dash, 0, 9, tfOk ? "Bias " + biasTxt : "Use a 1m chart", text_color = tfOk ? #787b86 : bearCol, text_size = size.tiny, text_halign = text.align_left)
+    table.cell(dash, 1, 9, kzTxt, text_color = #787b86, text_size = size.tiny)
+    table.cell(dash, 2, 9, str.tostring(sigToday) + "/" + str.tostring(maxSignalsDay) + " today", text_color = #787b86, text_size = size.tiny)
 
 // === END SHARED LOGIC ===
 
