@@ -15,7 +15,6 @@ const { lang } = Astro.props;
 const d = t(lang);
 const other: Lang = lang === 'es' ? 'en' : 'es';
 const photo = (await getVehicles()).find((v) => v.data.featured && !v.data.photoPending);
-const cities = [...new Set(site.locations.map((l) => l.city))];
 ---
 <Base lang={lang} title={`${d.about.title} | Los Eternos`} description={d.meta.aboutDesc} alternate={path(other, 'about')}>
   <div class="container page">
@@ -44,12 +43,6 @@ const cities = [...new Set(site.locations.map((l) => l.city))];
       <section aria-labelledby="hours-title">
         <h2 id="hours-title" class="h-small">{d.about.hours}</h2>
         <p><Icon name="clock" /> {site.hours[lang]}</p>
-      </section>
-      <section aria-labelledby="where-title">
-        <h2 id="where-title" class="h-small">{d.about.whereTitle}</h2>
-        <p><Icon name="pin" /> {site.address}</p>
-        <p class="muted">{cities.join(', ')}</p>
-        <a class="link" href={site.mapsUrl} target="_blank" rel="noopener">{d.about.openMap}</a>
       </section>
     </div>
   </div>
@@ -96,7 +89,7 @@ const cities = [...new Set(site.locations.map((l) => l.city))];
   }
   .facts {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 40px;
     margin-top: var(--section);
     padding-top: 32px;
@@ -115,7 +108,7 @@ const cities = [...new Set(site.locations.map((l) => l.city))];
     padding: 0;
     list-style: none;
   }
-  .facts a:not(.link),
+  .facts a,
   .facts p {
     display: flex;
     align-items: center;
@@ -123,7 +116,7 @@ const cities = [...new Set(site.locations.map((l) => l.city))];
     min-height: 40px;
     text-decoration: none;
   }
-  .facts a:not(.link):hover {
+  .facts a:hover {
     text-decoration: underline;
     text-underline-offset: 0.25em;
   }

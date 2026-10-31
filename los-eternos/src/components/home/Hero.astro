@@ -229,13 +229,15 @@ const airports = site.locations.map((l) => l.label.es.match(/\((\w{3})\)/)?.[1])
     display: grid;
     justify-items: start;
     gap: 22px;
-    max-width: 740px;
+    max-width: 860px;
     padding: clamp(28px, 5vw, 64px);
     padding-bottom: clamp(40px, 6vw, 80px);
     pointer-events: auto;
   }
   h1 {
-    font-size: clamp(3rem, 1.2rem + 6.6vw, 7.4rem);
+    /* The longest headline line is about 10.2em wide; size it to the room left of the car. */
+    --room: calc(min(780px, (100vw - 2 * var(--gutter)) * 0.8) - 2 * clamp(28px, 5vw, 64px));
+    font-size: min(clamp(3rem, 1.2rem + 6.6vw, 7.4rem), var(--room) / 10.2);
     line-height: 0.9;
     letter-spacing: -0.015em;
   }
@@ -381,6 +383,9 @@ const airports = site.locations.map((l) => l.label.es.match(/\((\w{3})\)/)?.[1])
     }
     .content {
       padding: 20px 14px 28px;
+    }
+    h1 {
+      --room: calc(100vw - 48px);
     }
     .cue {
       left: 14px;
