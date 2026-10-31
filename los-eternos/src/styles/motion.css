@@ -101,3 +101,93 @@ html.motion .odo > span {
     transition: transform 0.35s var(--ease-settle);
   }
 }
+
+/* Custom cursor (see scripts/cursor.ts): a thin red ring with a glowing center and a faint
+   outer halo. It replaces the native cursor only once the script has drawn it, and text
+   fields keep their native cursor. */
+html.has-cursor,
+html.has-cursor * {
+  cursor: none !important;
+}
+html.has-cursor :is(input:not([type='radio']):not([type='checkbox']), textarea, [contenteditable]) {
+  cursor: auto !important;
+}
+.cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 2147483647;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s var(--ease);
+}
+.cursor.is-on {
+  opacity: 1;
+}
+.cursor.is-native {
+  opacity: 0;
+}
+.cursor-ring,
+.cursor-dot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 50%;
+  will-change: translate;
+}
+.cursor-ring {
+  width: 30px;
+  height: 30px;
+  margin: -15px 0 0 -15px;
+  border: 1.25px solid var(--signal-text);
+  background: rgb(224 48 30 / 0.1);
+  transition:
+    scale 0.35s var(--ease-settle),
+    border-color 0.25s var(--ease),
+    background-color 0.25s var(--ease);
+}
+/* The faint outer halo. */
+.cursor-ring::before {
+  content: '';
+  position: absolute;
+  inset: -9px;
+  border: 1px solid rgb(224 48 30 / 0.3);
+  border-radius: 50%;
+  transition: opacity 0.25s var(--ease);
+}
+.cursor-dot {
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  background: var(--signal-text);
+  box-shadow: 0 0 10px 2px rgb(255 90 69 / 0.65);
+  transition:
+    scale 0.25s var(--ease-settle),
+    background-color 0.25s var(--ease);
+}
+/* Over buttons and links the ring opens up and the halo fades into it. */
+.cursor.is-hover .cursor-ring {
+  scale: 1.7;
+  background-color: rgb(224 48 30 / 0.06);
+}
+.cursor.is-hover .cursor-ring::before {
+  opacity: 0;
+}
+.cursor.is-hover .cursor-dot {
+  scale: 0.7;
+}
+/* Over red buttons it turns warm white so it doesn't vanish into the red. */
+.cursor.is-light .cursor-ring {
+  border-color: rgb(255 255 255 / 0.9);
+  background-color: rgb(255 255 255 / 0.08);
+}
+.cursor.is-light .cursor-dot {
+  background: #fff;
+  box-shadow: 0 0 10px 2px rgb(255 255 255 / 0.6);
+}
+.cursor.is-down .cursor-ring {
+  scale: 0.85;
+}
+.cursor.is-hover.is-down .cursor-ring {
+  scale: 1.45;
+}
