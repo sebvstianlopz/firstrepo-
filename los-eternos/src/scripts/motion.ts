@@ -10,6 +10,7 @@
 
 import './odometer';
 import './pointer';
+import './cursor';
 
 const root = document.documentElement;
 const clamp = (n: number) => Math.min(1, Math.max(0, n));

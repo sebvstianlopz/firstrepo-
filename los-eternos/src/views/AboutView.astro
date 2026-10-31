@@ -19,7 +19,6 @@ const other: Lang = lang === 'es' ? 'en' : 'es';
       <div class="text">
         <h1>{d.about.title}</h1>
         <p class="lead">{d.about.lead}</p>
-        <p class="muted body">{d.about.body}</p>
       </div>
       <p class="promise chamfer">{d.about.promise}</p>
     </div>
@@ -62,11 +61,6 @@ const other: Lang = lang === 'es' ? 'en' : 'es';
     font-weight: 500;
     font-stretch: 110%;
     line-height: 1.3;
-  }
-  .body {
-    max-width: 34em;
-    font-size: var(--step-1);
-    line-height: 1.55;
   }
   /* Our promise: a graphite panel with a red edge, beside the intro. */
   .promise {
