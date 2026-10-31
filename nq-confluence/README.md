@@ -10,11 +10,18 @@ A TradingView (Pine Script v6) indicator and matching strategy for **NQ / MNQ fu
 | 4 | Liquidity sweep | Previous day, Asia, London and 5m swing highs/lows |
 | 5 | Follows the trend | 1H market structure |
 
-A signal prints when the score reaches **4 of 5** (adjustable). By default the **sweep and trend are mandatory**, and signals only fire inside the **NY kill zones** (09:30–11:30 and 13:30–15:30 ET).
+Signals come in two tiers. Both only fire inside the **NY kill zones** (09:30–11:30 and 13:30–15:30 ET):
+
+| Signal | Looks like | Rule (defaults) |
+|---|---|---|
+| **BUY / SELL** (strong) | Large green / red label with the score, e.g. `BUY 4/5` | Score ≥ **4 of 5**, **sweep and trend required**, 10-bar cooldown, max 6 a day |
+| **buy / sell** (weak) | Small faded triangle marked `buy` / `sell` | Score ≥ **3 of 5**, ignores the "Require …" toggles and the daily cap, own 10-bar cooldown |
+
+A bar never shows both tiers. Hover a strong label to see which confirmations passed and the suggested SL/TP. The weak triangles can be restyled or hidden under Settings → Style, or switched off with **Show weak buy / sell signals**.
 
 | File | What it is |
 |---|---|
-| `NQ_Confluence.pine` | Indicator: zones, sweeps, SMT lines, signal labels, entry/SL/TP lines, confirmation table, alerts |
+| `NQ_Confluence.pine` | Indicator: zones, sweeps, SMT lines, BUY/SELL signals, entry/SL/TP lines, confirmation table, alerts |
 | `NQ_Confluence_Strategy.pine` | Same detection logic plus orders, for the Strategy Tester |
 
 Both files contain an identical `=== SHARED LOGIC ===` block. If you change detection in one file, copy the whole block to the other.
@@ -23,7 +30,7 @@ Both files contain an identical `=== SHARED LOGIC ===` block. If you change dete
 
 1. Open TradingView, then Pine Editor, then New, and paste `NQ_Confluence.pine`. Save it and click **Add to chart**.
 2. Use a **1-minute** chart of `NQ1!` or `MNQ1!`. The table shows "Use a 1m chart" if the timeframe is higher than the FVG timeframe B setting.
-3. For alerts: Create alert, set the condition to **NQ Confluence** and choose **"Any alert() function call"**. That message includes direction, score, price, SL and TP. The two `alertcondition` entries (Long / Short) also work.
+3. For alerts: Create alert, set the condition to **NQ Confluence** and choose **"Any alert() function call"**. That message includes direction, score, price, SL and TP, and fires for both tiers (weak ones are marked "(weak)"). To alert on just one kind, pick one of the four named conditions instead: **BUY**, **SELL**, **Weak buy** or **Weak sell**.
 4. For backtesting, add `NQ_Confluence_Strategy.pine` the same way and open **Strategy Tester**.
 
 Futures volume is real exchange volume, which confirmation #1 needs. CFD feeds (NAS100) only provide tick volume.
@@ -60,6 +67,7 @@ A bullish sweep means price trades below a sell-side level, then closes back abo
 
 The strategy enters at market after the signal bar closes. Once filled, it re-anchors the targets to the real fill price. Other strategy settings:
 - optionally takes 50% at 1R and moves the stop to break-even (needs 2+ contracts)
+- trades only strong BUY/SELL signals unless **Also trade weak signals** is on
 - goes flat outside 09:30–15:55 ET
 - trades at most 3 times a day
 - defaults: 1 contract, $2.00 commission per contract and 1 tick of slippage. Set the commission to about $0.50 for MNQ.
