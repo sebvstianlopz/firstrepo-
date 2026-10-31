@@ -17,7 +17,7 @@ interface Props {
 }
 const { title, description, image = ogDefault, noindex = false } = Astro.props;
 const og = await getImage({ src: image, width: 1200, height: 630, fit: 'cover', format: 'jpg' });
-const fullTitle = title === site.name ? `${site.name} · ${site.season}` : `${title} · ${site.name}`;
+const fullTitle = title === site.name ? site.name : `${title} · ${site.name}`;
 ---
 <!doctype html>
 <html lang="en">

@@ -183,7 +183,7 @@ import { url } from '../../config/site';
     const items = readBag();
     const city = getCity();
     const order = {
-      number: 'LV-' + Date.now().toString(36).toUpperCase().slice(-6),
+      number: 'MV-' + Date.now().toString(36).toUpperCase().slice(-6),
       name: String(data.get('first')),
       email: String(data.get('email')),
       city: city.name,

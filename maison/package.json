@@ -8,7 +8,8 @@
     "build": "astro build",
     "preview": "astro preview",
     "check": "astro check",
-    "placeholders": "node scripts/make-placeholders.mjs"
+    "placeholders": "node scripts/make-placeholders.mjs",
+    "build:portable": "astro build && node scripts/portable.mjs"
   },
   "dependencies": {
     "@fontsource-variable/archivo": "^5.3.0",

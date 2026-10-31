@@ -384,7 +384,7 @@ const advisor = `mailto:${site.advisorEmail}?subject=${encodeURIComponent(`About
       return;
     }
     const d = form.dataset;
-    addToBag({ slug: d.slug!, name: d.name!, price: Number(d.price), image: d.image!, color: String(data.get('color')), size });
+    addToBag({ slug: d.slug!, name: d.name!, price: Number(d.price), image: new URL(d.image!, location.href).href, color: String(data.get('color')), size });
     document.dispatchEvent(new Event('bag:open'));
   });
 

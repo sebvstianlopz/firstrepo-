@@ -2,10 +2,10 @@
 // SAMPLE: delivery times, exchange rates and the advisor address are stand-ins.
 
 export const site = {
-  name: 'Louis Vuitton',
+  name: 'Maison Vael',
   season: 'Autumn–Winter 2026',
   advisorEmail: 'advisor@example.com',
-  disclaimer: 'Design study, not affiliated with or endorsed by Louis Vuitton. Illustrations stand in for photography.',
+  disclaimer: 'Maison Vael is a fictional house made for a design study. Prices, pieces and pictures are samples.',
   returnsDays: 30,
   /** SAMPLE: the season's story, shown on the home page. */
   collection: {
@@ -72,7 +72,12 @@ export type Category = keyof typeof categories;
 
 /** Resolve a path inside the site, honouring the configured base. */
 export function url(path = ''): string {
-  return import.meta.env.BASE_URL.replace(/\/$/, '') + '/' + path.replace(/^\//, '');
+  const clean = path.replace(/^\//, '');
+  // A portable build (scripts/portable.mjs) marks each page with its relative way back to the root,
+  // and its folders have no server to add index.html for them.
+  const portable = typeof document === 'undefined' ? undefined : document.documentElement.dataset.base;
+  if (portable !== undefined) return portable + clean.replace(/(^|\/)(\?|$)/, '$1index.html$2');
+  return import.meta.env.BASE_URL.replace(/\/$/, '') + '/' + clean;
 }
 
 /** Price formatting shared by the server render and the browser. */

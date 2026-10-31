@@ -197,7 +197,7 @@ const href = (id: string) => url(id ? `collection/?c=${id}` : 'collection/');
 
   // Mark the current section in red.
   const params = new URLSearchParams(location.search);
-  const onCollection = location.pathname.endsWith('/collection/');
+  const onCollection = /\/collection\/(index\.html)?$/.test(location.pathname);
   const current = onCollection ? (params.get('c') ?? 'all') : null;
   document.querySelectorAll<HTMLAnchorElement>('[data-nav]').forEach((a) => {
     if (a.dataset.nav === current) a.setAttribute('aria-current', 'page');

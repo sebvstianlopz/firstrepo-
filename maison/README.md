@@ -1,9 +1,9 @@
-# Maison: a Louis Vuitton concept storefront
+# Maison Vael: a concept storefront
 
 A practice project: a clean, streetwear-editorial storefront whose one job is to get a visitor to open a piece and add it to the bag.
 
-> Design study, not affiliated with or endorsed by Louis Vuitton. The wordmark is plain type, the pictures are
-> grey stand-ins until real ones are added, and checkout is a demo that never asks for card details.
+> Maison Vael is a fictional house made for a design study. The pictures are grey stand-ins until real ones are
+> added, and checkout is a demo that never asks for card details.
 
 Built with [Astro](https://astro.build) as a static site. No server, no database. It is a separate project from
 `los-eternos/` and does not touch it or its deploy.
@@ -22,7 +22,7 @@ npm run check      # types and content schema
 
 | Page | What it does |
 |---|---|
-| `/` | Edge-to-edge `LOUIS VUITTON` title, the campaign photo with the red season scribble, a featured bento with price pills, an editorial split, then new arrivals |
+| `/` | Edge-to-edge `MAISON VAEL` title, the campaign photo with the red season scribble, a featured bento with price pills, an editorial split, then new arrivals |
 | `/collection/` | Every piece, with category tabs, a **Saved ♥** tab, sorting, and pagination past 12 pieces. Tabs are kept in the URL, e.g. `?c=men` |
 | `/collection/<piece>/` | Cut-out pictures, colour and size, **Add to bag**, a heart to save it, details, and "Complete the look" |
 | `/checkout/` | Contact and delivery form plus the order summary. Payment is switched off |
