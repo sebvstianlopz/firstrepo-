@@ -18,23 +18,19 @@ indicator("NQ Confluence", shorttitle = "NQ Conf", overlay = true, max_boxes_cou
 string G_CORE = "Symbols & timeframes"
 esSym   = input.symbol("CME_MINI:ES1!", "SMT pair (ES)", group = G_CORE)
 trendTf = input.timeframe("60", "Trend timeframe", group = G_CORE)
-fvgTfA  = input.timeframe("15", "FVG timeframe A", group = G_CORE)
-fvgTfB  = input.timeframe("5", "FVG timeframe B", group = G_CORE)
+fvgTf   = input.timeframe("5", "FVG timeframe (under 15m)", options = ["1", "2", "3", "5", "10"], group = G_CORE)
 sweepTf = input.timeframe("5", "Swing-liquidity timeframe", group = G_CORE)
 tz      = input.string("America/New_York", "Session timezone", group = G_CORE)
 
 string G_SCORE = "Scoring"
-minScore      = input.int(4, "Minimum score (of 5)", minval = 1, maxval = 5, group = G_SCORE)
+minScore      = input.int(3, "Confirmations needed for BUY / SELL (of 5)", minval = 3, maxval = 5, group = G_SCORE)
 reqVol        = input.bool(false, "Require 1 · volume reaction", group = G_SCORE)
 reqFvg        = input.bool(false, "Require 2 · FVG / IFVG respect", group = G_SCORE)
 reqSmt        = input.bool(false, "Require 3 · SMT divergence", group = G_SCORE)
-reqSweep      = input.bool(true, "Require 4 · liquidity sweep", group = G_SCORE)
-reqTrend      = input.bool(true, "Require 5 · trend alignment", group = G_SCORE)
+reqSweep      = input.bool(false, "Require 4 · liquidity sweep", group = G_SCORE)
+reqTrend      = input.bool(false, "Require 5 · trend alignment", group = G_SCORE)
 cooldownBars  = input.int(10, "Cooldown between signals (bars)", minval = 0, group = G_SCORE)
 maxSignalsDay = input.int(6, "Max signals per day", minval = 1, group = G_SCORE)
-showWeak      = input.bool(true, "Show weak buy / sell signals", group = G_SCORE)
-weakScore     = input.int(3, "Weak signal minimum score", minval = 1, maxval = 5, group = G_SCORE)
-weakCooldown  = input.int(10, "Weak signal cooldown (bars)", minval = 0, group = G_SCORE)
 
 string G_SESS = "Sessions (in session timezone)"
 useKz      = input.bool(true, "Only signal inside kill zones", group = G_SESS)
@@ -56,7 +52,7 @@ volValid = input.int(3, "Stays valid for (bars)", minval = 0, group = G_VOL)
 string G_FVG = "2 · FVG / IFVG"
 useChartFvg = input.bool(false, "Also use chart-timeframe FVGs", group = G_FVG)
 minGapTicks = input.int(8, "Min gap size (ticks)", minval = 1, group = G_FVG)
-maxZones    = input.int(30, "Max active zones", minval = 4, maxval = 200, group = G_FVG)
+maxZones    = input.int(12, "Max active zones", minval = 4, maxval = 200, group = G_FVG)
 fvgValid    = input.int(3, "Stays valid for (bars)", minval = 0, group = G_FVG)
 
 string G_SMT = "3 · SMT divergence"
@@ -157,16 +153,14 @@ fSwings(int len) =>
 // ---------------------------------------------------------------------
 // Data
 // ---------------------------------------------------------------------
-[aH1, aL1, aH3, aL3, aT] = request.security(syminfo.tickerid, fvgTfA, fFvg(), lookahead = barmerge.lookahead_on)
-[bH1, bL1, bH3, bL3, bT] = request.security(syminfo.tickerid, fvgTfB, fFvg(), lookahead = barmerge.lookahead_on)
+[fH1, fL1, fH3, fL3, fT] = request.security(syminfo.tickerid, fvgTf, fFvg(), lookahead = barmerge.lookahead_on)
 [tBias, tClose, tEma]    = request.security(syminfo.tickerid, trendTf, fTrend(trendLen, emaLen), lookahead = barmerge.lookahead_on)
 [pdh, pdl]               = request.security(syminfo.tickerid, "D", [high[1], low[1]], lookahead = barmerge.lookahead_on)
 [swH, swL, swT]          = request.security(syminfo.tickerid, sweepTf, fSwings(htfSwingLen), lookahead = barmerge.lookahead_on)
 [esH, esL]               = request.security(esSym, timeframe.period, [high, low])
 
 bool newDay = timeframe.change("D")
-bool newA   = timeframe.change(fvgTfA)
-bool newB   = timeframe.change(fvgTfB)
+bool newFvg = timeframe.change(fvgTf)
 bool newSw  = timeframe.change(sweepTf)
 
 bool kzA      = inSess(kz1)
@@ -259,10 +253,10 @@ var int   prevDayT = na
 var int lastSigBar = na
 var int sigToday   = 0
 
-endBox(box b) =>
+// Filled or expired zones are removed from the chart so only live zones show.
+dropBox(box b) =>
     if not na(b)
-        box.set_right(b, time)
-        box.set_extend(b, extend.none)
+        box.delete(b)
 
 addZone(float top, float bot, int dir, string tf, int tr, int t) =>
     box bx = na
@@ -272,7 +266,7 @@ addZone(float top, float bot, int dir, string tf, int tr, int t) =>
     zones.push(Zone.new(top, bot, dir, false, tf, tr, bx))
     if zones.size() > maxZones
         Zone old = zones.shift()
-        endBox(old.bx)
+        dropBox(old.bx)
 
 newFvgs(float h1, float l1, float h3, float l3, int t, string tf, int tr) =>
     float minGap = minGapTicks * syminfo.mintick
@@ -374,10 +368,8 @@ if barstate.isconfirmed
         todAvg.put(todKey, na(todRef) ? volume : todRef + (volume - todRef) / todLen)
 
     // 2 · FVG / IFVG zones
-    if newA
-        newFvgs(aH1, aL1, aH3, aL3, aT, tfName(fvgTfA), 82)
-    if newB
-        newFvgs(bH1, bL1, bH3, bL3, bT, tfName(fvgTfB), 90)
+    if newFvg
+        newFvgs(fH1, fL1, fH3, fL3, fT, tfName(fvgTf), 86)
     if useChartFvg
         newFvgs(high, low, high[2], low[2], time[1], tfName(timeframe.period), 94)
 
@@ -388,7 +380,7 @@ if barstate.isconfirmed
             if z.dir == 1
                 if close < z.bot
                     if z.inverse
-                        endBox(z.bx)
+                        dropBox(z.bx)
                         zones.remove(i)
                     else
                         invertZone(z)
@@ -399,7 +391,7 @@ if barstate.isconfirmed
             else
                 if close > z.top
                     if z.inverse
-                        endBox(z.bx)
+                        dropBox(z.bx)
                         zones.remove(i)
                     else
                         invertZone(z)
@@ -527,17 +519,6 @@ if longSig or shortSig
     lastSigBar := bar_index
     sigToday   += 1
 
-// Weak tier: lower score, ignores the "Require …" toggles and the daily cap
-var int lastWeakBar = na
-bool canWeak  = barstate.isconfirmed and inKz and (na(lastWeakBar) or bar_index - lastWeakBar > weakCooldown)
-bool rawWL    = canWeak and not longSig and not shortSig and scoreL >= weakScore and riskOkL
-bool rawWS    = canWeak and not longSig and not shortSig and scoreS >= weakScore and riskOkS
-bool weakBuy  = rawWL and not rawWS
-bool weakSell = rawWS and not rawWL
-
-if weakBuy or weakSell
-    lastWeakBar := bar_index
-
 sigTip(bool v, bool f, bool m, bool s, bool t, float sl, float tp) =>
     "Volume " + mark(v) + "\nFVG/IFVG " + mark(f) + "\nSMT " + mark(m) + "\nSweep " + mark(s) + "\nTrend " + mark(t) + "\nSL " + str.tostring(sl, format.mintick) + "  TP " + str.tostring(tp, format.mintick)
 
@@ -545,9 +526,6 @@ if showSignals and longSig
     label.new(bar_index, low, "BUY\n" + str.tostring(scoreL) + "/5", yloc = yloc.belowbar, style = label.style_label_up, color = bullCol, textcolor = color.white, size = size.normal, tooltip = sigTip(cVolL, cFvgL, cSmtL, cSwpL, cTrdL, slL, tpL))
 if showSignals and shortSig
     label.new(bar_index, high, "SELL\n" + str.tostring(scoreS) + "/5", yloc = yloc.abovebar, style = label.style_label_down, color = bearCol, textcolor = color.white, size = size.normal, tooltip = sigTip(cVolS, cFvgS, cSmtS, cSwpS, cTrdS, slS, tpS))
-
-plotshape(showWeak and weakBuy, "Weak buy", style = shape.triangleup, location = location.belowbar, color = color.new(bullCol, 35), text = "buy", textcolor = color.new(bullCol, 20), size = size.tiny)
-plotshape(showWeak and weakSell, "Weak sell", style = shape.triangledown, location = location.abovebar, color = color.new(bearCol, 35), text = "sell", textcolor = color.new(bearCol, 20), size = size.tiny)
 
 plot(scoreL, "Long score", color = bullCol, display = display.data_window)
 plot(scoreS, "Short score", color = bearCol, display = display.data_window)
@@ -576,7 +554,7 @@ if showTable and barstate.islast
     table.cell(dash, 2, 6, str.tostring(scoreS) + "/5", text_color = scoreS >= minScore ? bearCol : #d1d4dc, text_size = size.small)
     string biasTxt = tBias == 1 ? "Bull" : tBias == -1 ? "Bear" : "Neutral"
     string kzTxt   = not useKz ? "KZ n/a" : inKz ? "KZ on" : "KZ off"
-    bool   tfOk    = timeframe.in_seconds() <= timeframe.in_seconds(fvgTfB)
+    bool   tfOk    = timeframe.in_seconds() <= timeframe.in_seconds(fvgTf)
     table.cell(dash, 0, 7, tfOk ? "Bias " + biasTxt : "Use a 1m chart", text_color = tfOk ? #787b86 : bearCol, text_size = size.tiny, text_halign = text.align_left)
     table.cell(dash, 1, 7, kzTxt, text_color = #787b86, text_size = size.tiny)
     table.cell(dash, 2, 7, str.tostring(sigToday) + "/" + str.tostring(maxSignalsDay) + " today", text_color = #787b86, text_size = size.tiny)
@@ -607,12 +585,6 @@ if longSig
     alert(alertMsg("BUY", scoreL, slL, tpL), alert.freq_once_per_bar_close)
 if shortSig
     alert(alertMsg("SELL", scoreS, slS, tpS), alert.freq_once_per_bar_close)
-if showWeak and weakBuy
-    alert(alertMsg("buy (weak)", scoreL, slL, tpL), alert.freq_once_per_bar_close)
-if showWeak and weakSell
-    alert(alertMsg("sell (weak)", scoreS, slS, tpS), alert.freq_once_per_bar_close)
 
 alertcondition(longSig, "NQ Confluence · BUY", "NQ Confluence BUY on {{ticker}} at {{close}}")
 alertcondition(shortSig, "NQ Confluence · SELL", "NQ Confluence SELL on {{ticker}} at {{close}}")
-alertcondition(showWeak and weakBuy, "NQ Confluence · Weak buy", "NQ Confluence weak buy on {{ticker}} at {{close}}")
-alertcondition(showWeak and weakSell, "NQ Confluence · Weak sell", "NQ Confluence weak sell on {{ticker}} at {{close}}")
