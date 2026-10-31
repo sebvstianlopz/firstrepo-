@@ -1,4 +1,8 @@
 @import 'tailwindcss';
+@import 'tw-animate-css';
+
+/* The site is light only: dark: utilities in shadcn components apply only under a .dark class. */
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
   --font-sans: 'Archivo Variable', 'Helvetica Neue', Arial, sans-serif;
@@ -9,6 +13,15 @@
   --color-muted: #6b6b6b;
   --color-line: #e5e5e5;
   --color-accent: #e10600;
+
+  /* shadcn colour names used by src/components/ui, mapped onto the tokens above. */
+  --color-background: #ffffff;
+  --color-foreground: #000000;
+  --color-muted-foreground: #6b6b6b;
+  --color-card: #ffffff;
+  --color-card-foreground: #000000;
+  --color-border: #e5e5e5;
+  --color-ring: #000000;
 }
 
 :root {

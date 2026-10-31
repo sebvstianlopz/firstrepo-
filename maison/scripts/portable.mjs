@@ -38,6 +38,8 @@ for (const file of walk(out).filter((f) => f.endsWith('.html'))) {
   html = html.replace(/url\((['"]?)\/assets\/([^)'"]+\.woff2)\1\)/g, (_m, _q, name) => `url(${embed(name)})`);
   html = html.replace(/url\((['"]?)\/assets\//g, `url($1${prefix}assets/`);
   html = html.replace(/(["'])\/assets\//g, `$1${prefix}assets/`);
+  // Image paths inside island props (JSON in an attribute, so quoted as &quot;).
+  html = html.replace(/&quot;\/assets\//g, `&quot;${prefix}assets/`);
   writeFileSync(file, html);
 }
 // The fonts now live inside the pages.

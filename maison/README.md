@@ -38,13 +38,21 @@ same name, then delete the piece's `photoPending: true` line.
 
 | Slot | File | Ideal size |
 |---|---|---|
-| Hero campaign photo | `src/assets/campaign/hero.jpg` | Landscape 3:2, 2400 × 1600 |
+| Link-preview image | `src/assets/campaign/hero.jpg` | Landscape 3:2, 2400 × 1600 |
 | Editorial, large | `src/assets/campaign/editorial-large.jpg` | Portrait 4:5, 1600 × 2000 |
 | Editorial, small | `src/assets/campaign/editorial-small.jpg` | Portrait 3:4, 1200 × 1600 |
 | A piece, front | `src/content/pieces/<piece>/1.png` | Square 1:1, 1600 × 1600, cut-out on white or transparent |
 | A piece, back or detail | `src/content/pieces/<piece>/2.png` | Same as the front |
 
-To use `.jpg` for a piece instead, change its `photos:` line in `data.yaml` to match. `npm run placeholders` only fills
+To use `.jpg` for a piece instead, change its `photos:` line in `data.yaml` to match.
+
+### The home page rail
+
+The hero is a clothing rail (`src/components/ui/product-rail-gallery.tsx`, a React component). A piece hangs on it
+when its `data.yaml` has a `rail:` line, e.g. `rail: { kind: coat }`. Until it has cut-outs, the rail draws it as
+that `kind` (`tee`, `knit`, `hoodie`, `shirt`, `jacket` or `coat`) in its first colour. For photos, save transparent
+PNG cut-outs in the piece's folder, all on the same 200 × 310 portrait canvas and scale (for example 1000 × 1550), and
+list them: `rail: { kind: coat, image: ./rail-front.png, back: ./rail-back.png, side: ./rail-side.png }`. `npm run placeholders` only fills
 slots that are empty, so it never touches a real picture.
 
 ## Everyday changes
@@ -61,6 +69,8 @@ slots that are empty, so it never touches a real picture.
 
 - `src/styles/global.css`: tokens (white, black, signal red `#e10600`), Archivo with its width axis for type, Reenie Beanie for the scribble, buttons, pills, the product grid, and entrance motion.
 - `src/components/PageTitle.astro`: titles that size themselves to fill the page edge to edge.
+- `src/components/ui/`: React components in the shadcn layout (`components.json` at the root), styled with Tailwind
+  through the shadcn colour names mapped in `global.css`. `src/components/home/HeroRail.tsx` feeds the rail from the collection.
 - `src/scripts/city.ts`, `bag.ts` and `saved.ts`: the delivery city, the bag and the wishlist.
 - Motion follows a few rules: strong ease-out curves, UI motion under 300ms, a slight press-in on everything tappable, hover effects only on mouse devices, and reduced motion keeps the fades but drops the movement.
 - Mobile: no tap flash, safe-area padding for notched phones, 16px fields so iOS doesn't zoom, and a swipeable gallery with a bottom buy bar.

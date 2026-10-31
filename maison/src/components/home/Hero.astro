@@ -1,88 +1,100 @@
 ---
-// The season's campaign photo, with the story crossing its top-left corner
-// and the red season scribble crossing its bottom-right edge.
-import { Image } from 'astro:assets';
-import hero from '../../assets/campaign/hero.jpg';
-import { cities, defaultCity, site, url } from '../../config/site';
----
-<section class="hero wrap" aria-label={`${site.season}: ${site.collection.name}`}>
-  <figure class="hero-figure">
-    <div class="hero-media">
-      <div class="frame hero-photo">
-        <Image src={hero} alt={`${site.collection.name} campaign`} widths={[800, 1400, 2000, 2400]} sizes="(min-width: 900px) 84vw, 100vw" loading="eager" fetchpriority="high" />
-      </div>
-      <p class="scribble" aria-hidden="true">{site.collection.scribble}</p>
-    </div>
-    <p class="hero-intro" data-reveal><span>{site.collection.intro}</span></p>
-  </figure>
+// The season on a clothing rail: brush along it, lift a piece to turn it,
+// with the story on the left and the red season scribble on the right.
+import HeroRail, { type RailPiece } from './HeroRail';
+import { cities, defaultCity, site } from '../../config/site';
+import type { Piece } from '../../utils/pieces';
 
-  <div class="hero-foot" data-reveal>
-    <p class="title">‘{site.collection.name}’</p>
-    <a href={url('collection/')} class="btn">Shop the collection</a>
-    <p class="deliver label">
-      <label for="city-hero">Delivering to</label>
-      <select id="city-hero" data-city-select class="deliver-select">
-        {cities.map((c) => <option value={c.id} selected={c.id === defaultCity.id}>{c.name}</option>)}
-      </select>
-      <span class="muted">
-        Arriving <span data-city-days>in {defaultCity.days} days</span> · Prices in <span data-city-currency>{defaultCity.currency}</span> · Delivery complimentary
-      </span>
-    </p>
+interface Props {
+  pieces: Piece[];
+}
+const railPieces: RailPiece[] = Astro.props.pieces.flatMap((p) => {
+  const rail = p.data.rail;
+  if (!rail) return [];
+  return [{
+    id: p.id,
+    name: p.data.name,
+    kind: rail.kind,
+    color: p.data.colors[0].hex,
+    // The first sentence is enough under the rail; the piece page has the rest.
+    description: p.data.description.split(/(?<=\.)\s/)[0],
+    details: p.data.details.slice(0, 3),
+    price: p.data.price,
+    image: rail.image?.src,
+    backImage: rail.back?.src,
+    sideImage: rail.side?.src,
+  }];
+});
+---
+<section class="hero" aria-label={`${site.season}: ${site.collection.name}`}>
+  <p class="hero-intro wrap" data-reveal><span>{site.collection.intro}</span></p>
+  <p class="scribble" aria-hidden="true">{site.collection.scribble}</p>
+
+  <div class="rail-box">
+    <HeroRail
+      client:only="react"
+      pieces={railPieces}
+      heading={`‘${site.collection.name}’`}
+      caption="Brush along the rail, or lift a piece to see the back."
+    />
   </div>
+
+  <p class="deliver label wrap">
+    <label for="city-hero">Delivering to</label>
+    <select id="city-hero" data-city-select class="deliver-select">
+      {cities.map((c) => <option value={c.id} selected={c.id === defaultCity.id}>{c.name}</option>)}
+    </select>
+    <span class="muted">
+      Arriving <span data-city-days>in {defaultCity.days} days</span> · Prices in <span data-city-currency>{defaultCity.currency}</span> · Delivery complimentary
+    </span>
+  </p>
 </section>
 
 <style>
   .hero {
-    padding-top: clamp(24px, 3vw, 48px);
-  }
-  .hero-figure {
     position: relative;
-    margin: 0 0 0 auto;
-    width: 100%;
+    overflow-x: clip;
+    padding-top: clamp(16px, 2vw, 32px);
   }
-  .hero-media {
-    position: relative;
+  /* Reserve the rail's height so nothing jumps when it loads. */
+  .rail-box {
+    min-height: 640px;
   }
-  .hero-photo {
-    aspect-ratio: 3 / 2;
+  /* The rail's own heading takes the site's display type. */
+  .rail-box :global([data-slot='clothing-rail-hero'] header h2) {
+    font-stretch: 125%;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    font-size: clamp(28px, 3.4vw, 52px);
   }
   .hero-intro {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: min(320px, 80%);
-    padding: 20px 20px 22px 0;
-    background: var(--color-bg);
+    max-width: 360px;
     font-size: 15px;
     line-height: 1.5;
   }
   .scribble {
     position: absolute;
-    right: -0.04em;
-    bottom: -0.38em;
+    right: var(--m);
+    top: 0;
+    z-index: 2;
     font-family: var(--font-script);
-    font-size: clamp(72px, 11vw, 176px);
+    font-size: clamp(64px, 9vw, 150px);
     line-height: 0.8;
     color: var(--color-accent);
     transform: rotate(-7deg);
-    transform-origin: right bottom;
+    transform-origin: right top;
     pointer-events: none;
     white-space: nowrap;
-  }
-  .hero-foot {
-    display: grid;
-    gap: 20px;
-    padding-top: clamp(40px, 5vw, 72px);
-    max-width: 640px;
-  }
-  .hero-foot .btn {
-    width: fit-content;
   }
   .deliver {
     display: flex;
     flex-wrap: wrap;
+    justify-content: center;
     align-items: baseline;
     gap: 4px 8px;
+    text-align: center;
   }
   .deliver-select {
     appearance: none;
@@ -98,27 +110,28 @@ import { cities, defaultCity, site, url } from '../../config/site';
     cursor: pointer;
   }
   @media (min-width: 900px) {
-    .hero-figure {
-      width: 84%;
-    }
+    /* Story top-left, scribble top-right; the rail hangs between them. */
     .hero-intro {
-      left: -14%;
-      top: 48px;
-      padding: 0;
-      background: none;
-      width: 300px;
+      position: absolute;
+      top: clamp(16px, 2vw, 32px);
+      left: 0;
+      z-index: 2;
     }
-    .hero-intro span {
-      display: block;
-      padding: 18px 20px;
-      background: var(--color-bg);
+    .scribble {
+      top: 40px;
     }
   }
   @media (max-width: 899px) {
-    .hero-intro {
-      position: static;
-      width: auto;
-      padding: 48px 0 0;
+    .rail-box {
+      min-height: 560px;
+    }
+    .scribble {
+      position: relative;
+      right: auto;
+      display: block;
+      text-align: right;
+      padding-right: var(--m);
+      margin-top: 8px;
     }
   }
 </style>

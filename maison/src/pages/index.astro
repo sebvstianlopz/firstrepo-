@@ -17,7 +17,7 @@ const bento = [featured[0], featured.find((p) => p.data.category === 'leather-go
 ---
 <Base title={site.name} description={`The ${site.season} collection: ready-to-wear and leather goods, delivered complimentary worldwide.`}>
   <PageTitle text={site.name} />
-  <Hero />
+  <Hero pieces={pieces} />
   <Bento pieces={bento} />
   <Editorial />
   <NewArrivals pieces={pieces.filter((p) => p.data.isNew)} />

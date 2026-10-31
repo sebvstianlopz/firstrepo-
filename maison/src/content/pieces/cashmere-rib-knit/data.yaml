@@ -15,5 +15,6 @@ details:
 care: Hand wash cold and dry flat.
 photoPending: true
 photos: [./1.png, ./2.png]
+rail: { kind: knit }
 isNew: true
 order: 3

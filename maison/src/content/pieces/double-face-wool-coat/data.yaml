@@ -16,5 +16,6 @@ details:
 care: Dry clean only. Hang on a wide-shouldered hanger.
 photoPending: true
 photos: [./1.png, ./2.png]
+rail: { kind: coat }
 featured: true
 order: 1

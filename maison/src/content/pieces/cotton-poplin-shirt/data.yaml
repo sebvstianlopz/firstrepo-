@@ -15,4 +15,5 @@ details:
 care: Machine wash at 30°C. Iron while damp.
 photoPending: true
 photos: [./1.png, ./2.png]
+rail: { kind: shirt }
 order: 7

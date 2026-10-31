@@ -16,6 +16,7 @@ details:
 care: Specialist leather clean only.
 photoPending: true
 photos: [./1.png, ./2.png]
+rail: { kind: jacket }
 featured: true
 isNew: true
 order: 5
