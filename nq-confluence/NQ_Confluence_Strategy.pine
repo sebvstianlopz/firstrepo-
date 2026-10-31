@@ -31,6 +31,9 @@ reqSweep      = input.bool(true, "Require 4 · liquidity sweep", group = G_SCORE
 reqTrend      = input.bool(true, "Require 5 · trend alignment", group = G_SCORE)
 cooldownBars  = input.int(10, "Cooldown between signals (bars)", minval = 0, group = G_SCORE)
 maxSignalsDay = input.int(6, "Max signals per day", minval = 1, group = G_SCORE)
+showWeak      = input.bool(true, "Show weak buy / sell signals", group = G_SCORE)
+weakScore     = input.int(3, "Weak signal minimum score", minval = 1, maxval = 5, group = G_SCORE)
+weakCooldown  = input.int(10, "Weak signal cooldown (bars)", minval = 0, group = G_SCORE)
 
 string G_SESS = "Sessions (in session timezone)"
 useKz      = input.bool(true, "Only signal inside kill zones", group = G_SESS)
@@ -523,13 +526,27 @@ if longSig or shortSig
     lastSigBar := bar_index
     sigToday   += 1
 
+// Weak tier: lower score, ignores the "Require …" toggles and the daily cap
+var int lastWeakBar = na
+bool canWeak  = barstate.isconfirmed and inKz and (na(lastWeakBar) or bar_index - lastWeakBar > weakCooldown)
+bool rawWL    = canWeak and not longSig and not shortSig and scoreL >= weakScore and riskOkL
+bool rawWS    = canWeak and not longSig and not shortSig and scoreS >= weakScore and riskOkS
+bool weakBuy  = rawWL and not rawWS
+bool weakSell = rawWS and not rawWL
+
+if weakBuy or weakSell
+    lastWeakBar := bar_index
+
 sigTip(bool v, bool f, bool m, bool s, bool t, float sl, float tp) =>
     "Volume " + mark(v) + "\nFVG/IFVG " + mark(f) + "\nSMT " + mark(m) + "\nSweep " + mark(s) + "\nTrend " + mark(t) + "\nSL " + str.tostring(sl, format.mintick) + "  TP " + str.tostring(tp, format.mintick)
 
 if showSignals and longSig
-    label.new(bar_index, low, "LONG " + str.tostring(scoreL) + "/5", yloc = yloc.belowbar, style = label.style_label_up, color = bullCol, textcolor = color.white, size = size.small, tooltip = sigTip(cVolL, cFvgL, cSmtL, cSwpL, cTrdL, slL, tpL))
+    label.new(bar_index, low, "BUY\n" + str.tostring(scoreL) + "/5", yloc = yloc.belowbar, style = label.style_label_up, color = bullCol, textcolor = color.white, size = size.normal, tooltip = sigTip(cVolL, cFvgL, cSmtL, cSwpL, cTrdL, slL, tpL))
 if showSignals and shortSig
-    label.new(bar_index, high, "SHORT " + str.tostring(scoreS) + "/5", yloc = yloc.abovebar, style = label.style_label_down, color = bearCol, textcolor = color.white, size = size.small, tooltip = sigTip(cVolS, cFvgS, cSmtS, cSwpS, cTrdS, slS, tpS))
+    label.new(bar_index, high, "SELL\n" + str.tostring(scoreS) + "/5", yloc = yloc.abovebar, style = label.style_label_down, color = bearCol, textcolor = color.white, size = size.normal, tooltip = sigTip(cVolS, cFvgS, cSmtS, cSwpS, cTrdS, slS, tpS))
+
+plotshape(showWeak and weakBuy, "Weak buy", style = shape.triangleup, location = location.belowbar, color = color.new(bullCol, 35), text = "buy", textcolor = color.new(bullCol, 20), size = size.tiny)
+plotshape(showWeak and weakSell, "Weak sell", style = shape.triangledown, location = location.abovebar, color = color.new(bearCol, 35), text = "sell", textcolor = color.new(bearCol, 20), size = size.tiny)
 
 plot(scoreL, "Long score", color = bullCol, display = display.data_window)
 plot(scoreS, "Short score", color = bearCol, display = display.data_window)
@@ -574,6 +591,7 @@ usePartial   = input.bool(false, "Take 50% at 1R (needs 2+ contracts)", group = 
 moveBE       = input.bool(true, "  then move stop to break-even", group = G_ST)
 tradeWin     = input.session("0930-1555", "Trading window (flat outside it)", group = G_ST)
 maxTradesDay = input.int(3, "Max trades per day", minval = 1, group = G_ST)
+tradeWeak    = input.bool(false, "Also trade weak signals", group = G_ST)
 
 bool inTradeWin = inSess(tradeWin)
 
@@ -599,12 +617,12 @@ placeExits(string id, bool isLong, float entry, float stopP) =>
 bool flat = strategy.position_size == 0
 bool canTrade = flat and inTradeWin and tradesToday < maxTradesDay
 
-if longSig and canTrade
+if (longSig or (tradeWeak and weakBuy)) and canTrade
     stopPx := slL
     strategy.entry("Long", strategy.long, qty = contracts)
     placeExits("Long", true, close, stopPx)
     tradesToday += 1
-else if shortSig and canTrade
+else if (shortSig or (tradeWeak and weakSell)) and canTrade
     stopPx := slS
     strategy.entry("Short", strategy.short, qty = contracts)
     placeExits("Short", false, close, stopPx)
