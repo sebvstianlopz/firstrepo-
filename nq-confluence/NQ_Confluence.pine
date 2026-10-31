@@ -1,0 +1,595 @@
+// This Pine Script® code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// NQ Confluence: 1m NQ entries scored on five confirmations
+//   1 high-volume reaction · 2 FVG / IFVG respect · 3 SMT vs ES · 4 liquidity sweep · 5 higher-timeframe trend
+// Use on NQ1! / MNQ1! at 1 minute. See README.md for definitions and tuning.
+
+//@version=6
+indicator("NQ Confluence", shorttitle = "NQ Conf", overlay = true, max_boxes_count = 500, max_lines_count = 500, max_labels_count = 500)
+
+// =====================================================================
+// === SHARED LOGIC ===
+// Identical in NQ_Confluence.pine and NQ_Confluence_Strategy.pine.
+// If you change detection here, copy the whole block to the other file.
+// =====================================================================
+
+// ---------------------------------------------------------------------
+// Inputs
+// ---------------------------------------------------------------------
+string G_CORE = "Symbols & timeframes"
+esSym   = input.symbol("CME_MINI:ES1!", "SMT pair (ES)", group = G_CORE)
+trendTf = input.timeframe("60", "Trend timeframe", group = G_CORE)
+fvgTfA  = input.timeframe("15", "FVG timeframe A", group = G_CORE)
+fvgTfB  = input.timeframe("5", "FVG timeframe B", group = G_CORE)
+sweepTf = input.timeframe("5", "Swing-liquidity timeframe", group = G_CORE)
+tz      = input.string("America/New_York", "Session timezone", group = G_CORE)
+
+string G_SCORE = "Scoring"
+minScore      = input.int(4, "Minimum score (of 5)", minval = 1, maxval = 5, group = G_SCORE)
+reqVol        = input.bool(false, "Require 1 · volume reaction", group = G_SCORE)
+reqFvg        = input.bool(false, "Require 2 · FVG / IFVG respect", group = G_SCORE)
+reqSmt        = input.bool(false, "Require 3 · SMT divergence", group = G_SCORE)
+reqSweep      = input.bool(true, "Require 4 · liquidity sweep", group = G_SCORE)
+reqTrend      = input.bool(true, "Require 5 · trend alignment", group = G_SCORE)
+cooldownBars  = input.int(10, "Cooldown between signals (bars)", minval = 0, group = G_SCORE)
+maxSignalsDay = input.int(6, "Max signals per day", minval = 1, group = G_SCORE)
+
+string G_SESS = "Sessions (in session timezone)"
+useKz      = input.bool(true, "Only signal inside kill zones", group = G_SESS)
+kz1        = input.session("0930-1130", "Kill zone 1", group = G_SESS)
+kz2        = input.session("1330-1530", "Kill zone 2", group = G_SESS)
+asiaSess   = input.session("2000-0000", "Asia range", group = G_SESS)
+londonSess = input.session("0200-0500", "London range", group = G_SESS)
+
+string G_VOL = "1 · Volume reaction"
+volLen   = input.int(20, "Volume average length", minval = 2, group = G_VOL)
+volMult  = input.float(1.8, "Volume ≥ average ×", minval = 1.0, step = 0.1, group = G_VOL)
+wickPct  = input.float(40.0, "Rejection wick ≥ % of range", minval = 0, maxval = 100, group = G_VOL)
+bodyPct  = input.float(60.0, "…or body ≥ % of range", minval = 0, maxval = 100, group = G_VOL)
+useTod   = input.bool(false, "Also beat the time-of-day average", group = G_VOL)
+todLen   = input.int(10, "Time-of-day average (sessions)", minval = 2, group = G_VOL)
+todMult  = input.float(1.5, "Volume ≥ time-of-day average ×", minval = 1.0, step = 0.1, group = G_VOL)
+volValid = input.int(3, "Stays valid for (bars)", minval = 0, group = G_VOL)
+
+string G_FVG = "2 · FVG / IFVG"
+useChartFvg = input.bool(false, "Also use chart-timeframe FVGs", group = G_FVG)
+minGapTicks = input.int(8, "Min gap size (ticks)", minval = 1, group = G_FVG)
+maxZones    = input.int(30, "Max active zones", minval = 4, maxval = 200, group = G_FVG)
+fvgValid    = input.int(3, "Stays valid for (bars)", minval = 0, group = G_FVG)
+
+string G_SMT = "3 · SMT divergence"
+smtLen   = input.int(5, "Swing pivot length", minval = 2, group = G_SMT)
+smtValid = input.int(20, "Stays valid for (bars)", minval = 1, group = G_SMT)
+
+string G_SWP = "4 · Liquidity sweep"
+usePD          = input.bool(true, "Previous day high / low", group = G_SWP)
+useAsia        = input.bool(true, "Asia high / low", group = G_SWP)
+useLondon      = input.bool(true, "London high / low", group = G_SWP)
+useHtfSwings   = input.bool(true, "Swing highs / lows on swing-liquidity TF", group = G_SWP)
+htfSwingLen    = input.int(3, "  pivot length", minval = 1, group = G_SWP)
+useChartSwings = input.bool(false, "Swing highs / lows on chart TF", group = G_SWP)
+chartSwingLen  = input.int(10, "  pivot length", minval = 2, group = G_SWP)
+reclaimBars    = input.int(3, "Must close back inside within (bars)", minval = 1, group = G_SWP)
+sweepValid     = input.int(15, "Stays valid for (bars)", minval = 1, group = G_SWP)
+maxLevels      = input.int(40, "Max tracked levels per side", minval = 4, maxval = 200, group = G_SWP)
+
+string G_TRD = "5 · Trend"
+trendLen = input.int(3, "Swing pivot length (trend TF)", minval = 1, group = G_TRD)
+useEma   = input.bool(false, "Also require close beyond trend-TF EMA", group = G_TRD)
+emaLen   = input.int(50, "EMA length", minval = 2, group = G_TRD)
+
+string G_RISK = "Stops & targets"
+stopMode     = input.string("Sweep extreme", "Stop placement", options = ["Sweep extreme", "FVG far side"], group = G_RISK)
+stopBufTicks = input.int(4, "Stop buffer (ticks)", minval = 0, group = G_RISK)
+rr           = input.float(2.0, "Target (R multiple)", minval = 0.5, step = 0.25, group = G_RISK)
+maxRiskPts   = input.float(0.0, "Skip if stop is wider than (points, 0 = off)", minval = 0, group = G_RISK)
+
+string G_VIS = "Visuals"
+showFvg     = input.bool(true, "FVG / IFVG zones", group = G_VIS)
+showLevels  = input.bool(true, "Session / day liquidity levels", group = G_VIS)
+showSweeps  = input.bool(true, "Sweep markers", group = G_VIS)
+showSmt     = input.bool(true, "SMT lines", group = G_VIS)
+showSignals = input.bool(true, "Signal labels", group = G_VIS)
+showTable   = input.bool(true, "Confirmation table", group = G_VIS)
+bullCol     = input.color(#26a69a, "Bullish", group = G_VIS)
+bearCol     = input.color(#ef5350, "Bearish", group = G_VIS)
+lvlCol      = input.color(#b2b5be, "Liquidity levels", group = G_VIS)
+
+// ---------------------------------------------------------------------
+// Types & helpers
+// ---------------------------------------------------------------------
+type Zone
+    float  top
+    float  bot
+    int    dir      // 1 = support (bullish FVG or bullish IFVG), -1 = resistance
+    bool   inverse
+    string tf
+    int    tr       // fill transparency
+    box    bx
+
+type Level
+    float  price
+    string name
+    line   ln
+
+tfName(string tf) =>
+    int s = timeframe.in_seconds(tf)
+    s >= 86400 ? str.tostring(s / 86400) + "D" : s >= 3600 ? str.tostring(s / 3600) + "H" : str.tostring(s / 60) + "m"
+
+inSess(string sess) =>
+    not na(time(timeframe.period, sess, tz))
+
+recent(int barIdx, int n) =>
+    not na(barIdx) and bar_index - barIdx <= n
+
+mark(bool ok) =>
+    ok ? "✓" : "✗"
+
+// Higher-timeframe expressions. Every value is offset by [1] and requested
+// with lookahead_on, so only closed higher-timeframe bars are used (no repaint).
+fFvg() =>
+    [high[1], low[1], high[3], low[3], time[2]]
+
+fTrend(int len, int eLen) =>
+    float ph = ta.pivothigh(high, len, len)
+    float pl = ta.pivotlow(low, len, len)
+    float e  = ta.ema(close, eLen)
+    var float sh = na
+    var float sl = na
+    var int bias = 0
+    if not na(ph)
+        sh := ph
+    if not na(pl)
+        sl := pl
+    if not na(sh) and close > sh
+        bias := 1
+    else if not na(sl) and close < sl
+        bias := -1
+    [bias[1], close[1], e[1]]
+
+fSwings(int len) =>
+    float ph = ta.pivothigh(high, len, len)
+    float pl = ta.pivotlow(low, len, len)
+    [ph[1], pl[1], time[len + 1]]
+
+// ---------------------------------------------------------------------
+// Data
+// ---------------------------------------------------------------------
+[aH1, aL1, aH3, aL3, aT] = request.security(syminfo.tickerid, fvgTfA, fFvg(), lookahead = barmerge.lookahead_on)
+[bH1, bL1, bH3, bL3, bT] = request.security(syminfo.tickerid, fvgTfB, fFvg(), lookahead = barmerge.lookahead_on)
+[tBias, tClose, tEma]    = request.security(syminfo.tickerid, trendTf, fTrend(trendLen, emaLen), lookahead = barmerge.lookahead_on)
+[pdh, pdl]               = request.security(syminfo.tickerid, "D", [high[1], low[1]], lookahead = barmerge.lookahead_on)
+[swH, swL, swT]          = request.security(syminfo.tickerid, sweepTf, fSwings(htfSwingLen), lookahead = barmerge.lookahead_on)
+[esH, esL]               = request.security(esSym, timeframe.period, [high, low])
+
+bool newDay = timeframe.change("D")
+bool newA   = timeframe.change(fvgTfA)
+bool newB   = timeframe.change(fvgTfB)
+bool newSw  = timeframe.change(sweepTf)
+
+bool kzA      = inSess(kz1)
+bool kzB      = inSess(kz2)
+bool inKz     = not useKz or kzA or kzB
+bool inAsia   = inSess(asiaSess)
+bool inLondon = inSess(londonSess)
+
+// Volume / reaction-bar shape
+float volSma   = ta.sma(volume, volLen)
+float rng      = high - low
+float bodyFrac = rng > 0 ? math.abs(close - open) / rng * 100 : 0.0
+float loWick   = rng > 0 ? (math.min(open, close) - low) / rng * 100 : 0.0
+float hiWick   = rng > 0 ? (high - math.max(open, close)) / rng * 100 : 0.0
+bool bullReact = (loWick >= wickPct and close >= low + rng * 0.5) or (close > open and bodyFrac >= bodyPct)
+bool bearReact = (hiWick >= wickPct and close <= high - rng * 0.5) or (close < open and bodyFrac >= bodyPct)
+
+var map<int, float> todAvg = map.new<int, float>()
+int   todKey  = hour(time, tz) * 60 + minute(time, tz)
+float todRef  = todAvg.contains(todKey) ? todAvg.get(todKey) : na
+bool  volHigh = volume >= volMult * volSma and (not useTod or (not na(todRef) and volume >= todMult * todRef))
+
+// Pivots (computed every bar, used inside the state machine below)
+float nqPL   = ta.pivotlow(low, smtLen, smtLen)
+float nqPH   = ta.pivothigh(high, smtLen, smtLen)
+float esWinL = ta.lowest(esL, 2 * smtLen + 1)
+float esWinH = ta.highest(esH, 2 * smtLen + 1)
+float nqAftL = ta.lowest(low, smtLen)
+float nqAftH = ta.highest(high, smtLen)
+float esAftL = ta.lowest(esL, smtLen)
+float esAftH = ta.highest(esH, smtLen)
+float cPH    = ta.pivothigh(high, chartSwingLen, chartSwingLen)
+float cPL    = ta.pivotlow(low, chartSwingLen, chartSwingLen)
+float low10  = ta.lowest(low, 10)
+float high10 = ta.highest(high, 10)
+
+// ---------------------------------------------------------------------
+// State
+// ---------------------------------------------------------------------
+var array<Zone>  zones    = array.new<Zone>()
+var array<Level> buySide  = array.new<Level>()   // resting above highs
+var array<Level> sellSide = array.new<Level>()   // resting below lows
+
+var int   lastVolBull = na
+var int   lastVolBear = na
+var int   lastFvgBull = na
+var int   lastFvgBear = na
+var float fvgBullBot  = na
+var float fvgBearTop  = na
+
+var float  pendBullLvl   = na
+var float  pendBullExt   = na
+var int    pendBullBar   = na
+var string pendBullName  = ""
+var float  pendBearLvl   = na
+var float  pendBearExt   = na
+var int    pendBearBar   = na
+var string pendBearName  = ""
+var int    lastSweepBull = na
+var int    lastSweepBear = na
+var float  sweepBullExt  = na
+var float  sweepBearExt  = na
+var string sweepBullName = ""
+var string sweepBearName = ""
+
+var float aLowNq       = na
+var float aLowEs       = na
+var int   aLowT        = na
+var float nqMinL       = na
+var float esMinL       = na
+var int   smtBullStart = na
+var float aHighNq      = na
+var float aHighEs      = na
+var int   aHighT       = na
+var float nqMaxH       = na
+var float esMaxH       = na
+var int   smtBearStart = na
+var bool  smtBull      = false
+var bool  smtBear      = false
+
+var float asiaH    = na
+var float asiaL    = na
+var int   asiaT    = na
+var float lonH     = na
+var float lonL     = na
+var int   lonT     = na
+var int   curDayT  = na
+var int   prevDayT = na
+
+var int lastSigBar = na
+var int sigToday   = 0
+
+endBox(box b) =>
+    if not na(b)
+        box.set_right(b, time)
+        box.set_extend(b, extend.none)
+
+addZone(float top, float bot, int dir, string tf, int tr, int t) =>
+    box bx = na
+    if showFvg
+        color c = dir == 1 ? bullCol : bearCol
+        bx := box.new(left = t, top = top, right = time, bottom = bot, xloc = xloc.bar_time, extend = extend.right, border_color = color.new(c, 50), bgcolor = color.new(c, tr), text = "FVG " + tf, text_size = size.tiny, text_color = color.new(c, 20), text_halign = text.align_right, text_valign = text.align_top)
+    zones.push(Zone.new(top, bot, dir, false, tf, tr, bx))
+    if zones.size() > maxZones
+        Zone old = zones.shift()
+        endBox(old.bx)
+
+newFvgs(float h1, float l1, float h3, float l3, int t, string tf, int tr) =>
+    float minGap = minGapTicks * syminfo.mintick
+    if not na(l1) and not na(h3) and l1 - h3 >= minGap
+        addZone(l1, h3, 1, tf, tr, t)
+    if not na(h1) and not na(l3) and l3 - h1 >= minGap
+        addZone(l3, h1, -1, tf, tr, t)
+
+invertZone(Zone z) =>
+    z.dir     := -z.dir
+    z.inverse := true
+    if not na(z.bx)
+        color c = z.dir == 1 ? bullCol : bearCol
+        box.set_bgcolor(z.bx, color.new(c, z.tr))
+        box.set_border_color(z.bx, color.new(c, 50))
+        box.set_border_style(z.bx, line.style_dashed)
+        box.set_text(z.bx, "IFVG " + z.tf)
+        box.set_text_color(z.bx, color.new(c, 20))
+
+addLevel(bool isBuy, float p, string nm, int t, bool drawIt) =>
+    // Only add a level that price has not already traded through.
+    if not na(p) and (isBuy ? p > high : p < low)
+        array<Level> arr = isBuy ? buySide : sellSide
+        line ln = na
+        if drawIt and showLevels and not na(t) and t < time
+            ln := line.new(t, p, time, p, xloc = xloc.bar_time, extend = extend.right, color = color.new(lvlCol, 30), style = line.style_dotted)
+        arr.push(Level.new(p, nm, ln))
+        if arr.size() > maxLevels
+            Level old = arr.shift()
+            if not na(old.ln)
+                line.delete(old.ln)
+
+// Removes every level price traded through this bar and returns the deepest one.
+takeLevels(bool isBuy) =>
+    array<Level> arr = isBuy ? buySide : sellSide
+    float taken = na
+    string nm = ""
+    if arr.size() > 0
+        for i = arr.size() - 1 to 0
+            Level lv = arr.get(i)
+            if isBuy ? high > lv.price : low < lv.price
+                if na(taken) or (isBuy ? lv.price > taken : lv.price < taken)
+                    taken := lv.price
+                    nm    := lv.name
+                if not na(lv.ln)
+                    line.set_x2(lv.ln, time)
+                    line.set_extend(lv.ln, extend.none)
+                arr.remove(i)
+    [taken, nm]
+
+// ---------------------------------------------------------------------
+// State machine: runs once per closed bar, so nothing repaints intrabar
+// ---------------------------------------------------------------------
+if barstate.isconfirmed
+    if newDay
+        sigToday := 0
+        prevDayT := curDayT
+        curDayT  := time
+        if usePD
+            addLevel(true, pdh, "PDH", prevDayT, true)
+            addLevel(false, pdl, "PDL", prevDayT, true)
+
+    // Session ranges become liquidity once the session closes
+    if inAsia and not inAsia[1]
+        asiaH := high
+        asiaL := low
+        asiaT := time
+    else if inAsia
+        asiaH := math.max(asiaH, high)
+        asiaL := math.min(asiaL, low)
+    if useAsia and not inAsia and inAsia[1]
+        addLevel(true, asiaH, "Asia H", asiaT, true)
+        addLevel(false, asiaL, "Asia L", asiaT, true)
+
+    if inLondon and not inLondon[1]
+        lonH := high
+        lonL := low
+        lonT := time
+    else if inLondon
+        lonH := math.max(lonH, high)
+        lonL := math.min(lonL, low)
+    if useLondon and not inLondon and inLondon[1]
+        addLevel(true, lonH, "London H", lonT, true)
+        addLevel(false, lonL, "London L", lonT, true)
+
+    if useHtfSwings and newSw
+        addLevel(true, swH, tfName(sweepTf) + " swing H", swT, false)
+        addLevel(false, swL, tfName(sweepTf) + " swing L", swT, false)
+    if useChartSwings
+        addLevel(true, cPH, "swing H", time[chartSwingLen], false)
+        addLevel(false, cPL, "swing L", time[chartSwingLen], false)
+
+    // 1 · Volume reaction
+    if volHigh and bullReact
+        lastVolBull := bar_index
+    if volHigh and bearReact
+        lastVolBear := bar_index
+    if useTod
+        todAvg.put(todKey, na(todRef) ? volume : todRef + (volume - todRef) / todLen)
+
+    // 2 · FVG / IFVG zones
+    if newA
+        newFvgs(aH1, aL1, aH3, aL3, aT, tfName(fvgTfA), 82)
+    if newB
+        newFvgs(bH1, bL1, bH3, bL3, bT, tfName(fvgTfB), 90)
+    if useChartFvg
+        newFvgs(high, low, high[2], low[2], time[1], tfName(timeframe.period), 94)
+
+    if zones.size() > 0
+        for i = zones.size() - 1 to 0
+            Zone z = zones.get(i)
+            float mid = (z.top + z.bot) / 2
+            if z.dir == 1
+                if close < z.bot
+                    if z.inverse
+                        endBox(z.bx)
+                        zones.remove(i)
+                    else
+                        invertZone(z)
+                    continue
+                if low <= z.top and close > mid
+                    lastFvgBull := bar_index
+                    fvgBullBot  := z.bot
+            else
+                if close > z.top
+                    if z.inverse
+                        endBox(z.bx)
+                        zones.remove(i)
+                    else
+                        invertZone(z)
+                    continue
+                if high >= z.bot and close < mid
+                    lastFvgBear := bar_index
+                    fvgBearTop  := z.top
+
+    // 3 · SMT divergence vs ES (anchored on NQ swings)
+    if not na(nqPL)
+        aLowNq       := nqPL
+        aLowEs       := esWinL
+        aLowT        := time[smtLen]
+        nqMinL       := nqAftL
+        esMinL       := esAftL
+        smtBullStart := na
+    else if not na(aLowNq)
+        nqMinL := math.min(nqMinL, low)
+        esMinL := math.min(esMinL, esL)
+    bool divBull = (not na(aLowNq) and nqMinL < aLowNq) != (not na(aLowEs) and esMinL < aLowEs)
+    if divBull and na(smtBullStart)
+        smtBullStart := bar_index
+        if showSmt
+            line.new(aLowT, aLowNq, time, nqMinL, xloc = xloc.bar_time, color = bullCol, width = 2)
+            label.new(bar_index, nqMinL, "SMT", style = label.style_label_up, color = color.new(bullCol, 100), textcolor = bullCol, size = size.tiny)
+    smtBull := divBull and recent(smtBullStart, smtValid)
+
+    if not na(nqPH)
+        aHighNq      := nqPH
+        aHighEs      := esWinH
+        aHighT       := time[smtLen]
+        nqMaxH       := nqAftH
+        esMaxH       := esAftH
+        smtBearStart := na
+    else if not na(aHighNq)
+        nqMaxH := math.max(nqMaxH, high)
+        esMaxH := math.max(esMaxH, esH)
+    bool divBear = (not na(aHighNq) and nqMaxH > aHighNq) != (not na(aHighEs) and esMaxH > aHighEs)
+    if divBear and na(smtBearStart)
+        smtBearStart := bar_index
+        if showSmt
+            line.new(aHighT, aHighNq, time, nqMaxH, xloc = xloc.bar_time, color = bearCol, width = 2)
+            label.new(bar_index, nqMaxH, "SMT", style = label.style_label_down, color = color.new(bearCol, 100), textcolor = bearCol, size = size.tiny)
+    smtBear := divBear and recent(smtBearStart, smtValid)
+
+    // 4 · Liquidity sweeps: trade through a level, then close back inside
+    [tkL, tkLName] = takeLevels(false)
+    if not na(tkL)
+        if na(pendBullLvl) or tkL <= pendBullLvl
+            pendBullLvl  := tkL
+            pendBullName := tkLName
+        pendBullBar := bar_index
+    if not na(pendBullLvl)
+        pendBullExt := na(pendBullExt) ? low : math.min(pendBullExt, low)
+        if close > pendBullLvl
+            lastSweepBull := bar_index
+            sweepBullExt  := pendBullExt
+            sweepBullName := pendBullName
+            if showSweeps
+                label.new(bar_index, pendBullExt, "✕", style = label.style_none, textcolor = bullCol, size = size.normal, tooltip = "Swept " + pendBullName)
+            pendBullLvl := na
+            pendBullExt := na
+        else if bar_index - pendBullBar >= reclaimBars
+            pendBullLvl := na
+            pendBullExt := na
+
+    [tkH, tkHName] = takeLevels(true)
+    if not na(tkH)
+        if na(pendBearLvl) or tkH >= pendBearLvl
+            pendBearLvl  := tkH
+            pendBearName := tkHName
+        pendBearBar := bar_index
+    if not na(pendBearLvl)
+        pendBearExt := na(pendBearExt) ? high : math.max(pendBearExt, high)
+        if close < pendBearLvl
+            lastSweepBear := bar_index
+            sweepBearExt  := pendBearExt
+            sweepBearName := pendBearName
+            if showSweeps
+                label.new(bar_index, pendBearExt, "✕", style = label.style_none, textcolor = bearCol, size = size.normal, tooltip = "Swept " + pendBearName)
+            pendBearLvl := na
+            pendBearExt := na
+        else if bar_index - pendBearBar >= reclaimBars
+            pendBearLvl := na
+            pendBearExt := na
+
+// ---------------------------------------------------------------------
+// Confirmations & score
+// ---------------------------------------------------------------------
+bool cVolL = recent(lastVolBull, volValid)
+bool cVolS = recent(lastVolBear, volValid)
+bool cFvgL = recent(lastFvgBull, fvgValid)
+bool cFvgS = recent(lastFvgBear, fvgValid)
+bool cSmtL = smtBull
+bool cSmtS = smtBear
+bool cSwpL = recent(lastSweepBull, sweepValid)
+bool cSwpS = recent(lastSweepBear, sweepValid)
+bool cTrdL = tBias == 1 and (not useEma or tClose > tEma)
+bool cTrdS = tBias == -1 and (not useEma or tClose < tEma)
+
+int scoreL = (cVolL ? 1 : 0) + (cFvgL ? 1 : 0) + (cSmtL ? 1 : 0) + (cSwpL ? 1 : 0) + (cTrdL ? 1 : 0)
+int scoreS = (cVolS ? 1 : 0) + (cFvgS ? 1 : 0) + (cSmtS ? 1 : 0) + (cSwpS ? 1 : 0) + (cTrdS ? 1 : 0)
+
+bool reqOkL = (not reqVol or cVolL) and (not reqFvg or cFvgL) and (not reqSmt or cSmtL) and (not reqSweep or cSwpL) and (not reqTrend or cTrdL)
+bool reqOkS = (not reqVol or cVolS) and (not reqFvg or cFvgS) and (not reqSmt or cSmtS) and (not reqSweep or cSwpS) and (not reqTrend or cTrdS)
+
+// Suggested stop: sweep extreme or FVG far side, falling back to the 10-bar extreme
+float bufP = stopBufTicks * syminfo.mintick
+float slL  = stopMode == "FVG far side" and cFvgL and not na(fvgBullBot) ? fvgBullBot - bufP : cSwpL and not na(sweepBullExt) ? sweepBullExt - bufP : low10 - bufP
+float slS  = stopMode == "FVG far side" and cFvgS and not na(fvgBearTop) ? fvgBearTop + bufP : cSwpS and not na(sweepBearExt) ? sweepBearExt + bufP : high10 + bufP
+float riskL = close - slL
+float riskS = slS - close
+float tpL   = close + rr * riskL
+float tpS   = close - rr * riskS
+bool riskOkL = riskL > 0 and (maxRiskPts == 0 or riskL <= maxRiskPts)
+bool riskOkS = riskS > 0 and (maxRiskPts == 0 or riskS <= maxRiskPts)
+
+bool canSignal = barstate.isconfirmed and inKz and (na(lastSigBar) or bar_index - lastSigBar > cooldownBars) and sigToday < maxSignalsDay
+bool rawL = canSignal and scoreL >= minScore and reqOkL and riskOkL
+bool rawS = canSignal and scoreS >= minScore and reqOkS and riskOkS
+bool longSig  = rawL and not rawS
+bool shortSig = rawS and not rawL
+
+if longSig or shortSig
+    lastSigBar := bar_index
+    sigToday   += 1
+
+sigTip(bool v, bool f, bool m, bool s, bool t, float sl, float tp) =>
+    "Volume " + mark(v) + "\nFVG/IFVG " + mark(f) + "\nSMT " + mark(m) + "\nSweep " + mark(s) + "\nTrend " + mark(t) + "\nSL " + str.tostring(sl, format.mintick) + "  TP " + str.tostring(tp, format.mintick)
+
+if showSignals and longSig
+    label.new(bar_index, low, "LONG " + str.tostring(scoreL) + "/5", yloc = yloc.belowbar, style = label.style_label_up, color = bullCol, textcolor = color.white, size = size.small, tooltip = sigTip(cVolL, cFvgL, cSmtL, cSwpL, cTrdL, slL, tpL))
+if showSignals and shortSig
+    label.new(bar_index, high, "SHORT " + str.tostring(scoreS) + "/5", yloc = yloc.abovebar, style = label.style_label_down, color = bearCol, textcolor = color.white, size = size.small, tooltip = sigTip(cVolS, cFvgS, cSmtS, cSwpS, cTrdS, slS, tpS))
+
+plot(scoreL, "Long score", color = bullCol, display = display.data_window)
+plot(scoreS, "Short score", color = bearCol, display = display.data_window)
+
+// ---------------------------------------------------------------------
+// Confirmation table (state as of the last closed bar)
+// ---------------------------------------------------------------------
+var table dash = table.new(position.top_right, 3, 8, bgcolor = color.new(#131722, 10), frame_color = color.new(#787b86, 60), frame_width = 1, border_color = color.new(#787b86, 80), border_width = 1)
+
+dashRow(int r, string name, bool l, bool s) =>
+    table.cell(dash, 0, r, name, text_color = #d1d4dc, text_size = size.small, text_halign = text.align_left)
+    table.cell(dash, 1, r, mark(l), text_color = l ? bullCol : #5d606b, text_size = size.small)
+    table.cell(dash, 2, r, mark(s), text_color = s ? bearCol : #5d606b, text_size = size.small)
+
+if showTable and barstate.islast
+    table.cell(dash, 0, 0, "NQ Confluence", text_color = color.white, text_size = size.small, text_halign = text.align_left)
+    table.cell(dash, 1, 0, "Long", text_color = bullCol, text_size = size.small)
+    table.cell(dash, 2, 0, "Short", text_color = bearCol, text_size = size.small)
+    dashRow(1, "1 · Volume reaction", cVolL, cVolS)
+    dashRow(2, "2 · FVG / IFVG", cFvgL, cFvgS)
+    dashRow(3, "3 · SMT vs ES", cSmtL, cSmtS)
+    dashRow(4, "4 · Liquidity sweep", cSwpL, cSwpS)
+    dashRow(5, "5 · Trend (" + tfName(trendTf) + ")", cTrdL, cTrdS)
+    table.cell(dash, 0, 6, "Score", text_color = #d1d4dc, text_size = size.small, text_halign = text.align_left)
+    table.cell(dash, 1, 6, str.tostring(scoreL) + "/5", text_color = scoreL >= minScore ? bullCol : #d1d4dc, text_size = size.small)
+    table.cell(dash, 2, 6, str.tostring(scoreS) + "/5", text_color = scoreS >= minScore ? bearCol : #d1d4dc, text_size = size.small)
+    string biasTxt = tBias == 1 ? "Bull" : tBias == -1 ? "Bear" : "Neutral"
+    string kzTxt   = not useKz ? "KZ n/a" : inKz ? "KZ on" : "KZ off"
+    bool   tfOk    = timeframe.in_seconds() <= timeframe.in_seconds(fvgTfB)
+    table.cell(dash, 0, 7, tfOk ? "Bias " + biasTxt : "Use a 1m chart", text_color = tfOk ? #787b86 : bearCol, text_size = size.tiny, text_halign = text.align_left)
+    table.cell(dash, 1, 7, kzTxt, text_color = #787b86, text_size = size.tiny)
+    table.cell(dash, 2, 7, str.tostring(sigToday) + "/" + str.tostring(maxSignalsDay) + " today", text_color = #787b86, text_size = size.tiny)
+
+// === END SHARED LOGIC ===
+
+// ---------------------------------------------------------------------
+// Indicator output: trade lines and alerts
+// ---------------------------------------------------------------------
+string G_OUT = "Signal output"
+showTrade = input.bool(true, "Draw entry / SL / TP on signals", group = G_OUT)
+tradeLen  = input.int(30, "  line length (bars)", minval = 5, group = G_OUT)
+
+drawTrade(float entry, float sl, float tp) =>
+    line.new(bar_index, entry, bar_index + tradeLen, entry, color = color.new(#787b86, 20), style = line.style_dotted)
+    line.new(bar_index, sl, bar_index + tradeLen, sl, color = bearCol, style = line.style_dashed)
+    line.new(bar_index, tp, bar_index + tradeLen, tp, color = bullCol, style = line.style_dashed)
+
+if showTrade and longSig
+    drawTrade(close, slL, tpL)
+if showTrade and shortSig
+    drawTrade(close, slS, tpS)
+
+alertMsg(string side, int score, float sl, float tp) =>
+    syminfo.ticker + " " + side + " " + str.tostring(score) + "/5 @ " + str.tostring(close, format.mintick) + " | SL " + str.tostring(sl, format.mintick) + " | TP " + str.tostring(tp, format.mintick)
+
+if longSig
+    alert(alertMsg("LONG", scoreL, slL, tpL), alert.freq_once_per_bar_close)
+if shortSig
+    alert(alertMsg("SHORT", scoreS, slS, tpS), alert.freq_once_per_bar_close)
+
+alertcondition(longSig, "NQ Confluence · Long", "NQ Confluence LONG on {{ticker}} at {{close}}")
+alertcondition(shortSig, "NQ Confluence · Short", "NQ Confluence SHORT on {{ticker}} at {{close}}")
