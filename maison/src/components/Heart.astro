@@ -1,0 +1,43 @@
+---
+// Save-for-later toggle. State lives in scripts/saved.ts.
+interface Props {
+  slug: string;
+  name: string;
+  class?: string;
+}
+const { slug, name, class: className } = Astro.props;
+---
+<button type="button" class:list={['heart', className]} data-heart={slug} aria-pressed="false" aria-label={`Save ${name}`}>
+  <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+    <path d="M12 20.5s-7.5-4.6-9.3-9.2C1.4 7.9 3.6 4.5 7 4.5c2 0 3.6 1.1 5 3 1.4-1.9 3-3 5-3 3.4 0 5.6 3.4 4.3 6.8-1.8 4.6-9.3 9.2-9.3 9.2z" />
+  </svg>
+</button>
+
+<style>
+  .heart {
+    display: inline-grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    margin: -10px;
+    color: var(--color-ink);
+    cursor: pointer;
+    transition: transform 160ms var(--ease-out);
+  }
+  .heart:active {
+    transform: scale(0.9);
+  }
+  .heart path {
+    fill: transparent;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linejoin: round;
+    transition:
+      fill 200ms ease,
+      stroke 200ms ease;
+  }
+  .heart[aria-pressed='true'] path {
+    fill: var(--color-accent);
+    stroke: var(--color-accent);
+  }
+</style>

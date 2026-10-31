@@ -1,7 +1,6 @@
 ---
-// Small frames in a wide, quiet field. The row scrolls sideways.
-import { Image } from 'astro:assets';
-import { formatPrice, url } from '../../config/site';
+import PieceCard from '../PieceCard.astro';
+import { url } from '../../config/site';
 import type { Piece } from '../../utils/pieces';
 
 interface Props {
@@ -9,88 +8,18 @@ interface Props {
 }
 const { pieces } = Astro.props;
 ---
-<section class="arrivals" aria-labelledby="arrivals-title">
-  <div class="arrivals-row no-scrollbar" tabindex="0" aria-label="New arrivals, scroll sideways">
-    <p id="arrivals-title" class="arrivals-title">New arrivals <span class="muted">{pieces.length}</span></p>
-    {pieces.map((p) => (
-      <a href={url(`collection/${p.id}/`)} class="arrival" aria-label={`${p.data.name}, ${formatPrice(p.data.price)}`}>
-        <Image src={p.data.photos[0]} alt="" widths={[300, 500]} sizes="(min-width: 640px) 11vw, 34vw" />
-        <span class="arrival-name small">{p.data.name}</span>
-      </a>
-    ))}
+<section class="wrap arrivals" aria-labelledby="arrivals-title">
+  <div class="flex items-baseline justify-between gap-4 mb-8">
+    <h2 id="arrivals-title" class="title">New arrivals</h2>
+    <a href={url('collection/')} class="label link">View all</a>
+  </div>
+  <div class="grid-pieces grid-3" data-reveal>
+    {pieces.map((p) => <PieceCard piece={p} />)}
   </div>
 </section>
 
 <style>
   .arrivals {
     margin-top: var(--section-gap);
-    height: 100svh;
-    display: grid;
-    align-items: center;
-    background: var(--color-surface);
-  }
-  .arrivals-row {
-    position: relative;
-    display: flex;
-    gap: 5vw;
-    padding: 64px var(--m) 64px;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    scroll-padding-inline: var(--m);
-  }
-  .arrivals-title {
-    position: absolute;
-    top: 16px;
-    left: calc(var(--m) + 12px);
-    z-index: 1;
-    font-family: var(--font-serif);
-    font-size: var(--t-statement);
-  }
-  .arrival {
-    position: relative;
-    flex: 0 0 11vw;
-    min-width: 140px;
-    scroll-snap-align: start;
-  }
-  .arrival :global(img) {
-    width: 100%;
-    aspect-ratio: 2 / 3;
-    object-fit: cover;
-    transition: transform 0.25s var(--ease-out);
-  }
-  .arrival:hover :global(img),
-  .arrival:focus-visible :global(img) {
-    transform: scale(1.1);
-  }
-  .arrival-name {
-    position: absolute;
-    left: 0;
-    top: calc(100% + 18px);
-    white-space: nowrap;
-    opacity: 0;
-    transform: translateY(-4px);
-    transition:
-      opacity 0.25s ease,
-      transform 0.25s var(--ease-out);
-  }
-  .arrival:hover .arrival-name,
-  .arrival:focus-visible .arrival-name {
-    opacity: 1;
-    transform: none;
-  }
-  @media (max-width: 640px) {
-    .arrivals {
-      height: 80svh;
-    }
-    .arrival {
-      flex-basis: 34vw;
-      min-width: 0;
-    }
-    .arrival-name {
-      opacity: 1;
-      transform: none;
-      white-space: normal;
-      top: calc(100% + 10px);
-    }
   }
 </style>

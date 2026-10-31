@@ -1,22 +1,21 @@
 ---
 import Base from '../../layouts/Base.astro';
 import CitySelect from '../../components/CitySelect.astro';
+import PageTitle from '../../components/PageTitle.astro';
 import { url } from '../../config/site';
 ---
 <Base title="Checkout" description="Review your bag and arrange delivery." noindex>
-  <section class="wrap pt-10 sm:pt-16">
-    <h1 class="head">Checkout</h1>
-  </section>
+  <PageTitle text="Checkout" />
 
   <div class="wrap pt-10" data-checkout-empty hidden>
-    <p class="statement">Your bag is empty.</p>
-    <a href={url('collection/')} class="btn mt-8">Discover the collection</a>
+    <p class="title">Your bag is empty.</p>
+    <a href={url('collection/')} class="btn mt-8">Shop the collection</a>
   </div>
 
   <div class="checkout wrap pt-10" data-checkout>
     <form class="grid gap-10 content-start" data-checkout-form novalidate>
       <fieldset class="grid gap-4">
-        <legend class="text-[20px] font-medium mb-4">Contact</legend>
+        <legend class="label font-bold mb-4">Contact</legend>
         <div class="field">
           <label for="email">Email</label>
           <input id="email" name="email" type="email" required autocomplete="email" class="input" />
@@ -28,7 +27,7 @@ import { url } from '../../config/site';
       </fieldset>
 
       <fieldset class="grid gap-4">
-        <legend class="text-[20px] font-medium mb-4">Delivery</legend>
+        <legend class="label font-bold mb-4">Delivery</legend>
         <div class="grid sm:grid-cols-2 gap-4">
           <div class="field">
             <label for="first">First name</label>
@@ -54,22 +53,22 @@ import { url } from '../../config/site';
 
       <div class="notice">
         <p class="font-medium">Payment is switched off in this design study.</p>
-        <p class="small mt-1">No card details are asked for or stored. Placing the order shows the confirmation a client would see.</p>
+        <p class="text-[14px] mt-1">No card details are asked for or stored. Placing the order shows the confirmation a client would see.</p>
       </div>
 
-      <p class="small text-[#8a2b1d]" data-form-error role="alert" hidden>Please fill in your email, name and address.</p>
+      <p class="label text-accent" data-form-error role="alert" hidden>Please fill in your email, name and address.</p>
       <button class="btn w-full sm:w-fit">Place order (demo)</button>
     </form>
 
     <aside class="summary" aria-labelledby="summary-title">
-      <h2 id="summary-title" class="text-[20px] font-medium">Your order</h2>
+      <h2 id="summary-title" class="label font-bold">Your order</h2>
       <ul class="grid gap-4 mt-6" data-summary-list></ul>
       <dl class="totals mt-8">
         <div><dt>Subtotal</dt><dd data-subtotal></dd></div>
         <div><dt>Delivery to <span data-city-name>New York</span></dt><dd>Complimentary</dd></div>
         <div class="total"><dt>Total</dt><dd data-total></dd></div>
       </dl>
-      <p class="small muted mt-4">Arriving <span data-city-days>in 2 days</span>, signed for on delivery.</p>
+      <p class="text-[14px] muted mt-4">Arriving <span data-city-days>in 2 days</span>, signed for on delivery.</p>
     </aside>
   </div>
 </Base>
@@ -96,23 +95,28 @@ import { url } from '../../config/site';
     margin: 0;
   }
   .notice {
-    padding: 20px;
+    padding: 18px 20px;
+    border-left: 3px solid var(--color-accent);
     background: var(--color-surface);
   }
   .summary {
     padding: 28px;
-    background: var(--color-surface);
+    border: 1px solid var(--color-line);
+  }
+  .checkout > * {
+    min-width: 0;
   }
   .summary :global(li) {
     display: grid;
-    grid-template-columns: 72px 1fr auto;
+    grid-template-columns: 72px minmax(0, 1fr) auto;
     gap: 14px;
     align-items: start;
   }
   .summary :global(img) {
     width: 72px;
-    aspect-ratio: 4 / 5;
-    object-fit: cover;
+    aspect-ratio: 1;
+    object-fit: contain;
+    background: var(--color-surface);
   }
   .totals {
     display: grid;
@@ -120,13 +124,16 @@ import { url } from '../../config/site';
   }
   .totals div {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
-    gap: 16px;
+    gap: 4px 16px;
   }
   .totals .total {
     margin-top: 8px;
+    padding-top: 14px;
+    border-top: 1px solid var(--color-line);
     font-size: 20px;
-    font-weight: 500;
+    font-weight: 700;
   }
 </style>
 
@@ -144,11 +151,12 @@ import { url } from '../../config/site';
     list.replaceChildren(
       ...items.map((item) => {
         const li = document.createElement('li');
-        const img = Object.assign(new Image(72, 90), { src: item.image, alt: '' });
+        const img = Object.assign(new Image(72, 72), { src: item.image, alt: '' });
+        img.onerror = () => (img.style.visibility = 'hidden');
         const text = document.createElement('div');
-        text.innerHTML = '<p class="font-medium leading-snug"></p><p class="small muted"></p>';
+        text.innerHTML = '<p class="label font-semibold"></p><p class="label muted"></p>';
         text.children[0].textContent = item.name;
-        text.children[1].textContent = [item.color, item.size && `Size ${item.size}`, `Qty ${item.qty}`].filter(Boolean).join(' · ');
+        text.children[1].textContent = [`[${item.color}]`, item.size && `Size ${item.size}`, `Qty ${item.qty}`].filter(Boolean).join(' · ');
         const cost = document.createElement('span');
         cost.className = 'tabular-nums';
         cost.textContent = price(item.price * item.qty);

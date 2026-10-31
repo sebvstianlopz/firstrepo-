@@ -1,26 +1,24 @@
 ---
 import Base from '../layouts/Base.astro';
+import PageTitle from '../components/PageTitle.astro';
 import Hero from '../components/home/Hero.astro';
-import Showcase from '../components/home/Showcase.astro';
-import Craft from '../components/home/Craft.astro';
+import Bento from '../components/home/Bento.astro';
+import Editorial from '../components/home/Editorial.astro';
 import NewArrivals from '../components/home/NewArrivals.astro';
-import ShopIndex from '../components/home/ShopIndex.astro';
-import CtaBand from '../components/home/CtaBand.astro';
 import { site } from '../config/site';
 import { getPieces } from '../utils/pieces';
 
 const pieces = await getPieces();
 const featured = pieces.filter((p) => p.data.featured);
-// The band reads best wide-narrow-wide-narrow: a garment, then a bag, and so on.
-const band = [featured[0], featured.find((p) => p.data.category === 'leather-goods'), featured.find((p) => p.data.category === 'men'), featured[1]].filter(
+// Lead with a garment, then a bag and a menswear piece beside it.
+const bento = [featured[0], featured.find((p) => p.data.category === 'leather-goods'), featured.find((p) => p.data.category === 'men')].filter(
   (p): p is (typeof pieces)[number] => Boolean(p),
 );
 ---
 <Base title={site.name} description={`The ${site.season} collection: ready-to-wear and leather goods, delivered complimentary worldwide.`}>
-  <Hero piece={featured[0]} />
-  <Showcase pieces={band} />
-  <Craft />
+  <PageTitle text={site.name} />
+  <Hero />
+  <Bento pieces={bento} />
+  <Editorial />
   <NewArrivals pieces={pieces.filter((p) => p.data.isNew)} />
-  <ShopIndex pieces={pieces} />
-  <CtaBand />
 </Base>

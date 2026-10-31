@@ -1,39 +1,43 @@
 ---
 import CitySelect from './CitySelect.astro';
 import { categories, site, url } from '../config/site';
----
-<header class="site-header wrap">
-  <a href={url()} class="wordmark text-[16px] sm:text-[20px]" aria-label={`${site.name}, home`}>{site.name}</a>
 
-  <nav aria-label="Collection" class="hidden lg:flex gap-7 text-[16px]">
-    {Object.entries(categories).map(([id, label]) => (
-      <a class="link" href={url(`collection/?c=${id}`)}>{label}</a>
-    ))}
+const nav = [{ id: '', label: 'Shop' }, ...Object.entries(categories).map(([id, label]) => ({ id, label }))];
+const href = (id: string) => url(id ? `collection/?c=${id}` : 'collection/');
+---
+<header class="site-header wrap" data-header>
+  <a href={url()} class="wordmark" aria-label={`${site.name}, home`}>{site.name}</a>
+
+  <nav aria-label="Collection" class="hidden lg:flex gap-8 label nav">
+    {nav.map((n) => <a class="nav-link" href={href(n.id)} data-nav={n.id || 'all'}>{n.label}</a>)}
   </nav>
 
   <div class="flex items-center gap-5 justify-self-end">
     <div class="hidden md:block">
       <CitySelect id="city-header" compact />
     </div>
-    <button type="button" class="bag-button text-[16px]" data-open-bag aria-haspopup="dialog">
-      Bag <span class="bag-count" data-bag-count>0</span>
+    <a href={url('collection/?c=saved')} class="icon-btn" aria-label="Saved pieces">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-9.3-9.2C1.4 7.9 3.6 4.5 7 4.5c2 0 3.6 1.1 5 3 1.4-1.9 3-3 5-3 3.4 0 5.6 3.4 4.3 6.8-1.8 4.6-9.3 9.2-9.3 9.2z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" /></svg>
+      <span class="count" data-saved-count hidden>0</span>
+    </a>
+    <button type="button" class="icon-btn" data-open-bag aria-haspopup="dialog" aria-label="Bag">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 8h14l-1 12H6L5 8zm4 0V6a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" /></svg>
+      <span class="count" data-bag-count hidden>0</span>
     </button>
-    <button type="button" class="text-[16px] lg:hidden" data-open-menu aria-haspopup="dialog">Menu</button>
+    <button type="button" class="label lg:hidden menu-btn" data-open-menu aria-haspopup="dialog">Menu</button>
   </div>
 </header>
 
 <dialog class="menu-sheet" data-menu aria-label="Menu">
-  <div class="wrap flex items-center justify-between h-[68px]">
-    <span class="wordmark text-[16px]">{site.name}</span>
-    <button type="button" class="text-[16px]" data-close>Close</button>
+  <div class="wrap flex items-center justify-between h-[64px]">
+    <span class="wordmark">{site.name}</span>
+    <button type="button" class="label menu-btn" data-close>Close</button>
   </div>
-  <nav aria-label="Collection" class="wrap grid gap-2 pt-8">
-    {Object.entries(categories).map(([id, label]) => (
-      <a class="head" href={url(`collection/?c=${id}`)}>{label}</a>
-    ))}
-    <a class="head" href={url('collection/')}>All pieces</a>
+  <nav aria-label="Collection" class="wrap grid pt-6" data-reveal>
+    {nav.map((n) => <a class="menu-link title" href={href(n.id)}>{n.label}</a>)}
+    <a class="menu-link title" href={url('collection/?c=saved')}>Saved</a>
   </nav>
-  <div class="wrap pt-12 max-w-sm">
+  <div class="wrap pt-10 max-w-sm">
     <CitySelect id="city-menu" />
   </div>
 </dialog>
@@ -47,74 +51,155 @@ import { categories, site, url } from '../config/site';
     grid-template-columns: auto 1fr auto;
     align-items: center;
     gap: 32px;
-    height: 68px;
+    height: calc(64px + env(safe-area-inset-top, 0px));
+    padding-top: env(safe-area-inset-top, 0px);
     background: var(--color-bg);
-    transition: transform 0.4s var(--ease-out);
+    box-shadow: 0 1px 0 transparent;
+    transition: box-shadow 200ms ease;
   }
-  .site-header nav {
+  @media (max-width: 420px) {
+    .site-header {
+      gap: 12px;
+    }
+    .site-header > div {
+      gap: 14px !important;
+    }
+    .wordmark {
+      font-size: 15px;
+    }
+  }
+  .site-header[data-scrolled] {
+    box-shadow: 0 1px 0 var(--color-line);
+  }
+  .wordmark {
+    font-stretch: 112%;
+    font-weight: 800;
+    font-size: 17px;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .nav {
     justify-self: center;
   }
-  .site-header[data-hidden] {
-    transform: translateY(-100%);
+  .nav-link {
+    position: relative;
+    padding-block: 6px;
+    transition: color 150ms ease;
   }
-  .bag-button {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
+  .nav-link::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2px;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 200ms var(--ease-out);
   }
-  .bag-count {
+  .nav-link[aria-current='page'] {
+    color: var(--color-accent);
+  }
+  .nav-link[aria-current='page']::after {
+    transform: scaleX(1);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .nav-link:hover::after {
+      transform: scaleX(1);
+    }
+  }
+  .icon-btn {
+    position: relative;
     display: inline-grid;
     place-items: center;
-    min-width: 24px;
-    height: 24px;
-    padding: 0 6px;
-    background: var(--color-ink);
-    color: var(--color-paper);
-    font-size: 14px;
-    font-variant-numeric: tabular-nums;
-    transition: transform 0.3s var(--ease-out);
+    width: 40px;
+    height: 40px;
+    margin: -6px;
+    transition: transform 160ms var(--ease-out);
   }
-  .bag-count.bump {
-    transform: scale(1.25);
+  .icon-btn:active {
+    transform: scale(0.92);
+  }
+  .count {
+    position: absolute;
+    top: 2px;
+    right: 0;
+    display: grid;
+    place-items: center;
+    min-width: 17px;
+    height: 17px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: var(--color-ink);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  [data-saved-count] {
+    background: var(--color-accent);
+  }
+  .menu-btn {
+    min-height: 40px;
   }
   .menu-sheet {
     width: 100%;
     max-width: none;
-    height: 100%;
+    height: 100dvh;
     max-height: none;
     margin: 0;
+    padding-top: env(safe-area-inset-top, 0px);
+    overscroll-behavior: contain;
     background: var(--color-bg);
     color: var(--color-ink);
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity 250ms var(--ease-out),
+      transform 250ms var(--ease-out),
+      display 250ms allow-discrete,
+      overlay 250ms allow-discrete;
   }
-  .menu-sheet[open] {
-    animation: sheet-in 0.45s var(--ease-out);
+  .menu-sheet:not([open]) {
+    opacity: 0;
+    transform: translateY(-8px);
   }
-  @keyframes sheet-in {
-    from {
+  @starting-style {
+    .menu-sheet[open] {
       opacity: 0;
-      transform: translateY(-16px);
+      transform: translateY(-8px);
     }
+  }
+  .menu-link {
+    padding-block: 10px;
+    font-size: clamp(32px, 9vw, 52px);
   }
 </style>
 
 <script>
   const menu = document.querySelector<HTMLDialogElement>('[data-menu]')!;
-  document.querySelector('[data-open-menu]')?.addEventListener('click', () => menu.showModal());
+  document.querySelector('[data-open-menu]')?.addEventListener('click', () => {
+    menu.showModal();
+    menu.querySelector('[data-reveal]')?.classList.add('is-in');
+  });
   menu.querySelector('[data-close]')?.addEventListener('click', () => menu.close());
   menu.addEventListener('click', (e) => {
     if ((e.target as HTMLElement).closest('a')) menu.close();
   });
 
-  // The bar steps out of the way while reading down, and returns on the way up.
-  const header = document.querySelector<HTMLElement>('.site-header')!;
-  let last = scrollY;
-  addEventListener(
-    'scroll',
-    () => {
-      const y = scrollY;
-      header.toggleAttribute('data-hidden', y > last && y > 400);
-      last = y;
-    },
-    { passive: true },
-  );
+  // The header line appears once the page leaves the top.
+  const header = document.querySelector<HTMLElement>('[data-header]')!;
+  const onScroll = () => header.toggleAttribute('data-scrolled', scrollY > 8);
+  addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  // Mark the current section in red.
+  const params = new URLSearchParams(location.search);
+  const onCollection = location.pathname.endsWith('/collection/');
+  const current = onCollection ? (params.get('c') ?? 'all') : null;
+  document.querySelectorAll<HTMLAnchorElement>('[data-nav]').forEach((a) => {
+    if (a.dataset.nav === current) a.setAttribute('aria-current', 'page');
+  });
 </script>

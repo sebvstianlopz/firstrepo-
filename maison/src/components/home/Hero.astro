@@ -1,175 +1,124 @@
 ---
+// The season's campaign photo, with the story crossing its top-left corner
+// and the red season scribble crossing its bottom-right edge.
 import { Image } from 'astro:assets';
-import Price from '../Price.astro';
+import hero from '../../assets/campaign/hero.jpg';
 import { cities, defaultCity, site, url } from '../../config/site';
-import type { Piece } from '../../utils/pieces';
-
-interface Props {
-  /** The one piece the first screen invites a click on. */
-  piece: Piece;
-}
-const { piece } = Astro.props;
 ---
-<section class="hero" aria-labelledby="hero-title">
-  <div class="hero-copy wrap" data-reveal>
-    <h1 id="hero-title" class="statement">
-      The {site.season} collection, from the Paris atelier to your door.
-    </h1>
-    <a href={url('collection/')} class="btn w-fit">Discover the collection</a>
+<section class="hero wrap" aria-label={`${site.season}: ${site.collection.name}`}>
+  <figure class="hero-figure">
+    <div class="hero-media">
+      <div class="frame hero-photo">
+        <Image src={hero} alt={`${site.collection.name} campaign`} widths={[800, 1400, 2000, 2400]} sizes="(min-width: 900px) 84vw, 100vw" loading="eager" fetchpriority="high" />
+      </div>
+      <p class="scribble" aria-hidden="true">{site.collection.scribble}</p>
+    </div>
+    <p class="hero-intro" data-reveal><span>{site.collection.intro}</span></p>
+  </figure>
 
-    <!-- The live line: choose a city, and every price and promise on the site follows. -->
-    <p class="deliver small sm:text-[16px]">
+  <div class="hero-foot" data-reveal>
+    <p class="title">‘{site.collection.name}’</p>
+    <a href={url('collection/')} class="btn">Shop the collection</a>
+    <p class="deliver label">
       <label for="city-hero">Delivering to</label>
       <select id="city-hero" data-city-select class="deliver-select">
         {cities.map((c) => <option value={c.id} selected={c.id === defaultCity.id}>{c.name}</option>)}
       </select>
-      <span>
-        arriving <span data-city-days>in {defaultCity.days} days</span>, prices in <span data-city-currency>{defaultCity.currency}</span>,
-        delivery complimentary.
+      <span class="muted">
+        Arriving <span data-city-days>in {defaultCity.days} days</span> · Prices in <span data-city-currency>{defaultCity.currency}</span> · Delivery complimentary
       </span>
     </p>
-
-    <a href={url(`collection/${piece.id}/`)} class="hero-piece">
-      <span class="hero-piece-label small">
-        <span>{piece.data.name}</span>
-        <Price usd={piece.data.price} />
-      </span>
-      <span class="frame">
-        <Image src={piece.data.photos[0]} alt={piece.data.name} widths={[400, 700, 1000]} sizes="(min-width: 641px) 32vw, 56vw" loading="eager" />
-      </span>
-    </a>
   </div>
-
-  <p class="monument" aria-hidden="true"><span>Vuitton</span></p>
 </section>
 
 <style>
   .hero {
-    position: relative;
-    overflow: hidden;
-    height: calc(100svh - 68px);
-    min-height: 560px;
+    padding-top: clamp(24px, 3vw, 48px);
   }
-  .hero-copy {
+  .hero-figure {
+    position: relative;
+    margin: 0 0 0 auto;
+    width: 100%;
+  }
+  .hero-media {
+    position: relative;
+  }
+  .hero-photo {
+    aspect-ratio: 3 / 2;
+  }
+  .hero-intro {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: min(320px, 80%);
+    padding: 20px 20px 22px 0;
+    background: var(--color-bg);
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  .scribble {
+    position: absolute;
+    right: -0.04em;
+    bottom: -0.38em;
+    font-family: var(--font-script);
+    font-size: clamp(72px, 11vw, 176px);
+    line-height: 0.8;
+    color: var(--color-accent);
+    transform: rotate(-7deg);
+    transform-origin: right bottom;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .hero-foot {
     display: grid;
-    gap: 28px;
-    padding-top: clamp(40px, 7vh, 96px);
+    gap: 20px;
+    padding-top: clamp(40px, 5vw, 72px);
     max-width: 640px;
   }
-  .hero-piece {
-    position: absolute;
-    top: 32px;
-    right: var(--m);
-    display: grid;
-    grid-template-rows: auto minmax(0, 1fr);
-    gap: 10px;
-    height: calc(100% - 0.68 * var(--t-monument) - 88px);
-    aspect-ratio: 4 / 6;
-  }
-  .hero-piece .frame {
-    min-height: 0;
-  }
-  .hero-piece-label {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
+  .hero-foot .btn {
+    width: fit-content;
   }
   .deliver {
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
     gap: 4px 8px;
-    max-width: 46ch;
-    color: var(--color-ink);
   }
   .deliver-select {
     appearance: none;
-    padding: 4px 26px 4px 10px;
-    background: var(--color-surface-2)
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%231a1714' stroke-width='1.4'/%3E%3C/svg%3E")
-      no-repeat right 9px center;
-    color: var(--color-ink);
-    font-weight: 500;
+    padding: 2px 18px 2px 0;
+    background: transparent
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23e10600' stroke-width='1.6'/%3E%3C/svg%3E")
+      no-repeat right center;
+    color: var(--color-accent);
+    font: inherit;
+    font-weight: 700;
+    letter-spacing: inherit;
+    text-transform: inherit;
     cursor: pointer;
-    transition: background-color 0.2s ease;
   }
-  .deliver-select:hover {
-    background-color: var(--color-surface);
-  }
-
-  /* The name as architecture: cut by the left, right and bottom edges. */
-  .monument {
-    position: absolute;
-    left: -3.5vw;
-    bottom: 0;
-    margin: 0;
-    font-size: var(--t-monument);
-    font-weight: 500;
-    line-height: 0.8;
-    letter-spacing: -0.045em;
-    text-transform: uppercase;
-    white-space: nowrap;
-    transform: translateY(9%);
-    pointer-events: none;
-  }
-  .monument span {
-    display: block;
-    transform-origin: left bottom;
-  }
-  @supports (animation-timeline: scroll()) {
-    .monument span {
-      animation: weigh linear both;
-      animation-timeline: scroll(root);
-      animation-range: 0 100svh;
+  @media (min-width: 900px) {
+    .hero-figure {
+      width: 84%;
     }
-    @keyframes weigh {
-      to {
-        transform: scale(0.93);
-      }
+    .hero-intro {
+      left: -14%;
+      top: 48px;
+      padding: 0;
+      background: none;
+      width: 300px;
+    }
+    .hero-intro span {
+      display: block;
+      padding: 18px 20px;
+      background: var(--color-bg);
     }
   }
-
-  /* On a phone the word turns and runs down the right side. */
-  @media (max-width: 640px) {
-    .hero {
-      height: auto;
-      min-height: calc(100svh - 68px);
-    }
-    .hero-copy {
-      max-width: 62%;
-      gap: 22px;
-      padding-top: 28px;
-      padding-bottom: 40px;
-    }
-    .hero-copy :global(.statement) {
-      font-size: 20px;
-    }
-    .hero-copy :global(.btn) {
-      padding: 0 16px;
-      white-space: nowrap;
-    }
-    .hero-piece {
+  @media (max-width: 899px) {
+    .hero-intro {
       position: static;
-      height: auto;
-      aspect-ratio: auto;
-    }
-    .hero-piece .frame {
-      aspect-ratio: 4 / 5;
-    }
-    .hero-piece-label {
-      flex-direction: column;
-      gap: 0;
-    }
-    .monument {
-      left: auto;
-      right: 0;
-      top: 0;
-      bottom: 0;
-      writing-mode: vertical-rl;
-      font-size: 47vw;
-      transform: translateX(22%);
-      display: flex;
-      align-items: center;
+      width: auto;
+      padding: 48px 0 0;
     }
   }
 </style>

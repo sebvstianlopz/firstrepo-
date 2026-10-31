@@ -1,28 +1,24 @@
 @import 'tailwindcss';
 
 @theme {
-  --font-sans: 'Jost Variable', 'Futura', 'Helvetica Neue', sans-serif;
-  --font-serif: 'Cormorant Garamond', 'Times New Roman', serif;
-  --color-bg: #f4f3f0;
-  --color-surface: #e9e7e2;
-  --color-surface-2: #dedad3;
-  --color-ink: #1a1714;
-  --color-muted: #5e554d;
-  --color-accent: #5b3a24;
-  --color-paper: #f4f3f0;
+  --font-sans: 'Archivo Variable', 'Helvetica Neue', Arial, sans-serif;
+  --font-script: 'Reenie Beanie', cursive;
+  --color-bg: #ffffff;
+  --color-surface: #f4f4f4;
+  --color-ink: #000000;
+  --color-muted: #6b6b6b;
+  --color-line: #e5e5e5;
+  --color-accent: #e10600;
 }
 
 :root {
   /* One pair of page margins, used everywhere. */
-  --m: clamp(20px, 2.2vw, 32px);
-  /* The five type steps. */
-  --t-monument: clamp(160px, 31vw, 520px);
-  --t-head: clamp(34px, 3.6vw, 56px);
-  --t-statement: clamp(21px, 1.8vw, 28px);
-  --t-body: 16px;
-  --t-small: 14px;
-  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --section-gap: clamp(112px, 13vw, 200px);
+  --m: clamp(16px, 2.2vw, 32px);
+  --section-gap: clamp(96px, 11vw, 176px);
+  /* Strong curves: ease-out for entering, ease-in-out for moving, the drawer curve for sheets. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
   color-scheme: light;
 }
 
@@ -30,21 +26,22 @@ html {
   background: var(--color-bg);
   color: var(--color-ink);
   font-family: var(--font-sans);
-  font-size: var(--t-body);
-  line-height: 1.55;
+  font-size: 16px;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   background: var(--color-bg);
-  min-height: 100svh;
+  min-height: 100dvh;
   overflow-x: clip;
 }
 
 ::selection {
-  background: var(--color-ink);
-  color: var(--color-paper);
+  background: var(--color-accent);
+  color: #fff;
 }
 
 :focus-visible {
@@ -58,135 +55,192 @@ img {
   height: auto;
 }
 
+/* Taps fire at once (no double-tap-zoom wait). */
+a,
+button,
+summary,
+select,
+label {
+  touch-action: manipulation;
+}
+
+/* Controls are not text: a long press shouldn't select them. Content stays selectable. */
+button,
+summary,
+.btn,
+.pill,
+.icon-btn {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* iOS zooms into any field under 16px and never zooms back out. */
+@media (pointer: coarse) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+[hidden] {
+  display: none !important;
+}
+
 .wrap {
-  padding-inline: var(--m);
+  padding-inline: max(var(--m), env(safe-area-inset-left, 0px)) max(var(--m), env(safe-area-inset-right, 0px));
 }
 
-.head {
-  font-family: var(--font-serif);
-  font-weight: 400;
-  font-size: var(--t-head);
-  line-height: 1.02;
-  letter-spacing: -0.015em;
-  text-wrap: balance;
+/* Type */
+.display {
+  font-stretch: 125%;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.035em;
+  line-height: 0.86;
 }
 
-.statement {
-  font-size: var(--t-statement);
-  line-height: 1.32;
-  letter-spacing: -0.005em;
-  max-width: 34ch;
+.title {
+  font-stretch: 125%;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  font-size: clamp(28px, 3.4vw, 52px);
 }
 
-.small {
-  font-size: var(--t-small);
-  line-height: 1.45;
+.label {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  line-height: 1.35;
+  text-transform: uppercase;
 }
 
 .muted {
   color: var(--color-muted);
 }
 
-.wordmark {
-  font-weight: 500;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-/* The one button shape: square, flat, ink. */
+/* Buttons: square black blocks that press in. */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.6em;
-  min-height: 52px;
+  gap: 10px;
+  min-height: 48px;
   padding: 0 28px;
   background: var(--color-ink);
-  color: var(--color-paper);
-  font-size: 16px;
-  font-weight: 500;
-  letter-spacing: 0.01em;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
   cursor: pointer;
+  user-select: none;
   transition:
-    background-color 0.25s ease,
-    transform 0.2s var(--ease-out);
-}
-.btn:hover {
-  background: var(--color-accent);
+    transform 160ms var(--ease-out),
+    background-color 200ms ease;
 }
 .btn:active {
-  transform: scale(0.98);
+  transform: scale(0.97);
 }
-.btn[disabled] {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-.btn-quiet {
-  background: var(--color-surface);
+.btn-outline {
+  background: var(--color-bg);
   color: var(--color-ink);
+  box-shadow: inset 0 0 0 1px var(--color-ink);
 }
-.btn-quiet:hover {
-  background: var(--color-surface-2);
-}
-.btn-paper {
-  background: var(--color-paper);
-  color: var(--color-ink);
-}
-.btn-paper:hover {
-  background: var(--color-surface-2);
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover {
+    background: #262626;
+  }
+  .btn-outline:hover {
+    background: var(--color-surface);
+  }
 }
 
-/* Text links: underline appears on hover, never a rule at rest. */
+/* Pills: the one rounded shape. Name, then a red price. */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 100%;
+  padding: 5px 5px 5px 14px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.pill-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pill-price {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  background: var(--color-accent);
+  color: #fff;
+  border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Text links */
 .link {
   text-decoration: underline;
   text-decoration-thickness: 1px;
-  text-underline-offset: 0.3em;
+  text-underline-offset: 0.25em;
   text-decoration-color: transparent;
-  transition: text-decoration-color 0.3s ease;
+  transition: text-decoration-color 200ms ease;
 }
-.link:hover,
 .link[aria-current='page'] {
   text-decoration-color: currentColor;
 }
+@media (hover: hover) and (pointer: fine) {
+  .link:hover {
+    text-decoration-color: currentColor;
+  }
+}
 
-/* Form fields keep their lines; that is their convention. */
+/* Form fields */
 .field {
   display: grid;
   gap: 6px;
 }
 .field label {
-  font-size: var(--t-small);
-  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
 .input {
   width: 100%;
-  min-height: 52px;
-  padding: 0 16px;
-  background: var(--color-paper);
-  border: 1px solid #bfb6aa;
+  min-height: 48px;
+  padding: 0 14px;
+  background: var(--color-bg);
+  border: 1px solid #cfcfcf;
+  border-radius: 0;
   color: var(--color-ink);
   font-size: 16px;
-  border-radius: 0;
-  transition: border-color 0.2s ease;
-}
-.input:hover {
-  border-color: var(--color-muted);
+  transition: border-color 150ms ease;
 }
 .input:focus {
   outline: none;
   border-color: var(--color-ink);
-  box-shadow: inset 0 0 0 1px var(--color-ink);
 }
 select.input {
   appearance: none;
   padding-right: 40px;
-  background: var(--color-paper)
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%231a1714' stroke-width='1.5'/%3E%3C/svg%3E")
-    no-repeat right 16px center;
+  background: var(--color-bg)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23000' stroke-width='1.5'/%3E%3C/svg%3E")
+    no-repeat right 14px center;
 }
 
-/* Picture frames: square corners, a slow zoom and a second view on hover. */
+/* Picture wells */
 .frame {
   position: relative;
   overflow: hidden;
@@ -196,32 +250,16 @@ select.input {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition:
-    transform 1.2s var(--ease-out),
-    opacity 0.6s ease;
-}
-.frame .alt-view {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-}
-a:hover .frame img,
-a:focus-visible .frame img {
-  transform: scale(1.03);
-}
-a:hover .frame .alt-view,
-a:focus-visible .frame .alt-view {
-  opacity: 1;
 }
 
-/* Entrance: parts of a section rise in turn. Content stays visible without script. */
+/* Entrance: parts of a block rise in turn, once. Content stays visible without script. */
 .js [data-reveal] > * {
   opacity: 0;
-  transform: translateY(24px);
+  transform: translateY(16px);
   transition:
-    opacity 0.9s var(--ease-out),
-    transform 0.9s var(--ease-out);
-  transition-delay: calc(var(--i, 0) * 80ms);
+    opacity 500ms var(--ease-out),
+    transform 500ms var(--ease-out);
+  transition-delay: calc(min(var(--i, 0), 8) * 60ms);
 }
 .js [data-reveal].is-in > * {
   opacity: 1;
@@ -244,22 +282,43 @@ a:focus-visible .frame .alt-view {
   display: none;
 }
 
+/* Reduced motion: keep the fades that explain, drop the travel. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    transition-delay: 0ms !important;
     scroll-behavior: auto !important;
   }
   .js [data-reveal] > * {
-    opacity: 1;
+    transform: none;
+    transition: opacity 300ms ease;
+    transition-delay: 0ms;
+  }
+  .btn:active {
     transform: none;
   }
 }
 
-[hidden] {
-  display: none !important;
+/* The product grid used on every page: 2, then 3, then 4 across. */
+.grid-pieces {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 40px 12px;
+}
+@media (min-width: 768px) {
+  .grid-pieces {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 56px 24px;
+  }
+}
+@media (min-width: 1440px) {
+  .grid-pieces {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1440px) {
+  /* Short rows (six pieces) read better three across. */
+  .grid-pieces.grid-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }

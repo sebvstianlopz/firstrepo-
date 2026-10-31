@@ -2,7 +2,9 @@
 import { Image, getImage } from 'astro:assets';
 import Base from '../../layouts/Base.astro';
 import PieceCard from '../../components/PieceCard.astro';
+import PricePill from '../../components/PricePill.astro';
 import Price from '../../components/Price.astro';
+import Heart from '../../components/Heart.astro';
 import { categories, defaultCity, site, url } from '../../config/site';
 import { getPieces, type Piece } from '../../utils/pieces';
 
@@ -17,42 +19,51 @@ interface Props {
 }
 const { piece, pieces } = Astro.props;
 const d = piece.data;
-const thumb = await getImage({ src: d.photos[0], width: 192, height: 240, fit: 'cover', format: 'webp' });
+const thumb = await getImage({ src: d.photos[0], width: 240, height: 240, fit: 'contain', background: '#ffffff', format: 'webp' });
 
-// Complete the look: the rest of its category first, then the other categories.
+// Complete the look: the rest of its category first, then featured pieces from the others.
 const others = pieces.filter((p) => p.id !== piece.id);
 const look = [...others.filter((p) => p.data.category === d.category), ...others.filter((p) => p.data.category !== d.category && p.data.featured)].slice(0, 4);
 const advisor = `mailto:${site.advisorEmail}?subject=${encodeURIComponent(`About the ${d.name}`)}`;
 ---
 <Base title={d.name} description={d.description} image={d.photos[0]}>
   <article class="piece wrap">
-    <div class="gallery no-scrollbar" aria-label="Pictures">
+    <div class="gallery no-scrollbar" aria-label="Pictures" data-gallery>
       {d.photos.map((photo, i) => (
-        <div class="frame aspect-[4/5]">
+        <div class="frame shot">
           <Image
             src={photo}
-            alt={i === 0 ? d.name : `${d.name}, detail`}
-            widths={[600, 1000, 1400]}
-            sizes="(min-width: 900px) 55vw, 100vw"
+            alt={i === 0 ? d.name : `${d.name}, back or detail`}
+            widths={[600, 1000, 1600]}
+            sizes="(min-width: 900px) 58vw, 100vw"
             loading={i === 0 ? 'eager' : 'lazy'}
           />
+          {i === 0 && <PricePill name={d.name} usd={d.price} class="shot-pill" />}
         </div>
       ))}
     </div>
+    {d.photos.length > 1 && (
+      <div class="dots" aria-hidden="true">{d.photos.map((_, i) => <span class:list={['dot', i === 0 && 'is-on']} />)}</div>
+    )}
 
     <div class="info">
       <form id="add-form" class="info-inner" data-piece-form data-reveal
         data-slug={piece.id} data-name={d.name} data-price={d.price} data-image={thumb.src}>
-        <h1 class="piece-name">{d.name}</h1>
-        <Price usd={d.price} class="text-[20px]" />
+        <a href={url(`collection/?c=${d.category}`)} class="label muted link w-fit">{categories[d.category]}</a>
+        <div class="flex items-start justify-between gap-6">
+          <h1 class="piece-name">{d.name}</h1>
+          <Heart slug={piece.id} name={d.name} class="mt-1" />
+        </div>
+        <p class="label">[<span data-colour-name>{d.colors[0].name}</span>]</p>
+        <Price usd={d.price} class="piece-price" />
 
-        <p class="mt-2">{d.description}</p>
+        <p class="mt-2 max-w-[52ch]">{d.description}</p>
 
         <fieldset class="mt-4">
-          <legend class="small mb-3">Colour: <span data-colour-name>{d.colors[0].name}</span></legend>
+          <legend class="label mb-3">Colour</legend>
           <div class="flex gap-3">
             {d.colors.map((c, i) => (
-              <label class="swatch" style={`--c:${c.hex}`}>
+              <label class="swatch" style={`--c:${c.hex}`} title={c.name}>
                 <input type="radio" name="color" value={c.name} checked={i === 0} class="sr-only" />
                 <span class="sr-only">{c.name}</span>
               </label>
@@ -62,7 +73,7 @@ const advisor = `mailto:${site.advisorEmail}?subject=${encodeURIComponent(`About
 
         {d.sizes.length > 0 && (
           <fieldset class="mt-2">
-            <legend class="small mb-3 flex justify-between w-full">Size</legend>
+            <legend class="label mb-3">Size</legend>
             <div class="sizes">
               {d.sizes.map((s) => (
                 <label class="size">
@@ -71,32 +82,32 @@ const advisor = `mailto:${site.advisorEmail}?subject=${encodeURIComponent(`About
                 </label>
               ))}
             </div>
-            <p class="hint small" data-size-hint role="alert" hidden>Choose a size to add this piece to your bag.</p>
+            <p class="hint label" data-size-hint role="alert" hidden>Choose a size first.</p>
           </fieldset>
         )}
 
         <button class="btn w-full mt-4" data-add>Add to bag</button>
-        <a href={advisor} class="btn btn-quiet w-full">Ask a client advisor</a>
+        <a href={advisor} class="btn btn-outline w-full">Ask a client advisor</a>
 
-        <p class="small mt-1">
+        <p class="label muted mt-1 normal-case">
           Complimentary delivery to <span data-city-name>{defaultCity.name}</span>, arriving <span data-city-days>in {defaultCity.days} days</span>.
           Free returns within {site.returnsDays} days.
         </p>
 
-        <div class="mt-6 grid gap-[6px]">
+        <div class="accs mt-6">
           <details class="acc" open>
-            <summary>Details</summary>
+            <summary class="label">Details</summary>
             <ul class="list-none grid gap-1">{d.details.map((x) => <li>{x}</li>)}</ul>
           </details>
           {d.care && (
             <details class="acc">
-              <summary>Care</summary>
+              <summary class="label">Care</summary>
               <p>{d.care}</p>
             </details>
           )}
           <details class="acc">
-            <summary>Delivery and returns</summary>
-            <p>Every order is wrapped by hand in the house’s box and delivered complimentary, with a signature on arrival. Returns are collected from your door within {site.returnsDays} days.</p>
+            <summary class="label">Delivery and returns</summary>
+            <p>Every order is wrapped by hand and delivered complimentary, signed for on arrival. Returns are collected from your door within {site.returnsDays} days.</p>
           </details>
         </div>
       </form>
@@ -104,19 +115,19 @@ const advisor = `mailto:${site.advisorEmail}?subject=${encodeURIComponent(`About
   </article>
 
   <section class="wrap look" aria-labelledby="look-title">
-    <div class="flex flex-wrap items-baseline justify-between gap-4 mb-10">
-      <h2 id="look-title" class="head">Complete the look</h2>
-      <a href={url(`collection/?c=${d.category}`)} class="link font-medium">All {categories[d.category].toLowerCase()}</a>
+    <div class="flex flex-wrap items-baseline justify-between gap-4 mb-8">
+      <h2 id="look-title" class="title">Complete the look</h2>
+      <a href={url(`collection/?c=${d.category}`)} class="label link">All {categories[d.category]}</a>
     </div>
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-x-3 lg:gap-x-5 gap-y-10" data-reveal>
+    <div class="grid-pieces" data-reveal>
       {look.map((p) => <PieceCard piece={p} />)}
     </div>
   </section>
 
-  <div class="mobile-bar" aria-hidden="true">
-    <div class="grid leading-tight">
-      <span class="small truncate">{d.name}</span>
-      <Price usd={d.price} class="font-medium" />
+  <div class="buy-bar" aria-hidden="true">
+    <div class="grid leading-tight min-w-0">
+      <span class="label truncate">{d.name}</span>
+      <Price usd={d.price} class="font-bold" />
     </div>
     <button form="add-form" class="btn" tabindex="-1">Add to bag</button>
   </div>
@@ -125,7 +136,7 @@ const advisor = `mailto:${site.advisorEmail}?subject=${encodeURIComponent(`About
 <style>
   .piece {
     display: grid;
-    gap: 32px;
+    gap: 24px;
     padding-top: 16px;
   }
   .gallery {
@@ -133,23 +144,58 @@ const advisor = `mailto:${site.advisorEmail}?subject=${encodeURIComponent(`About
     gap: 8px;
     overflow-x: auto;
     scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
     margin-inline: calc(var(--m) * -1);
+    padding-inline: var(--m);
+    scroll-padding-inline: var(--m);
   }
-  .gallery .frame {
+  .shot {
     flex: 0 0 100%;
+    aspect-ratio: 1;
     scroll-snap-align: start;
   }
-  .piece-name {
-    font-family: var(--font-serif);
-    font-size: clamp(36px, 3.4vw, 52px);
-    line-height: 1;
-    letter-spacing: -0.015em;
-    text-wrap: balance;
+  .shot :global(img) {
+    object-fit: contain;
+  }
+  .shot :global(.shot-pill) {
+    position: absolute;
+    left: 16px;
+    bottom: 16px;
+    max-width: calc(100% - 32px);
+  }
+  .dots {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-top: -8px;
+  }
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: #cfcfcf;
+    transition: background-color 200ms ease;
+  }
+  .dot.is-on {
+    background: var(--color-ink);
   }
   .info-inner {
     display: grid;
-    gap: 12px;
+    gap: 10px;
     max-width: 60ch;
+  }
+  .piece-name {
+    font-stretch: 125%;
+    font-weight: 800;
+    font-size: clamp(26px, 2.6vw, 40px);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    overflow-wrap: anywhere;
+  }
+  .info-inner :global(.piece-price) {
+    font-size: 22px;
+    font-weight: 700;
   }
   fieldset {
     border: 0;
@@ -157,77 +203,94 @@ const advisor = `mailto:${site.advisorEmail}?subject=${encodeURIComponent(`About
     margin-inline: 0;
   }
   .swatch {
-    width: 40px;
-    height: 40px;
+    width: 32px;
+    height: 32px;
     background: var(--c);
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12);
     cursor: pointer;
-    outline: 2px solid transparent;
+    outline: 1px solid transparent;
     outline-offset: 3px;
     transition:
-      outline-color 0.2s ease,
-      transform 0.2s var(--ease-out);
+      outline-color 150ms ease,
+      transform 160ms var(--ease-out);
   }
-  .swatch:hover {
-    transform: scale(1.06);
+  .swatch:active {
+    transform: scale(0.94);
   }
   .swatch:has(:checked) {
     outline-color: var(--color-ink);
   }
   .swatch:has(:focus-visible) {
-    outline-color: var(--color-accent);
+    outline: 2px solid var(--color-accent);
   }
   .sizes {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
     gap: 6px;
   }
   .size span {
     display: grid;
     place-items: center;
-    min-height: 48px;
-    background: var(--color-surface);
-    cursor: pointer;
+    min-height: 44px;
+    border: 1px solid var(--color-line);
+    font-size: 13px;
+    font-weight: 600;
     font-variant-numeric: tabular-nums;
+    cursor: pointer;
     transition:
-      background-color 0.2s ease,
-      color 0.2s ease;
+      border-color 150ms ease,
+      background-color 150ms ease,
+      color 150ms ease,
+      transform 160ms var(--ease-out);
   }
-  .size span:hover {
-    background: var(--color-surface-2);
+  .size:active span {
+    transform: scale(0.96);
   }
   .size :checked + span {
     background: var(--color-ink);
-    color: var(--color-paper);
+    border-color: var(--color-ink);
+    color: #fff;
   }
   .size :focus-visible + span {
     outline: 2px solid var(--color-ink);
     outline-offset: 2px;
   }
+  @media (hover: hover) and (pointer: fine) {
+    .size:hover span {
+      border-color: var(--color-ink);
+    }
+  }
   .hint {
     margin-top: 10px;
-    color: #8a2b1d;
+    color: var(--color-accent);
   }
   .shake {
-    animation: shake 0.4s ease;
+    animation: shake 300ms var(--ease-out);
   }
   @keyframes shake {
     25% {
-      transform: translateX(-6px);
+      transform: translateX(-5px);
     }
     75% {
-      transform: translateX(6px);
+      transform: translateX(5px);
     }
   }
+  @media (prefers-reduced-motion: reduce) {
+    .shake {
+      animation: none;
+    }
+  }
+  .accs {
+    border-top: 1px solid var(--color-line);
+  }
   .acc {
-    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-line);
   }
   .acc summary {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    min-height: 54px;
-    padding: 0 18px;
-    font-weight: 500;
+    min-height: 52px;
     cursor: pointer;
     list-style: none;
   }
@@ -236,20 +299,21 @@ const advisor = `mailto:${site.advisorEmail}?subject=${encodeURIComponent(`About
   }
   .acc summary::after {
     content: '+';
+    font-size: 18px;
     font-weight: 400;
-    font-size: 20px;
-    transition: transform 0.3s var(--ease-out);
+    transition: transform 200ms var(--ease-out);
   }
   .acc[open] summary::after {
     transform: rotate(45deg);
   }
   .acc > :not(summary) {
-    padding: 0 18px 20px;
+    padding-bottom: 18px;
+    font-size: 15px;
   }
   .look {
     margin-top: var(--section-gap);
   }
-  .mobile-bar {
+  .buy-bar {
     position: fixed;
     left: 0;
     right: 0;
@@ -261,33 +325,33 @@ const advisor = `mailto:${site.advisorEmail}?subject=${encodeURIComponent(`About
     gap: 16px;
     padding: 10px var(--m) calc(10px + env(safe-area-inset-bottom));
     background: var(--color-bg);
+    border-top: 1px solid var(--color-line);
     transform: translateY(100%);
-    transition: transform 0.4s var(--ease-out);
+    transition: transform 250ms var(--ease-out);
   }
-  .mobile-bar.is-on {
+  .buy-bar.is-on {
     transform: none;
   }
   @media (min-width: 900px) {
     .piece {
       grid-template-columns: 7fr 5fr;
-      gap: clamp(32px, 4vw, 80px);
+      gap: clamp(32px, 4vw, 72px);
     }
     .gallery {
       display: grid;
-      gap: 8px;
       overflow: visible;
       margin-inline: 0;
+      padding-inline: 0;
     }
-    .info {
-      position: relative;
+    .dots {
+      display: none;
     }
     .info-inner {
       position: sticky;
       top: 88px;
-      max-width: 460px;
       padding-bottom: 40px;
     }
-    .mobile-bar {
+    .buy-bar {
       display: none;
     }
   }
@@ -309,10 +373,9 @@ const advisor = `mailto:${site.advisorEmail}?subject=${encodeURIComponent(`About
   form.addEventListener('submit', (e) => {
     e.preventDefault();
     const data = new FormData(form);
-    const needsSize = Boolean(hint);
     const size = String(data.get('size') ?? '');
-    if (needsSize && !size) {
-      hint!.hidden = false;
+    if (hint && !size) {
+      hint.hidden = false;
       const sizes = form.querySelector<HTMLElement>('.sizes')!;
       sizes.classList.remove('shake');
       void sizes.offsetWidth;
@@ -325,9 +388,21 @@ const advisor = `mailto:${site.advisorEmail}?subject=${encodeURIComponent(`About
     document.dispatchEvent(new Event('bag:open'));
   });
 
-  // The phone bar appears once the main button has scrolled out of view,
+  // Phone gallery: the dot under the picture follows the swipe.
+  const gallery = document.querySelector<HTMLElement>('[data-gallery]')!;
+  const dots = [...document.querySelectorAll<HTMLElement>('.dot')];
+  gallery.addEventListener(
+    'scroll',
+    () => {
+      const i = Math.round(gallery.scrollLeft / gallery.clientWidth);
+      dots.forEach((d, j) => d.classList.toggle('is-on', i === j));
+    },
+    { passive: true },
+  );
+
+  // The phone buy bar appears once the main button has scrolled away,
   // and steps aside again when the footer arrives.
-  const bar = document.querySelector<HTMLElement>('.mobile-bar')!;
+  const bar = document.querySelector<HTMLElement>('.buy-bar')!;
   const main = form.querySelector('[data-add]')!;
   const footer = document.querySelector('.site-footer')!;
   const seen = { passed: false, footer: false };

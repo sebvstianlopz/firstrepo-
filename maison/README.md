@@ -1,9 +1,9 @@
 # Maison: a Louis Vuitton concept storefront
 
-A practice project: a calm, minimal storefront whose one job is to get a visitor to open a piece and add it to the bag.
+A practice project: a clean, streetwear-editorial storefront whose one job is to get a visitor to open a piece and add it to the bag.
 
-> Design study, not affiliated with or endorsed by Louis Vuitton. The wordmark is plain type, the pictures are drawn
-> stand-ins, and checkout is a demo that never asks for card details.
+> Design study, not affiliated with or endorsed by Louis Vuitton. The wordmark is plain type, the pictures are
+> grey stand-ins until real ones are added, and checkout is a demo that never asks for card details.
 
 Built with [Astro](https://astro.build) as a static site. No server, no database. It is a separate project from
 `los-eternos/` and does not touch it or its deploy.
@@ -22,35 +22,50 @@ npm run check      # types and content schema
 
 | Page | What it does |
 |---|---|
-| `/` | The name as a monument, the season's pieces, the house's story, new arrivals, a shop index, then a call to the collection |
-| `/collection/` | Every piece, with category filters (kept in the URL, e.g. `?c=men`) and sorting |
-| `/collection/<piece>/` | Pictures, colour and size, **Add to bag**, details, and "Complete the look" |
+| `/` | Edge-to-edge `LOUIS VUITTON` title, the campaign photo with the red season scribble, a featured bento with price pills, an editorial split, then new arrivals |
+| `/collection/` | Every piece, with category tabs, a **Saved ♥** tab, sorting, and pagination past 12 pieces. Tabs are kept in the URL, e.g. `?c=men` |
+| `/collection/<piece>/` | Cut-out pictures, colour and size, **Add to bag**, a heart to save it, details, and "Complete the look" |
 | `/checkout/` | Contact and delivery form plus the order summary. Payment is switched off |
 | `/checkout/confirmation/` | The order a client would see after placing it |
 
-The **Deliver to** picker (in the hero, header, menu and checkout) is the site's one live element. Choosing a city
-switches every price to its currency and updates the delivery promise everywhere. The bag lives in `localStorage`.
+The **Deliver to** picker (in the hero, header, menu and checkout) switches every price to that city's currency and
+updates the delivery promise everywhere. The bag and the saved pieces live in `localStorage`.
+
+## Adding your pictures
+
+Every slot shows a grey stand-in that names itself and its ideal size. Replace a slot by saving your file under the
+same name, then delete the piece's `photoPending: true` line.
+
+| Slot | File | Ideal size |
+|---|---|---|
+| Hero campaign photo | `src/assets/campaign/hero.jpg` | Landscape 3:2, 2400 × 1600 |
+| Editorial, large | `src/assets/campaign/editorial-large.jpg` | Portrait 4:5, 1600 × 2000 |
+| Editorial, small | `src/assets/campaign/editorial-small.jpg` | Portrait 3:4, 1200 × 1600 |
+| A piece, front | `src/content/pieces/<piece>/1.png` | Square 1:1, 1600 × 1600, cut-out on white or transparent |
+| A piece, back or detail | `src/content/pieces/<piece>/2.png` | Same as the front |
+
+To use `.jpg` for a piece instead, change its `photos:` line in `data.yaml` to match. `npm run placeholders` only fills
+slots that are empty, so it never touches a real picture.
 
 ## Everyday changes
 
 | I want to… | Edit |
 |---|---|
-| Change a name, price, sizes or text | `src/content/pieces/<piece>/data.yaml` |
-| Use a real photo | Overwrite `1.jpg` (front) and `2.jpg` (detail) in the piece's folder (portrait 4:5, at least 1200 × 1500 px), then delete the `photoPending: true` line |
-| Add a piece | Copy any piece folder, rename it (the folder name becomes the URL) and edit `data.yaml` |
-| Show a piece on the home page | `featured: true` (season band) or `isNew: true` (new arrivals) |
-| Change cities, delivery days, exchange rates or the advisor email | `src/config/site.ts` |
-| Replace the house pictures on the home page | `src/assets/house/*.jpg` |
-| Redraw the stand-in pictures | `npm run placeholders -- --force` (without `--force` it only fills in missing files, so real photos are never overwritten) |
+| Change a name, price, colour, sizes or text | `src/content/pieces/<piece>/data.yaml` |
+| Add a piece | Copy any piece folder, rename it (the folder name becomes the URL), edit `data.yaml`, run `npm run placeholders` |
+| Show a piece on the home page | `featured: true` (bento) or `isNew: true` (new arrivals) |
+| Change the season name, scribble or intro | `collection` in `src/config/site.ts` |
+| Change cities, delivery days, exchange rates, address, socials or the advisor email | `src/config/site.ts` |
 
 ## How it's built
 
-- `src/styles/global.css`: colour and type tokens (Jost + Cormorant Garamond), the one button, frames, entrance motion
-- `src/scripts/city.ts`: the delivery city, currency conversion and delivery promise
-- `src/scripts/bag.ts`: the bag store; `src/components/BagDrawer.astro` renders it
-- All motion respects `prefers-reduced-motion`, and every page reads fine without JavaScript (prices then show in USD)
+- `src/styles/global.css`: tokens (white, black, signal red `#e10600`), Archivo with its width axis for type, Reenie Beanie for the scribble, buttons, pills, the product grid, and entrance motion.
+- `src/components/PageTitle.astro`: titles that size themselves to fill the page edge to edge.
+- `src/scripts/city.ts`, `bag.ts` and `saved.ts`: the delivery city, the bag and the wishlist.
+- Motion follows a few rules: strong ease-out curves, UI motion under 300ms, a slight press-in on everything tappable, hover effects only on mouse devices, and reduced motion keeps the fades but drops the movement.
+- Mobile: no tap flash, safe-area padding for notched phones, 16px fields so iOS doesn't zoom, and a swipeable gallery with a bottom buy bar.
 
 ## Sample content to replace before using this for real
 
-Delivery days per city, exchange rates, the piece names, descriptions and prices, `advisor@example.com`, and every
-picture (all are drawings made by `scripts/make-placeholders.mjs`).
+Delivery days per city, exchange rates, the address, social links, `advisor@example.com`, the season copy, the piece
+names, descriptions and prices, and every picture.

@@ -3,64 +3,75 @@ import { url } from '../config/site';
 ---
 <dialog class="drawer" data-bag aria-labelledby="bag-title">
   <div class="drawer-panel">
-    <div class="flex items-center justify-between px-6 h-[68px] shrink-0">
-      <h2 id="bag-title" class="text-[20px] font-medium">Your bag</h2>
-      <button type="button" class="text-[16px] link" data-close>Close</button>
+    <div class="drawer-head">
+      <h2 id="bag-title" class="label font-bold">Bag <span class="muted" data-bag-lines></span></h2>
+      <button type="button" class="label link" data-close>Close</button>
     </div>
 
-    <div class="drawer-empty px-6 pt-10" data-bag-empty>
-      <p class="statement">Your bag is empty.</p>
-      <a href={url('collection/')} class="btn mt-8">Discover the collection</a>
+    <div class="px-6 pt-10" data-bag-empty>
+      <p class="title">Your bag is empty.</p>
+      <a href={url('collection/')} class="btn mt-8">Shop the collection</a>
     </div>
 
     <ul class="drawer-list" data-bag-list></ul>
 
-    <div class="drawer-foot px-6 py-6" data-bag-foot>
-      <div class="flex justify-between text-[20px] font-medium">
-        <span>Subtotal</span>
-        <span data-bag-total></span>
+    <div class="drawer-foot" data-bag-foot>
+      <div class="flex justify-between items-baseline">
+        <span class="label font-bold">Subtotal</span>
+        <span class="text-[20px] font-bold tabular-nums" data-bag-total></span>
       </div>
-      <p class="small muted mt-2">
+      <p class="label muted normal-case mt-2">
         Complimentary delivery to <span data-city-name>New York</span>, arriving <span data-city-days>in 2 days</span>.
         Returns within 30 days.
       </p>
-      <a href={url('checkout/')} class="btn w-full mt-6">Proceed to checkout</a>
+      <a href={url('checkout/')} class="btn w-full mt-5">Checkout</a>
     </div>
   </div>
 </dialog>
 
 <template data-bag-line>
   <li class="line">
-    <span class="frame aspect-[4/5]" data-thumb></span>
-    <div class="grid content-start gap-1">
-      <a class="font-medium link" data-name></a>
-      <span class="small muted" data-meta></span>
-      <div class="qty mt-3">
-        <button type="button" data-dec aria-label="One fewer">−</button>
-        <span data-qty></span>
-        <button type="button" data-inc aria-label="One more">+</button>
+    <a class="thumb" data-thumb tabindex="-1" aria-hidden="true"></a>
+    <div class="grid content-start gap-1 min-w-0">
+      <a class="label font-semibold link line-name" data-name></a>
+      <span class="label muted" data-meta></span>
+      <div class="line-foot mt-3">
+        <div class="qty">
+          <button type="button" data-dec aria-label="One fewer">−</button>
+          <span data-qty></span>
+          <button type="button" data-inc aria-label="One more">+</button>
+        </div>
+        <span data-price class="font-bold tabular-nums whitespace-nowrap"></span>
       </div>
-    </div>
-    <div class="grid justify-items-end content-between">
-      <span data-price class="tabular-nums"></span>
-      <button type="button" class="small muted link" data-remove>Remove</button>
+      <button type="button" class="label muted link w-fit mt-1" data-remove>Remove</button>
     </div>
   </li>
 </template>
 
 <style>
+  /* Opens with the iOS drawer curve; closes faster than it opens. */
   .drawer {
     width: 100%;
     max-width: none;
-    height: 100%;
+    height: 100dvh;
     max-height: none;
     margin: 0;
     background: transparent;
     overflow: hidden;
+    transition:
+      display 250ms allow-discrete,
+      overlay 250ms allow-discrete;
   }
   .drawer::backdrop {
-    background: rgb(26 23 20 / 0.35);
-    animation: fade 0.4s ease;
+    background: rgb(0 0 0 / 0.3);
+    transition:
+      opacity 300ms ease,
+      display 250ms allow-discrete,
+      overlay 250ms allow-discrete;
+  }
+  .drawer:not([open])::backdrop {
+    opacity: 0;
+    transition-duration: 200ms;
   }
   .drawer-panel {
     position: absolute;
@@ -70,59 +81,114 @@ import { url } from '../config/site';
     flex-direction: column;
     background: var(--color-bg);
     color: var(--color-ink);
-    animation: slide 0.4s var(--ease-out);
+    transform: none;
+    transition: transform 400ms var(--ease-drawer);
   }
-  .drawer.closing .drawer-panel {
-    animation: slide 0.3s var(--ease-out) reverse forwards;
+  .drawer:not([open]) .drawer-panel {
+    transform: translateX(100%);
+    transition: transform 250ms var(--ease-out);
   }
-  .drawer.closing::backdrop {
-    animation: fade 0.3s ease reverse forwards;
+  @starting-style {
+    .drawer[open] .drawer-panel {
+      transform: translateX(100%);
+    }
+    .drawer[open]::backdrop {
+      opacity: 0;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .drawer-panel,
+    .drawer:not([open]) .drawer-panel {
+      transform: none;
+      transition: opacity 200ms ease;
+    }
+    .drawer:not([open]) .drawer-panel {
+      opacity: 0;
+    }
+    @starting-style {
+      .drawer[open] .drawer-panel {
+        transform: none;
+        opacity: 0;
+      }
+    }
+  }
+  .drawer-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    height: calc(64px + env(safe-area-inset-top, 0px));
+    padding: env(safe-area-inset-top, 0px) 24px 0;
+    border-bottom: 1px solid var(--color-line);
   }
   .drawer-list {
     flex: 1;
     overflow-y: auto;
-    padding: 8px 24px;
-    display: grid;
-    align-content: start;
-    gap: 12px;
+    overscroll-behavior: contain;
+    padding: 0 24px;
+  }
+  .drawer-foot :global([data-bag-total]) {
+    overflow-wrap: anywhere;
+    text-align: right;
   }
   .drawer-foot {
-    background: var(--color-surface);
+    padding: 20px 24px calc(20px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--color-line);
   }
   .drawer :global(.line) {
     display: grid;
-    grid-template-columns: 96px 1fr auto;
+    grid-template-columns: 88px minmax(0, 1fr);
     gap: 16px;
-    padding: 12px;
+    padding-block: 16px;
+    border-bottom: 1px solid var(--color-line);
+  }
+  .drawer :global(.thumb) {
+    display: block;
+    aspect-ratio: 1;
     background: var(--color-surface);
+  }
+  .drawer :global(.thumb img) {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+  .drawer :global(.line-name) {
+    overflow-wrap: anywhere;
+  }
+  .drawer :global(.line-foot) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 12px;
   }
   .drawer :global(.qty) {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    width: fit-content;
+    border: 1px solid var(--color-line);
   }
   .drawer :global(.qty button) {
-    width: 36px;
-    height: 36px;
-    background: var(--color-bg);
-    transition: background-color 0.2s ease;
+    width: 34px;
+    height: 34px;
+    cursor: pointer;
+    transition:
+      background-color 150ms ease,
+      transform 160ms var(--ease-out);
   }
-  .drawer :global(.qty button:hover) {
-    background: var(--color-surface-2);
+  .drawer :global(.qty button:active) {
+    transform: scale(0.9);
   }
   .drawer :global(.qty span) {
     min-width: 24px;
     text-align: center;
+    font-size: 13px;
+    font-weight: 600;
     font-variant-numeric: tabular-nums;
   }
-  @keyframes slide {
-    from {
-      transform: translateX(100%);
-    }
-  }
-  @keyframes fade {
-    from {
-      opacity: 0;
+  @media (hover: hover) and (pointer: fine) {
+    .drawer :global(.qty button:hover) {
+      background: var(--color-surface);
     }
   }
 </style>
@@ -135,27 +201,42 @@ import { url } from '../config/site';
   const dialog = document.querySelector<HTMLDialogElement>('[data-bag]')!;
   const list = dialog.querySelector<HTMLUListElement>('[data-bag-list]')!;
   const tpl = document.querySelector<HTMLTemplateElement>('[data-bag-line]')!;
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  let lastCount = bagCount();
 
   function render() {
     const items = readBag();
     const count = bagCount(items);
     document.querySelectorAll<HTMLElement>('[data-bag-count]').forEach((el) => {
       el.textContent = String(count);
-      el.classList.add('bump');
-      setTimeout(() => el.classList.remove('bump'), 300);
+      el.hidden = count === 0;
+      // A small bump only when something was added.
+      if (count > lastCount && !reduceMotion.matches) {
+        el.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.3)' }, { transform: 'scale(1)' }], {
+          duration: 260,
+          easing: 'cubic-bezier(0.23, 1, 0.32, 1)',
+        });
+      }
     });
+    lastCount = count;
+    dialog.querySelector('[data-bag-lines]')!.textContent = count ? `(${count})` : '';
     dialog.querySelector<HTMLElement>('[data-bag-empty]')!.hidden = items.length > 0;
     dialog.querySelector<HTMLElement>('[data-bag-foot]')!.hidden = items.length === 0;
     dialog.querySelector('[data-bag-total]')!.textContent = price(bagTotal(items));
     list.replaceChildren(
       ...items.map((item, i) => {
         const li = tpl.content.firstElementChild!.cloneNode(true) as HTMLLIElement;
-        const img = Object.assign(new Image(96, 120), { src: item.image, alt: '' });
-        li.querySelector('[data-thumb]')!.append(img);
+        const href = url(`collection/${item.slug}/`);
+        const thumb = li.querySelector<HTMLAnchorElement>('[data-thumb]')!;
+        thumb.href = href;
+        const img = Object.assign(new Image(88, 88), { src: item.image, alt: '' });
+        // A missing picture leaves the grey well rather than a broken-image icon.
+        img.onerror = () => img.remove();
+        thumb.append(img);
         const name = li.querySelector<HTMLAnchorElement>('[data-name]')!;
         name.textContent = item.name;
-        name.href = url(`collection/${item.slug}/`);
-        li.querySelector('[data-meta]')!.textContent = [item.color, item.size && `Size ${item.size}`].filter(Boolean).join(' · ');
+        name.href = href;
+        li.querySelector('[data-meta]')!.textContent = [`[${item.color}]`, item.size && `Size ${item.size}`].filter(Boolean).join(' · ');
         li.querySelector('[data-qty]')!.textContent = String(item.qty);
         li.querySelector('[data-price]')!.textContent = price(item.price * item.qty);
         li.querySelector('[data-dec]')!.addEventListener('click', () => setQty(i, item.qty - 1));
@@ -166,17 +247,8 @@ import { url } from '../config/site';
     );
   }
 
-  function close() {
-    dialog.classList.add('closing');
-    setTimeout(() => {
-      dialog.classList.remove('closing');
-      dialog.close();
-    }, 280);
-  }
-
-  function openBag() {
-    if (!dialog.open) dialog.showModal();
-  }
+  const openBag = () => !dialog.open && dialog.showModal();
+  const close = () => dialog.close();
 
   document.addEventListener('click', (e) => {
     if ((e.target as HTMLElement).closest('[data-open-bag]')) openBag();
@@ -185,10 +257,6 @@ import { url } from '../config/site';
   dialog.querySelector('[data-close]')!.addEventListener('click', close);
   dialog.addEventListener('click', (e) => {
     if (e.target === dialog) close();
-  });
-  dialog.addEventListener('cancel', (e) => {
-    e.preventDefault();
-    close();
   });
   document.addEventListener('bag:change', render);
   document.addEventListener('city:change', render);

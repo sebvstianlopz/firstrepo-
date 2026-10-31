@@ -1,6 +1,8 @@
 ---
+// Product card: cut-out on white, uppercase name with [COLOUR], heart, bold price.
 import { Image } from 'astro:assets';
 import type { CollectionEntry } from 'astro:content';
+import Heart from './Heart.astro';
 import Price from './Price.astro';
 import { url } from '../config/site';
 
@@ -9,23 +11,78 @@ interface Props {
   sizes?: string;
   eager?: boolean;
 }
-const { piece, sizes = '(min-width: 1024px) 25vw, 50vw', eager = false } = Astro.props;
+const { piece, sizes = '(min-width: 1440px) 25vw, (min-width: 768px) 33vw, 50vw', eager = false } = Astro.props;
 const { name, price, photos, colors } = piece.data;
+const href = url(`collection/${piece.id}/`);
 ---
-<a
-  href={url(`collection/${piece.id}/`)}
-  class="piece-card group grid gap-3"
-  data-category={piece.data.category}
-  data-price={price}
-  data-order={piece.data.order}
->
-  <div class="frame aspect-[4/5]">
-    <Image src={photos[0]} alt={name} widths={[400, 700, 1000]} sizes={sizes} loading={eager ? 'eager' : 'lazy'} />
-    {photos[1] && <Image src={photos[1]} alt="" class="alt-view" widths={[400, 700, 1000]} sizes={sizes} />}
+<article class="card" data-slug={piece.id} data-category={piece.data.category} data-price={price} data-order={piece.data.order}>
+  <a href={href} class="card-media" tabindex="-1" aria-hidden="true">
+    <Image src={photos[0]} alt="" widths={[400, 700, 1000]} sizes={sizes} loading={eager ? 'eager' : 'lazy'} />
+    {photos[1] && <Image src={photos[1]} alt="" class="card-alt" widths={[400, 700, 1000]} sizes={sizes} />}
+  </a>
+  <div class="card-info">
+    <a href={href} class="card-name label">
+      {name} <span class="whitespace-nowrap">[{colors[0].name}]</span>
+    </a>
+    <Heart slug={piece.id} name={name} />
   </div>
-  <div class="flex items-baseline justify-between gap-3">
-    <span class="font-medium leading-snug">{name}</span>
-    <Price usd={price} class="shrink-0" />
-  </div>
-  <span class="muted -mt-2">{colors.length > 1 ? `${colors.length} colours` : colors[0].name}</span>
-</a>
+  <Price usd={price} class="card-price" />
+</article>
+
+<style>
+  .card {
+    display: grid;
+    align-content: start;
+    gap: 10px;
+  }
+  .card-media {
+    position: relative;
+    display: block;
+    aspect-ratio: 1;
+    overflow: hidden;
+    background: var(--color-bg);
+  }
+  .card-media :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transition:
+      transform 300ms var(--ease-out),
+      opacity 200ms ease;
+  }
+  .card-media :global(.card-alt) {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+  }
+  .card-info {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .card-name {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    max-width: 24ch;
+  }
+  .card :global(.card-price) {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .card:hover .card-media :global(img) {
+      transform: scale(1.03);
+    }
+    .card:hover .card-media :global(.card-alt) {
+      opacity: 1;
+    }
+    .card:hover .card-name {
+      text-decoration: underline;
+      text-underline-offset: 0.25em;
+    }
+  }
+</style>

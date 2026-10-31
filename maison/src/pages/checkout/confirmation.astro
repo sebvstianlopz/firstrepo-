@@ -1,17 +1,19 @@
 ---
 import Base from '../../layouts/Base.astro';
+import PageTitle from '../../components/PageTitle.astro';
 import { url } from '../../config/site';
 ---
 <Base title="Thank you" description="Your order is confirmed." noindex>
-  <section class="wrap confirm pt-10 sm:pt-16" data-reveal>
-    <h1 class="head" data-greeting>Thank you for your order.</h1>
-    <p class="statement" data-message>
+  <PageTitle text="Thank you" />
+  <section class="wrap confirm pt-10" data-reveal>
+    <p class="title" data-greeting>Your order is confirmed.</p>
+    <p class="max-w-[52ch]" data-message>
       A client advisor will be in touch to arrange delivery.
     </p>
     <div class="order" data-order hidden>
       <p class="flex justify-between gap-4"><span class="muted">Order</span><span class="font-medium tabular-nums" data-number></span></p>
       <ul class="grid gap-4 mt-6" data-items></ul>
-      <p class="flex justify-between gap-4 mt-6 text-[20px] font-medium"><span>Total</span><span data-total></span></p>
+      <p class="flex justify-between gap-4 mt-6 text-[20px] font-bold"><span>Total</span><span data-total></span></p>
     </div>
     <a href={url('collection/')} class="btn w-fit">Continue with the collection</a>
   </section>
@@ -25,17 +27,18 @@ import { url } from '../../config/site';
   }
   .order {
     padding: 28px;
-    background: var(--color-surface);
+    border: 1px solid var(--color-line);
   }
   .order :global(li) {
     display: grid;
-    grid-template-columns: 72px 1fr auto;
+    grid-template-columns: 72px minmax(0, 1fr) auto;
     gap: 14px;
   }
   .order :global(img) {
     width: 72px;
-    aspect-ratio: 4 / 5;
-    object-fit: cover;
+    aspect-ratio: 1;
+    object-fit: contain;
+    background: var(--color-surface);
   }
 </style>
 
@@ -65,9 +68,10 @@ import { url } from '../../config/site';
     document.querySelector('[data-items]')!.replaceChildren(
       ...order.items.map((i) => {
         const li = document.createElement('li');
-        const img = Object.assign(new Image(72, 90), { src: i.image, alt: '' });
+        const img = Object.assign(new Image(72, 72), { src: i.image, alt: '' });
+        img.onerror = () => (img.style.visibility = 'hidden');
         const text = document.createElement('div');
-        text.innerHTML = '<p class="font-medium"></p><p class="small muted"></p>';
+        text.innerHTML = '<p class="label font-semibold"></p><p class="label muted"></p>';
         text.children[0].textContent = i.name;
         text.children[1].textContent = i.detail;
         const cost = document.createElement('span');

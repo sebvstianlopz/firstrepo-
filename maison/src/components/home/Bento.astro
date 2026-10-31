@@ -1,0 +1,113 @@
+---
+// Featured pieces: one large tile and two stacked, each with a floating name/price pill.
+import { Image } from 'astro:assets';
+import PricePill from '../PricePill.astro';
+import { url } from '../../config/site';
+import type { Piece } from '../../utils/pieces';
+
+interface Props {
+  pieces: Piece[];
+}
+const tiles = Astro.props.pieces.slice(0, 3);
+---
+<section class="wrap bento-section" aria-labelledby="featured-title">
+  <div class="section-head">
+    <h2 id="featured-title" class="title">Featured</h2>
+    <a href={url('collection/')} class="label link">View all</a>
+  </div>
+
+  <div class="bento" data-reveal>
+    {tiles.map((p, i) => (
+      <a href={url(`collection/${p.id}/`)} class:list={['tile', i === 0 && 'tile-large']}>
+        <Image
+          src={p.data.photos[0]}
+          alt={p.data.name}
+          widths={[500, 900, 1400]}
+          sizes={i === 0 ? '(min-width: 900px) 64vw, 100vw' : '(min-width: 900px) 32vw, 50vw'}
+        />
+        <PricePill name={p.data.name} usd={p.data.price} class="tile-pill" />
+      </a>
+    ))}
+  </div>
+</section>
+
+<style>
+  .bento-section {
+    margin-top: var(--section-gap);
+  }
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .bento {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: 1fr 1fr;
+  }
+  .tile {
+    position: relative;
+    display: block;
+    aspect-ratio: 1;
+    overflow: hidden;
+    background: var(--color-bg);
+    border: 1px solid var(--color-line);
+    transition: border-color 200ms ease;
+  }
+  .tile-large {
+    grid-column: 1 / -1;
+  }
+  .tile :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transition: transform 300ms var(--ease-out);
+  }
+  .tile :global(.tile-pill) {
+    position: absolute;
+    left: 16px;
+    bottom: 16px;
+    max-width: calc(100% - 32px);
+    transition: transform 200ms var(--ease-out);
+  }
+  .tile:active :global(.tile-pill) {
+    transform: scale(0.97);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .tile:hover {
+      border-color: var(--color-ink);
+    }
+    .tile:hover :global(img) {
+      transform: scale(1.04);
+    }
+    .tile:hover :global(.tile-pill) {
+      transform: translateY(-3px);
+    }
+  }
+  @media (min-width: 900px) {
+    .bento {
+      grid-template-columns: 2fr 1fr;
+      grid-template-rows: 1fr 1fr;
+    }
+    .tile-large {
+      grid-column: 1;
+      grid-row: 1 / 3;
+      aspect-ratio: auto;
+    }
+    .tile-large :global(.tile-pill) {
+      left: 24px;
+      bottom: 24px;
+      font-size: 14px;
+    }
+  }
+  @media (max-width: 899px) {
+    .tile:not(.tile-large) :global(.tile-pill) {
+      left: 8px;
+      bottom: 8px;
+      max-width: calc(100% - 16px);
+      font-size: 12px;
+    }
+  }
+</style>

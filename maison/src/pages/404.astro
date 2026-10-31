@@ -1,11 +1,12 @@
 ---
 import Base from '../layouts/Base.astro';
+import PageTitle from '../components/PageTitle.astro';
 import { url } from '../config/site';
 ---
 <Base title="Page not found" description="This page could not be found." noindex>
-  <section class="wrap grid gap-8 content-center min-h-[70svh]">
-    <h1 class="head">This page has travelled on.</h1>
-    <p class="statement">The piece or page you were looking for is no longer here.</p>
-    <a href={url('collection/')} class="btn w-fit">Discover the collection</a>
+  <PageTitle text="Not found" />
+  <section class="wrap grid gap-8 pt-10 max-w-xl">
+    <p>The piece or page you were looking for has travelled on.</p>
+    <a href={url('collection/')} class="btn w-fit">Shop the collection</a>
   </section>
 </Base>

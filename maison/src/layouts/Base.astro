@@ -1,12 +1,12 @@
 ---
-import '@fontsource-variable/jost';
-import '@fontsource/cormorant-garamond/400.css';
+import '@fontsource-variable/archivo/wdth.css';
+import '@fontsource/reenie-beanie/latin-400.css';
 import '../styles/global.css';
 import { getImage } from 'astro:assets';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import BagDrawer from '../components/BagDrawer.astro';
-import ogDefault from '../assets/house/trunk.jpg';
+import ogDefault from '../assets/campaign/hero.jpg';
 import { site, url } from '../config/site';
 
 interface Props {
@@ -23,12 +23,13 @@ const fullTitle = title === site.name ? `${site.name} · ${site.season}` : `${ti
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
     <title>{fullTitle}</title>
     <meta name="description" content={description} />
     {noindex && <meta name="robots" content="noindex" />}
     <link rel="icon" href={url('favicon.svg')} type="image/svg+xml" />
-    <meta name="theme-color" content="#f4f3f0" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="color-scheme" content="light" />
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={new URL(og.src, Astro.site)} />
@@ -44,6 +45,7 @@ const fullTitle = title === site.name ? `${site.name} · ${site.season}` : `${ti
     <BagDrawer />
     <script>
       import '../scripts/reveal';
+      import '../scripts/saved';
       import { applyCity } from '../scripts/city';
       applyCity();
     </script>

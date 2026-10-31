@@ -1,0 +1,78 @@
+---
+// A large photo, a small inset photo, a short story and a square "view more".
+import { Image } from 'astro:assets';
+import large from '../../assets/campaign/editorial-large.jpg';
+import small from '../../assets/campaign/editorial-small.jpg';
+import { url } from '../../config/site';
+---
+<section class="wrap editorial" aria-labelledby="editorial-title">
+  <div class="frame ed-large" data-reveal>
+    <Image src={large} alt="Editorial: made to travel" widths={[600, 1000, 1600]} sizes="(min-width: 900px) 52vw, 100vw" />
+  </div>
+
+  <div class="ed-copy" data-reveal>
+    <h2 id="editorial-title" class="title">‘Made to travel’</h2>
+    <p>
+      The house began in Paris in 1854, making flat-topped trunks that could be stacked in the hold of a ship.
+      This season keeps that idea close: coats that fold into a weekender, bags with brass corners and
+      working locks, and knits that are as good on the platform as they are at dinner.
+    </p>
+  </div>
+
+  <div class="frame ed-small" data-reveal>
+    <Image src={small} alt="Editorial detail" widths={[400, 800]} sizes="(min-width: 900px) 18vw, 45vw" />
+  </div>
+
+  <a href={url('collection/')} class="btn ed-cta">View more</a>
+</section>
+
+<style>
+  .editorial {
+    margin-top: var(--section-gap);
+    display: grid;
+    gap: 24px;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+  .ed-large {
+    grid-column: 1 / -1;
+    aspect-ratio: 4 / 5;
+  }
+  .ed-copy {
+    grid-column: 1 / -1;
+    display: grid;
+    gap: 20px;
+    max-width: 48ch;
+  }
+  .ed-small {
+    grid-column: 1 / 7;
+    aspect-ratio: 3 / 4;
+  }
+  .ed-cta {
+    grid-column: 7 / -1;
+    align-self: end;
+  }
+  @media (min-width: 900px) {
+    .editorial {
+      grid-template-rows: auto 1fr auto;
+      column-gap: 24px;
+      row-gap: 0;
+    }
+    .ed-large {
+      grid-column: 1 / 7;
+      grid-row: 1 / 4;
+    }
+    .ed-copy {
+      grid-column: 8 / 12;
+      grid-row: 1;
+      padding-top: 8%;
+    }
+    .ed-small {
+      grid-column: 7 / 9;
+      grid-row: 3;
+    }
+    .ed-cta {
+      grid-column: 10 / 13;
+      grid-row: 3;
+    }
+  }
+</style>

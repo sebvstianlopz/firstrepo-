@@ -7,6 +7,19 @@ export const site = {
   advisorEmail: 'advisor@example.com',
   disclaimer: 'Design study, not affiliated with or endorsed by Louis Vuitton. Illustrations stand in for photography.',
   returnsDays: 30,
+  /** SAMPLE: the season's story, shown on the home page. */
+  collection: {
+    name: 'New Horizons',
+    scribble: 'A/W 2026',
+    intro:
+      'A collection for the moment of leaving: coats cut to be lived in, bags built like the trunks that started the house, and pieces meant to be packed, unpacked and worn again somewhere new.',
+  },
+  address: ['00 Rue de l’Exemple', '75001 Paris', 'France'], // SAMPLE
+  social: {
+    instagram: 'https://instagram.com/',
+    youtube: 'https://youtube.com/',
+    x: 'https://x.com/',
+  },
 } as const;
 
 /** Prices are stored in US dollars and converted with these rates for display. */

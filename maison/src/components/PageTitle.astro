@@ -1,0 +1,57 @@
+---
+// A page title set edge to edge: the text is sized to exactly fill the margins.
+// CSS gives a close first guess from the letter count; a script trues it up
+// once the font has loaded and whenever the width changes.
+interface Props {
+  text: string;
+  as?: 'h1' | 'h2' | 'p';
+  /** Grey, cropped variant for the footer. */
+  ghost?: boolean;
+  id?: string;
+}
+const { text, as: Tag = 'h1', ghost = false, id } = Astro.props;
+---
+<div class:list={['fit', ghost && 'fit-ghost']} style={`--chars:${text.length}`}>
+  <Tag class="display fit-text" data-fit id={id} aria-hidden={ghost ? 'true' : undefined}>{text}</Tag>
+</div>
+
+<style>
+  .fit {
+    container-type: inline-size;
+    padding-inline: var(--m);
+  }
+  .fit-text {
+    display: block;
+    width: max-content;
+    white-space: nowrap;
+    font-size: calc(100cqi / (var(--chars) * 0.78));
+  }
+  .fit-ghost .fit-text {
+    color: #e3e3e3;
+  }
+</style>
+
+<script>
+  function fit(el: HTMLElement) {
+    const box = el.parentElement!;
+    const style = getComputedStyle(box);
+    const room = box.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    const size = parseFloat(getComputedStyle(el).fontSize);
+    if (el.scrollWidth > 0) el.style.fontSize = `${(size * room) / el.scrollWidth}px`;
+  }
+
+  const els = [...document.querySelectorAll<HTMLElement>('[data-fit]')];
+  const fitAll = () => els.forEach(fit);
+  document.fonts.ready.then(fitAll);
+  let width = 0;
+  new ResizeObserver(() => {
+    if (innerWidth === width) return;
+    width = innerWidth;
+    fitAll();
+  }).observe(document.documentElement);
+  // Titles whose text changes (the collection filter) ask to be refitted.
+  document.addEventListener('title:refit', () => {
+    els.forEach((el) => (el.style.fontSize = ''));
+    fitAll();
+  });
+</script>

@@ -1,0 +1,14 @@
+---
+import Price from './Price.astro';
+
+interface Props {
+  name: string;
+  usd: number;
+  class?: string;
+}
+const { name, usd, class: className } = Astro.props;
+---
+<span class:list={['pill', className]}>
+  <span class="pill-name">{name}</span>
+  <span class="pill-price"><Price usd={usd} /></span>
+</span>
